@@ -300,11 +300,19 @@ Column{data-width=500}
 
 ### Hotspot maps
 
-This panel will show two different maps, each in their own tab. The first tab will show a Year-To-Date hotspot map, and the second tab will show a hotspot map of the last 28 days.
+This panel will show two different maps, each in their own tab. The first tab will show a Year-To-Date map, and the second tab will show a map of the last 28 days. Hotspots will also be shown if there are a large enough number of crimes for hotspots to make sense.
 
 The Larcenies page has two additional maps for car break-ins. These maps are also on their own tabs, and display Year-To-Date car break-ins and the last 28 days of car break-ins.
 
 The Calls for Service maps only display the individual markers on addresses for the past 28 days map. Displaying all calls for service for the Year-To-Date maps slowed the dashboard down due to the volume of data presented on the map. The Year-To-Date Calls for Service maps show hotspots only.
+
+### Map
+
+```{r example map}
+
+citymap
+
+```
 
 Column{data-width=250}
 ------------------------------------------------------------------------------
