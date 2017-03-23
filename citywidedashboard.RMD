@@ -1,0 +1,309 @@
+---
+title: "Citywide Dashboard"
+output: 
+  flexdashboard::flex_dashboard:
+    logo: Y:/Projects/dashboard/RPDCrimeDashboard/Objects/RPDLogoSMALL.png
+    orientation: column
+    vertical_layout: fill
+    navbar:
+    - {title: "RPD Office of Business Intelligence", 
+    href: 'http://www.cityofrochester.gov/police/', 
+    align: right }
+    theme: cerulean
+
+---
+
+```{r setup, include=FALSE}
+
+curr.year <- as.numeric(format(Sys.Date(), '%Y')) ### This current year to automatically reference the current year
+begindate <- paste0(curr.year, '-01-01') ### For CFS to automatically create the begindate based on current year
+
+library(knitr)
+library(flexdashboard)
+library(RColorBrewer)
+library(stringr)
+library(ggplot2)
+library(plotly)
+library(KernSmooth)
+library(raster)
+library(leaflet)
+library(dplyr)
+library(reshape2)
+library(jsonlite)
+library(tidyr)
+library(DT)
+library(RODBC)
+
+source("Y:/Projects/dashboard/RPDCrimeDashboard/Functions/aoristicDayWeek.R")
+source("Y:/Projects/dashboard/RPDCrimeDashboard/Functions/cfsHotspotMap.R")
+source("Y:/Projects/dashboard/RPDCrimeDashboard/Functions/guntablenest.R")
+source("Y:/Projects/dashboard/RPDCrimeDashboard/Functions/kerntorast.R")
+source("Y:/Projects/dashboard/RPDCrimeDashboard/Functions/hotspotMap.R")
+source("Y:/Projects/dashboard/RPDCrimeDashboard/Functions/hotspotMapSV.R")
+source("Y:/Projects/dashboard/RPDCrimeDashboard/Functions/LERMS_getCallsForService.R")
+source("Y:/Projects/dashboard/RPDCrimeDashboard/Functions/LERMS_incidents.R")
+source("Y:/Projects/dashboard/RPDCrimeDashboard/Functions/nestedbeattable.R")
+source("Y:/Projects/dashboard/RPDCrimeDashboard/Functions/plotlyhmap.R")
+source("Y:/Projects/dashboard/RPDCrimeDashboard/Functions/SPC.R")
+source("Y:/Projects/dashboard/RPDCrimeDashboard/Functions/pullMCUdata.R")
+source("Y:/Projects/dashboard/RPDCrimeDashboard/Functions/loadshootingvictims.R")
+source("Y:/Projects/dashboard/RPDCrimeDashboard/Functions/CFSloc.R")
+
+
+simpleCap <- function(x) {
+  s <- strsplit(x, " ")[[1]]
+  paste(toupper(substring(s, 1,1)), tolower(substring(s, 2)),
+      sep="", collapse=" ")
+}
+
+
+#read in section JSON
+sectionJSON <- readLines("https://opendata.arcgis.com/datasets/772f3621fa354ec9abf3ba33f3ace59e_0.geojson") %>%
+    paste(collapse = "\n") %>%
+    fromJSON(simplifyVector = FALSE)
+
+#gather section names and set color palettes for sections and beats
+secNames <- sapply(sectionJSON$features, function(x) x$properties$Section)
+sectionpal <- colorFactor(palette = colorspace::sequential_hcl(5),
+                   domain = secNames)
+
+sectionJSON$features <- lapply(sectionJSON$features, function(x){
+    x$properties$style <- list(
+        fillColor = sectionpal(x$properties$Section)
+    )
+    x
+})
+
+#Create city base map
+
+citymap <- leaflet() %>% 
+    addProviderTiles("CartoDB.Positron") %>% 
+    fitBounds(lng1 = -77.55, lat1 = 43.11, lng2 = -77.668684, lat2 = 43.264020) %>%
+    addGeoJSON(sectionJSON, fillOpacity = .1)
+
+#load in RPD's crime data
+
+df <- LERMS_incidents_query(years = curr.year) %>%
+    distinct(CaseNumber, FullAddress, ReportDate, Description, .keep_all = TRUE) %>%
+    filter(MostSerious == 1, CaseStatusValue != 'Unfounded') %>%
+    arrange(ReportDate)
+df$CRNum <- paste0(substr(df$CaseNumber, start = 3, stop = 5),
+                   substr(df$CaseNumber, start = 8, stop = 13))
+df$OffenseDate<- as.Date(df$OffenseDate, format= '%Y-%m-%d')
+df$ReportDate <- as.Date(df$ReportDate, format = '%y-%m-%d')
+df$OffenseDOW <- factor(df$OffenseDOW, levels = c("Sunday", "Monday", "Tuesday", "Wednesday",
+                                                  "Thursday", "Friday", "Saturday"), 
+                        ordered = TRUE)
+df <- df %>%
+    mutate(sec = case_when(.$Section == 1 ~ "Lake", 
+                           .$Section == 3 ~ "Genesee", 
+                           .$Section == 5 ~ "Goodman", 
+                           .$Section == 7 ~ "Clinton", 
+                           .$Section == 9 ~ "Central"))
+df$sec <- factor(df$sec, 
+                 levels = c("Lake", "Genesee", "Goodman", "Clinton", "Central"))
+df$GEOBeat <- factor(df$GEOBeat, 
+                     levels = unique(df$GEOBeat[order(substr(df$GEOBeat, 3, 3), 
+                                                      substr(df$GEOBeat, 1, 2))]))
+df$ReportDayOfYear <- as.numeric(format(df$ReportDate, '%j'))
+df <- df %>%
+    mutate(WeaponGroup = case_when(.$WeaponIBRValue %in% c("01", "02", "03", "04", "05",
+                                                         "06", "07", "08", "09", "10") ~ "Firearm",
+                                   .$WeaponIBRValue == "11" ~ "Knife/Cutting Instrument",
+                                   .$WeaponIBRValue == "12" ~ "Blunt Object",
+                                   .$WeaponIBRValue %in% c("14", "15") ~ "Physical",
+                                   TRUE ~ "Other"))
+df$FullAddress <- unname(sapply(df$FullAddress, simpleCap))
+
+#use beatNames to make factor levels for beats
+beatNames <- df$GEOBeat %>% 
+    unique() %>% 
+    as.character()
+beatNames <- beatNames[! grepl(x = beatNames, pattern = "\\*")] #remove *** as a beat name
+beatLevels <- factor(beatNames[order(substr(beatNames, 3, 3), beatNames)])
+
+firearm.desc <- trimws(c('Prohibited Use of Weapon City Limits', 
+                        'Use of Dangerous Weapon', 
+                        'Criminal Use Firearm 1st: Commit Violent Class B Felony', 
+                        'Discharges Loaded Firearm', 
+                        'Use Firearm 1st: Possess a Deadly Weapon-Loaded',
+                        'Criminal Use Firearm 2nd: Possess Deadly Weapon: Loaded', 
+                        'Use Firearm 1st: Display Firearm', 
+                        'Criminal Use Firearm 2nd: Display Firearm'))
+
+firearmCrimeTypes <- c("Aggravated Assault", "Robbery", "Homicide", "Rape", "Simple Assault")
+df$Firearm <- ifelse(test = (as.numeric(df$WeaponIBRValue) %in% 1:10 & 
+                                 df$CrimeType %in% firearmCrimeTypes) |
+                         (df$CrimeType == "Dangerous Weapons" & 
+                              trimws(df$Description) %in% firearm.desc), 
+                     yes = 'Firearm', 
+                     no = 'Non-firearm')
+
+CPWs <- df %>% filter(CrimeType == "Dangerous Weapons" & 
+                          !trimws(Description) %in% firearm.desc &
+                          as.numeric(WeaponIBRValue) < 11)
+CPWs$OccurFromDate <- as.character(CPWs$OccurFromDate) #for table display purposes
+
+sevenDayGroupTable <- data.frame(DOY= 1:366, 
+                                Group= c(rep(1:51, each= 7), rep(52, each= 9)))
+df$SevenDaysGroup <- sevenDayGroupTable$Group[match(df$ReportDayOfYear, sevenDayGroupTable$DOY)]
+df$Description <- trim(sub(x = df$Description, pattern = ":.*", replacement = ""))
+
+curr.week <- sevenDayGroupTable$Group[match(as.numeric(format(Sys.Date(), 
+                                                             '%j')), 
+                                           sevenDayGroupTable$DOY)] - 1
+
+crimes <- c('Aggravated Assault', 'Arson', 'Burglary', 'Homicide', 'Larceny', 'MV Theft', 'Rape', 'Robbery', 'Firearm')
+sec <- c('Lake', 'Genesee', 'Goodman', 'Clinton', 'Central')
+
+pal <- brewer.pal(name = "Reds", n = 9)
+
+PropVals <- read.csv("Y:/Projects/dashboard/RPDCrimeDashboard/Objects/ProportionsAndCountsCityWide.csv", 
+                     header= T)
+ShootingControlLimits <- read.csv("Y:/Projects/dashboard/RPDCrimeDashboard/Objects/3YrWeightedControlLimitsShootingsCityWide.csv")
+ShootingProps <- read.csv("Y:/Projects/dashboard/RPDCrimeDashboard/Objects/ProportionsAndCountsShootingsCityWide.csv", 
+                          stringsAsFactors = FALSE)
+
+histdata <- read.csv(file = "Y:/Projects/dashboard/RPDCrimeDashboard/Objects/historicaldataCityWide.csv", 
+                     stringsAsFactors = FALSE, 
+                     header = TRUE)
+
+controllimits <- read.csv(file = "Y:/Projects/dashboard/RPDCrimeDashboard/Objects//3YrWeightedControlLimitsCityWide.csv", 
+                          header = TRUE)
+
+controllimits <- rbind(data.frame(controllimits, Year = 2017),
+                       data.frame(controllimits, Year = 2018),
+                       data.frame(controllimits, Year = 2019))
+
+mculist <- pullMCUdata()
+MCUhoms <- mculist[[1]]
+person <- mculist[[2]]
+rm(mculist)
+MCUhoms$CrimeType <- "Homicide"
+MCUhoms$DateOfEvent <- as.Date(MCUhoms$DateOfEvent, format = "%Y-%m-%d")
+MCUhoms$DOYofEvent <- as.numeric(format(MCUhoms$DateOfEvent, "%j"))
+MCUhoms$SevenDaysGroup <- sevenDayGroupTable$Group[match(MCUhoms$DOYofEvent, sevenDayGroupTable$DOY)]
+MCUhoms$YearofEvent <- as.numeric(format(MCUhoms$DateOfEvent, "%Y"))
+MCUhoms <- rename(MCUhoms, sec = Section, Lat = Latitude, Lon = Longitude, FullAddress = Address)
+MCUhoms$CaseStatus <- simpleCap(MCUhoms$CaseStatus)
+MCUhoms <- filter(MCUhoms, YearofEvent == curr.year)
+
+personincident <- left_join(MCUhoms, person, by = "CaseNumber")
+
+sv <- loadshootingvictims()
+drops <- c("Lat", "Lon")
+svjoined <- left_join(x = sv, y = df, by = c("CaseNumber" = "CRNum")) %>%
+    select(-one_of(drops)) %>%
+    rename(Lat = Latitude, Lon = Longitude)
+
+loc <- CFSloc()
+exclude <- c("630 North Clinton Ave, Rochester, NY, 14605", 
+             "185 Exchange Blvd, Rochester, NY, 14614",
+             "1099 Jay St, Rochester, NY, 14611")
+cfs.df <- LERMS_CFS_query(begindate = begindate)
+cfs.df$RPD_Priority <- ifelse(cfs.df$RPD_Priority == 1, "Critical", 
+                              ifelse(cfs.df$RPD_Priority == 2, "Urgent", 
+                                     ifelse(cfs.df$RPD_Priority == 3, "Normal", 
+                                            "Discretionary")))
+cfs.df$RPD_Priority <- factor(cfs.df$RPD_Priority, 
+                              levels = c("Critical", "Urgent", "Normal", "Discretionary"))
+
+firearmSPC <- SPC(crimes. = "Firearm")
+svSPC <- SPC(dataf = svjoined, crimes. = "Shooting")
+homicideSPC <- SPC(dataf = MCUhoms, crimes. = "Homicide")
+rapeSPC <- SPC(crimes. = "Rape")
+robSPC <- SPC(crimes. = "Robbery")
+asltSPC <- SPC(crimes. = "Aggravated Assault")
+burgSPC <- SPC(crimes. = "Burglary")
+larcSPC <- SPC(crimes. = "Larceny")
+
+```
+
+
+Reference
+======================================================================
+
+Column{data-width=200}
+-------------------------------------------------------------------------------
+
+### Action limits explained
+
+The Rochester Police Department is shifting towards the use of "process control" and away from year to year comparison statistics. The goal is to be able to compare current crime counts against a benchline of "normal", rather than the benchline of the previous year (which may have been very high or very low compared to past years).
+
+The Office of Business Intelligence has calculated "action limits" which you can see represented as dashed lines on the charts on the right hand side of this page. These limits (both upper and lower) are calculated by using weighted 3 year averages as centering values, and then calculating the standard deviations to find how much variation from that average to expect.
+
+If current counts for a section and crimetype break the upper action limit, it's a signal to investigate the causes of that rise in activity. If current counts break the lower action limit, it's a signal that there may be a beneficial intervention that can be studied and copied in other sections.
+
+Variation within the action limits is assumed to be normal "statistical noise" not requiring attention or resources above the section level.
+
+Column{data-width=500}
+------------------------------------------------------------------------------
+
+### Explanation of the action limit chart, using example data
+
+`r readRDS("//cor.local/RPD/OBI/Projects/dashboard/HomepageGraphDataCurrDesc.Rdata")[[5]]`
+
+`r readRDS("//cor.local/RPD/OBI/Projects/dashboard/HomepageGraphDataSimsDesc.Rdata")[[5]]`
+
+### Chart
+
+```{r}
+
+sims.end <- readRDS("//cor.local/RPD/OBI/Projects/dashboard/HomepageGraphDataSimsEnd.Rdata")
+temp.props <- readRDS("//cor.local/RPD/OBI/Projects/dashboard/HomepageGraphDataTempProps.Rdata")
+Target <- temp.props$ribbon.target[length(temp.props$ribbon.target)]
+SimsAvg <- mean(sims.end$Value)
+
+g <- ggplot(temp.props) +
+      geom_ribbon(aes(x= Week, ymin= ribbon.lower, ymax= ribbon.upper), fill= 'blue', size= 1, alpha= 0.1) +
+      geom_segment(aes(x = Week - 0.3, xend = Week + 0.3, y= ribbon.lower, yend= ribbon.lower)) +
+      geom_segment(aes(x = Week - 0.3, xend = Week + 0.3, y= ribbon.upper, yend= ribbon.upper)) +
+      geom_point(data= sims.end, aes(x= Week, y= Value), colour= 'black', alpha= 0.02) +
+      geom_point(aes(x= 52, y= Target), shape= 4, size= 2) +
+      geom_point(aes(x= 52, y= SimsAvg), size= 3, color= 'blue') +
+      geom_line(aes(x= Week, y=currentCounts)) +
+      geom_point(aes(x= Week, y=currentCounts), colour= temp.props$color) +
+      #geom_rect(data = sims.desc, 
+      #          aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax, fill = Description), 
+      #          color = 'brown', alpha = 0.2) +
+      #geom_rect(data = curr.desc, 
+      #          aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax, fill = Description),
+      #          color = 'brown', alpha = 0.2) +
+      scale_fill_manual(values = c('orange', 'orange')) +
+      labs(y= 'Count') +
+      theme_bw() +
+      theme(legend.position = 'none') +
+      annotate("text",
+               label = 'X% of our simulations show the year-end total exceeding the upper limit.',
+               y = Target,
+               x = 20)
+
+ggplotly(g, tooltip = c('Description'))
+
+```
+
+### Aoristic Heatmaps
+
+```{r}
+print("To Do")
+```
+
+Column{data-width=500}
+------------------------------------------------------------------------------
+
+### Hotspot maps
+
+This panel will show two different maps, each in their own tab. The first tab will show a Year-To-Date hotspot map, and the second tab will show a hotspot map of the last 28 days.
+
+The Larcenies page has two additional maps for car break-ins. These maps are also on their own tabs, and display Year-To-Date car break-ins and the last 28 days of car break-ins.
+
+The Calls for Service maps only display the individual markers on addresses for the past 28 days map. Displaying all calls for service for the Year-To-Date maps slowed the dashboard down due to the volume of data presented on the map. The Year-To-Date Calls for Service maps show hotspots only.
+
+Column{data-width=250}
+------------------------------------------------------------------------------
+
+### Additional tables
+
+The column on the right of each page will show additional data tables, including the breakdown of incidents by beat, by weapon type, larceny type, location type, etc.
+
+
