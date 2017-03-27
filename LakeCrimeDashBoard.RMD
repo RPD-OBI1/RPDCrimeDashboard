@@ -167,17 +167,22 @@ sec <- c('Lake', 'Genesee', 'Goodman', 'Clinton', 'Central')
 pal <- brewer.pal(name = "Reds", n = 9)
 
 PropVals <- read.csv("Y:/Projects/dashboard/RPDCrimeDashboard/Objects/ProportionsAndCounts.csv", 
-                     header= T)
-ShootingControlLimits <- read.csv("Y:/Projects/dashboard/RPDCrimeDashboard/Objects/3YrWeightedControlLimitsShootings.csv")
+                     header= T) %>%
+    filter(Section == sectionname)
+ShootingControlLimits <- read.csv("Y:/Projects/dashboard/RPDCrimeDashboard/Objects/3YrWeightedControlLimitsShootings.csv") %>%
+    filter(Section == sectionname)
 ShootingProps <- read.csv("Y:/Projects/dashboard/RPDCrimeDashboard/Objects/ProportionsAndCountsShootings.csv", 
-                          stringsAsFactors = FALSE)
+                          stringsAsFactors = FALSE) %>%
+    filter(Section == sectionname)
 
 histdata <- read.csv(file = "Y:/Projects/dashboard/RPDCrimeDashboard/Objects/historicaldata.csv", 
                      stringsAsFactors = FALSE, 
-                     header = TRUE)
+                     header = TRUE) %>%
+    filter(Section == section)
 
 controllimits <- read.csv(file = "Y:/Projects/dashboard/RPDCrimeDashboard/Objects//3YrWeightedControlLimits.csv", 
-                          header = TRUE)
+                          header = TRUE) %>%
+    filter(Section == sectionname)
 
 controllimits <- rbind(data.frame(controllimits, Year = 2017),
                        data.frame(controllimits, Year = 2018),
@@ -225,14 +230,14 @@ cfs.df <- LERMS_CFS_query(begindate = begindate) %>%
     
 
 
-firearmSPC <- SPC(crimes. = "Firearm")
-svSPC <- SPC(dataf = svjoined, crimes. = "Shooting")
-homicideSPC <- SPC(dataf = MCUhoms, crimes. = "Homicide")
-rapeSPC <- SPC(crimes. = "Rape")
-robSPC <- SPC(crimes. = "Robbery")
-asltSPC <- SPC(crimes. = "Aggravated Assault")
-burgSPC <- SPC(crimes. = "Burglary")
-larcSPC <- SPC(crimes. = "Larceny")
+firearmSPC <- SPC(crimetype = "Firearm")
+svSPC <- SPC(dataf = svjoined, crimetype = "Shooting")
+homicideSPC <- SPC(dataf = MCUhoms, crimetype = "Homicide")
+rapeSPC <- SPC(crimetype = "Rape")
+robSPC <- SPC(crimetype = "Robbery")
+asltSPC <- SPC(crimetype = "Aggravated Assault")
+burgSPC <- SPC(crimetype = "Burglary")
+larcSPC <- SPC(crimetype = "Larceny")
 
 ```
 
