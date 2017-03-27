@@ -13,14 +13,7 @@ output:
 
 ---
 
-```{r setup, include=FALSE}
-
-curr.year <- as.numeric(format(Sys.Date(), '%Y')) ### This current year to automatically reference the current year
-begindate <- paste0(curr.year, '-01-01') ### For CFS to automatically create the begindate based on current year
-
-section <- 1
-sectionname <- "Lake"
-
+```{r loadpackages}
 library(knitr)
 library(flexdashboard)
 library(RColorBrewer)
@@ -52,13 +45,26 @@ source("Y:/Projects/dashboard/RPDCrimeDashboard/Functions/pullMCUdata.R")
 source("Y:/Projects/dashboard/RPDCrimeDashboard/Functions/loadshootingvictims.R")
 source("Y:/Projects/dashboard/RPDCrimeDashboard/Functions/CFSloc.R")
 
-
 simpleCap <- function(x) {
   s <- strsplit(x, " ")[[1]]
   paste(toupper(substring(s, 1,1)), tolower(substring(s, 2)),
       sep="", collapse=" ")
 }
 
+```
+
+```{r setup, include=FALSE}
+
+sectionmap <- leaflet() %>% 
+    addProviderTiles("CartoDB.Positron") %>% 
+    fitBounds(lng1 = -77.617488, lat1 = 43.158172, lng2 = -77.668684, lat2 = 43.264020)
+
+section <- 1
+sectionname <- "Lake"
+
+
+curr.year <- as.numeric(format(Sys.Date(), '%Y')) ### This current year to automatically reference the current year
+begindate <- paste0(curr.year, '-01-01') ### For CFS to automatically create the begindate based on current year
 
 #read in section JSON
 sectionJSON <- readLines("https://opendata.arcgis.com/datasets/772f3621fa354ec9abf3ba33f3ace59e_0.geojson") %>%
@@ -84,11 +90,9 @@ lakebeatsJSON <- beatsJSON$features[lapply(beatsJSON$features, function(x){
     x$properties$Section
     })  == "Lake"]
 
-#Create city base map
+#add beats
 
-sectionmap <- leaflet() %>% 
-    addProviderTiles("CartoDB.Positron") %>% 
-    fitBounds(lng1 = -77.617488, lat1 = 43.158172, lng2 = -77.668684, lat2 = 43.264020) %>%
+sectionmap <- sectionmap %>%
     addGeoJSON(lakebeatsJSON, fillOpacity = .3)
 
 #load in RPD's crime data
@@ -213,7 +217,9 @@ sv <- loadshootingvictims()
 drops <- c("Lat", "Lon")
 svjoined <- left_join(x = sv, y = df, by = c("CaseNumber" = "CRNum")) %>%
     select(-one_of(drops)) %>%
-    rename(Lat = Latitude, Lon = Longitude)
+    rename(Lat = Latitude, Lon = Longitude) %>%
+    filter(sec == sectionname)
+rm(sv)
 
 loc <- CFSloc()
 #Exclude is for later use, excluding from hotspots/mapping/etc
