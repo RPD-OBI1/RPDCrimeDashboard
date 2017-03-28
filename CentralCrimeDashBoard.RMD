@@ -1,5 +1,5 @@
 ---
-title: "Lake Crime Dashboard"
+title: "Central Crime Dashboard"
 output: 
   flexdashboard::flex_dashboard:
     logo: Y:/Projects/dashboard/RPDCrimeDashboard/Objects/RPDLogoSMALL.png
@@ -13,7 +13,7 @@ output:
 
 ---
 
-```{r loadpackages}
+```{r loadpackages, include=FALSE}
 library(knitr)
 library(flexdashboard)
 library(RColorBrewer)
@@ -57,10 +57,10 @@ simpleCap <- function(x) {
 
 sectionmap <- leaflet() %>% 
     addProviderTiles("CartoDB.Positron") %>% 
-    fitBounds(lng1 = -77.617488, lat1 = 43.158172, lng2 = -77.668684, lat2 = 43.264020)
+    fitBounds(lng1 = -77.575370, lat1 = 43.159093, lng2 = -77.626865, lat2 = 43.257633)
 
-section <- 1
-sectionname <- "Lake"
+section <- 9
+sectionname <- "Central"
 
 
 curr.year <- as.numeric(format(Sys.Date(), '%Y')) ### This current year to automatically reference the current year
@@ -600,10 +600,12 @@ map
 
 ```{r}
 
-map <- hotspotMap(sectionmap, 
-                  filter(guns, 
-                         Lat != -361 & SevenDaysGroup > curr.week - 4))
-map
+guns28 <- guns %>%
+    filter(Lat != -361 & SevenDaysGroup > curr.week - 4)
+if(nrow(guns28) > 0){
+    map <- hotspotMap(sectionmap, guns28)
+    map
+}
 
 ```
 
@@ -671,9 +673,11 @@ ggplotly(svSPC[[1]], tooltip = c('Week', 'currentCounts', 'ThreeYrAvg', 'SimsAvg
 ### Aoristic Heatmap
 
 ```{r}
+if(nrow(svjoined) > 0){
+    mat <- aoristicDayWeek(svjoined)
+    plotlyhmap(mat)
+}
 
-mat <- aoristicDayWeek(svjoined)
-plotlyhmap(mat)
 
 ```
 
@@ -683,12 +687,14 @@ Column {data-width=400 .tabset .tabset-fade}
 ### YTD Hotspot map
 
 ```{r}
-dohotspot <- ifelse(nrow(svjoined) > 10, yes = TRUE, no = FALSE)
+if(nrow(svjoined) > 0){
+    dohotspot <- ifelse(nrow(svjoined) > 10, yes = TRUE, no = FALSE)
+    map <- hotspotMapSV(basemap = sectionmap, 
+                        mapdf = svjoined, 
+                        doHotSpot = dohotspot)
+    map
+}
 
-map <- hotspotMapSV(basemap = sectionmap, 
-                    mapdf = svjoined, 
-                    doHotSpot = dohotspot)
-map
 ```
 
 ### 28 day Hotspot map
@@ -750,18 +756,21 @@ There were `r nrow(svjoined)` total shooting victims in `r length(unique(svjoine
 
 ```{r}
 
-temptab <- svjoined %>% count(CaseNumber)
-temptab$n <- factor(temptab$n, levels = 1:max(temptab$n))
-temptab$n %>% 
-    table() %>%
-    as.data.frame() %>%
-    arrange(.) %>%
-    #kable(row.names = FALSE, col.names = c("Victims per Incident", "Count"))
+if(nrow(svjoined) > 0){
+    temptab <- svjoined %>% count(CaseNumber)
+    temptab$n <- factor(temptab$n, levels = 1:max(temptab$n))
+    temptab$n %>% 
+        table() %>%
+        as.data.frame() %>%
+        arrange(.) %>%
+        
     DT::datatable(rownames = FALSE, 
                   colnames = c("Victims per Incident", "Count"),
                   options = list(pageLength = 100, 
                                  dom = 't', 
                                  ordering = FALSE))
+
+}
 
 ```
 
@@ -809,9 +818,12 @@ map
 robsgeo <- filter(df, Lat != -361 & 
                       CrimeType == "Robbery" & 
                       difftime(Sys.Date(), OccurToDate, units = "days") <= 28)
-map <- hotspotMap(basemap = sectionmap, 
+if(nrow(robsgeo) > 0){
+    map <- hotspotMap(basemap = sectionmap, 
                   mapdf = robsgeo)
-map
+    map
+}
+
 
 ```
 

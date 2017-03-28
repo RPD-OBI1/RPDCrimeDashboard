@@ -1,5 +1,5 @@
 ---
-title: "Lake Crime Dashboard"
+title: "Goodman Crime Dashboard"
 output: 
   flexdashboard::flex_dashboard:
     logo: Y:/Projects/dashboard/RPDCrimeDashboard/Objects/RPDLogoSMALL.png
@@ -57,10 +57,10 @@ simpleCap <- function(x) {
 
 sectionmap <- leaflet() %>% 
     addProviderTiles("CartoDB.Positron") %>% 
-    fitBounds(lng1 = -77.617488, lat1 = 43.158172, lng2 = -77.668684, lat2 = 43.264020)
+    fitBounds(lng1 = -77.615712, lat1 = 43.124344, lng2 = -77.522970, lat2 = 43.237813)
 
-section <- 1
-sectionname <- "Lake"
+section <- 5
+sectionname <- "Goodman"
 
 
 curr.year <- as.numeric(format(Sys.Date(), '%Y')) ### This current year to automatically reference the current year
@@ -757,6 +757,7 @@ temptab$n %>%
     as.data.frame() %>%
     arrange(.) %>%
     #kable(row.names = FALSE, col.names = c("Victims per Incident", "Count"))
+  
     DT::datatable(rownames = FALSE, 
                   colnames = c("Victims per Incident", "Count"),
                   options = list(pageLength = 100, 
@@ -1460,7 +1461,8 @@ map
 ```{r}
 
 map <- cfs.df %>% 
-    dplyr::filter(discretionary == FALSE & ! GEOCodedLocation %in% exclude) %>%
+    dplyr::filter(discretionary == FALSE & 
+                      ! GEOCodedLocation %in% exclude) %>%
     filter(eventdate >= as.POSIXct(Sys.Date() - 28)) %>%
     left_join(y = loc, by = "GEOCodedLocation") %>%
     filter(! is.na(Lng)) %>%

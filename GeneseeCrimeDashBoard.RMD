@@ -231,7 +231,7 @@ exclude <- c("630 North Clinton Ave, Rochester, NY, 14605",
              "185 Exchange Blvd, Rochester, NY, 14614",
              "1099 Jay St, Rochester, NY, 14611")
 
-cfs.df <- LERMS_CFS_query(begindate = begindate) %>%
+cfs.df <- LERMS_CFS_query(begindate = begindate, section = sectionname) %>%
     mutate(RPD_Priority = factor(case_when(.$RPD_Priority == 1 ~ "Critical",
                                            .$RPD_Priority == 2 ~ "Urgent",
                                            .$RPD_Priority == 3 ~ "Normal",
@@ -659,7 +659,7 @@ DT::datatable(CPWs[c("FullAddress", "Beat", "OccurFromDate", "Description")],
 Shooting Victims
 ======================================================================
 
-Column {data-width=450}
+Column {data-width=400}
 ----------------------------------------------------------------------
 
 ### Projection
@@ -678,7 +678,7 @@ plotlyhmap(mat)
 
 ```
 
-Column {data-width=450 .tabset .tabset-fade}
+Column {data-width=400 .tabset .tabset-fade}
 ----------------------------------------------------------------------
 
 ### YTD Hotspot map
@@ -711,7 +711,7 @@ if(nrow(svjoin28) > 0){
 
 ```
 
-Column {data-width=200 .tabset .tabset-fade}
+Column {data-width=300 .tabset .tabset-fade}
 ----------------------------------------------------------------------
 
 ### Beats
@@ -772,7 +772,7 @@ temptab$n %>%
 Robbery
 ======================================================================
 
-Column {data-width=450}
+Column {data-width=400}
 -----------------------------------------------------------------------
 
 ### Projection
@@ -792,7 +792,7 @@ plotlyhmap(mat)
 ```
 
 
-Column {data-width=450 .tabset .tabset-fade}
+Column {data-width=400 .tabset .tabset-fade}
 -----------------------------------------------------------------------
 
 ### YTD Hotspot map
@@ -819,7 +819,7 @@ map
 
 ```
 
-Column {data-width=200 .tabset .tabset-fade}
+Column {data-width=300 .tabset .tabset-fade}
 ------------------------------------------------------------------------
 
 ### Beats
@@ -884,7 +884,7 @@ robs %>%
 Aggravated Assault
 ======================================================================
 
-Column {data-width=450}
+Column {data-width=400}
 -----------------------------------------------------------------------
 
 ### Projection
@@ -905,7 +905,7 @@ plotlyhmap(mat)
 ```
 
 
-Column {data-width=450 .tabset .tabset-fade}
+Column {data-width=400 .tabset .tabset-fade}
 -----------------------------------------------------------------------
 
 ### YTD Hotspot map
@@ -928,7 +928,7 @@ map <- hotspotMap(basemap = sectionmap,
 map
 ```
 
-Column {data-width=200 .tabset .tabset-fade}
+Column {data-width=300 .tabset .tabset-fade}
 ------------------------------------------------------------------------
 
 ### Beats
@@ -996,7 +996,7 @@ aslts %>%
 Burglary
 ======================================================================
 
-Column {data-width=450}
+Column {data-width=400}
 -----------------------------------------------------------------------
 
 ### Projection
@@ -1016,7 +1016,7 @@ mat <- aoristicDayWeek(burgs)
 plotlyhmap(mat)
 ```
 
-Column {data-width=450 .tabset .tabset-fade}
+Column {data-width=400 .tabset .tabset-fade}
 -----------------------------------------------------------------------
 
 ### YTD Hotspot map
@@ -1039,7 +1039,7 @@ map <- hotspotMap(basemap = sectionmap,
 map
 ```
 
-Column {data-width=200 .tabset .tabset-fade}
+Column {data-width=300 .tabset .tabset-fade}
 -----------------------------------------------------------------------
 
 ### Beats
@@ -1075,7 +1075,7 @@ DT::datatable(tab, filter = 'top',
 Larceny
 ======================================================================
 
-Column {data-width=450}
+Column {data-width=400}
 -----------------------------------------------------------------------
 
 ### Projection
@@ -1095,7 +1095,7 @@ mat <- aoristicDayWeek(larcs)
 plotlyhmap(mat)
 ```
 
-Column {data-width=450 .tabset .tabset-fade}
+Column {data-width=400 .tabset .tabset-fade}
 -----------------------------------------------------------------------
 
 ### YTD map
@@ -1142,7 +1142,7 @@ map <- carbreakins %>%
 map
 ```
 
-Column {data-width=200 .tabset .tabset-fade}
+Column {data-width=300 .tabset .tabset-fade}
 -----------------------------------------------------------------------
 
 ### Beats
@@ -1179,7 +1179,7 @@ DT::datatable(tab,
 Homicide
 ======================================================================
 
-Column {.tabset .tabset-fade}
+Column {data-width=600 .tabset .tabset-fade}
 -----------------------------------------------------------------------
 
 
@@ -1244,7 +1244,7 @@ if(nrow(MCUhoms) > 0){
 }
 ```
 
-Column {.tabset .tabset-fade}
+Column {data-width=300 .tabset .tabset-fade}
 -----------------------------------------------------------------------
 
 ### YTD Hotspot map
@@ -1286,7 +1286,7 @@ if(nrow(filter(MCUhoms, SevenDaysGroup > curr.week - 4)) == 0) {
 Rape
 ======================================================================
 
-Column {.tabset .tabset-fade}
+Column {data-width=600 .tabset .tabset-fade}
 -----------------------------------------------------------------------
 
 ### Table overview
@@ -1361,7 +1361,7 @@ rapes %>%
 
 ```
 
-Column {.tabset .tabset-fade}
+Column {data-width=300 .tabset .tabset-fade}
 -----------------------------------------------------------------------
 
 ### YTD Hotspot map
