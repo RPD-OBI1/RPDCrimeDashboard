@@ -93,7 +93,7 @@ sectionbeatsJSON <- beatsJSON$features[lapply(beatsJSON$features, function(x){
 #add beats
 
 sectionmap <- sectionmap %>%
-    addGeoJSON(sectionbeatsJSON, fillOpacity = .3)
+    addGeoJSON(sectionbeatsJSON, fillOpacity = .1)
 
 #load in RPD's crime data
 
@@ -391,7 +391,8 @@ DT::datatable(tab,
                            "YTD Totals", 
                            "% chance of exceeding upper action limit", 
                            "% chance of beating lower action limit"),
-              options = list(dom = 'tf'))
+              options = list(dom = 'tf',
+                             columnDefs = list(list(className = 'dt-right', targets = 0:3))))
 ```
 
 ### Comparison to other upstate cities
@@ -624,7 +625,8 @@ DT::datatable(nestedbeattable(dat),
               colnames = c('Section', 'Beat', 'Count'),
               options = list(dom = 't', 
                              pageLength = 100, 
-                             ordering = FALSE))
+                             ordering = FALSE,
+                             columnDefs = list(list(className = 'dt-right', targets = 0:2))))
 ```
 
 ### Crime Types
@@ -639,7 +641,8 @@ DT::datatable(guntablenest(df),
               colnames = c("Crime Type", "Description", "Counts"), 
               options = list(pageLength = 100, 
                              dom = 'tf',
-                             ordering = FALSE))
+                             ordering = FALSE,
+                             columnDefs = list(list(className = 'dt-right', targets = 0:2))))
 ```
 
 ### CPWs
@@ -652,7 +655,8 @@ DT::datatable(CPWs[c("FullAddress", "Beat", "OccurFromDate", "Description")],
               filter = 'top',
               rownames = FALSE,
               colnames = c('Address', 'Beat', 'Date', 'Description'),
-              options = list(pageLength = 100, dom = 'tf'))
+              options = list(pageLength = 100, dom = 'tf',
+                             columnDefs = list(list(className = 'dt-right', targets = 0:3))))
 ```
 
 Shooting Victims
@@ -723,7 +727,8 @@ if(nrow(svjoined) > 0){
                   colnames = c("Section", "Beat", "Count"),
                   options = list(pageLength = 100, 
                                 dom = 't', 
-                                ordering = FALSE)
+                                ordering = FALSE,
+                                columnDefs = list(list(className = 'dt-right', targets = 0:2)))
                   )
 }
 
@@ -737,7 +742,8 @@ DT::datatable(as.data.frame(table(svjoined$CrimeType.x)),
              filter = 'top',
              rownames = FALSE,
              colnames = c("Type", "Count"),
-             options = list(pageLength = 100))
+             options = list(pageLength = 100,
+                             columnDefs = list(list(className = 'dt-right', targets = 0:1))))
 
 ```
 
@@ -762,7 +768,8 @@ temptab$n %>%
                   colnames = c("Victims per Incident", "Count"),
                   options = list(pageLength = 100, 
                                  dom = 't', 
-                                 ordering = FALSE))
+                                 ordering = FALSE,
+                                 columnDefs = list(list(className = 'dt-right', targets = 0:1))))
 
 ```
 
@@ -833,7 +840,8 @@ DT::datatable(nestedbeattable(dat),
               colnames = c("Section", "Beat", "Count"),
               options = list(pageLength = 100, 
                              dom = 't', 
-                             ordering = FALSE))
+                             ordering = FALSE,
+                             columnDefs = list(list(className = 'dt-right', targets = 0:2))))
 ```
 
 ### Weapon Types
@@ -857,7 +865,8 @@ table(robs$WeaponGroup) %>%
     DT::datatable(rownames = FALSE,
                   colnames = c("Weapon", "Count"),
                   options = list(pageLength = 100,
-                                 dom = 't'))
+                                 dom = 't',
+                                 columnDefs = list(list(className = 'dt-right', targets = 0:1))))
 
 ```
 
@@ -875,7 +884,8 @@ robs %>%
                   rownames = FALSE,
                   colnames = c("Location", "Count"),
                   options = list(pageLength = 100, 
-                                 dom = 'tf'))
+                                 dom = 'tf',
+                                 columnDefs = list(list(className = 'dt-right', targets = 0:1))))
 ```
 
 Aggravated Assault
@@ -942,7 +952,8 @@ DT::datatable(nestedbeattable(dat),
               colnames = c("Section", "Beat", "Count"),
               options = list(pageLength = 100, 
                              dom = 't', 
-                             ordering = FALSE))
+                             ordering = FALSE,
+                             columnDefs = list(list(className = 'dt-right', targets = 0:2))))
 ```
 
 ### Weapon Types
@@ -967,7 +978,8 @@ table(aslts$WeaponGroup) %>%
                   rownames = FALSE,
                   colnames = c("Weapon", "Count"),
                   options = list(pageLength = 100, 
-                                 dom = 'tf'))
+                                 dom = 'tf',
+                             columnDefs = list(list(className = 'dt-right', targets = 0:1))))
 
 ```
 
@@ -985,7 +997,8 @@ aslts %>%
                   rownames = FALSE,
                   colnames = c("Location", "Count"),
                   options = list(pageLength = 100, 
-                                 dom = 'tf'))
+                                 dom = 'tf',
+                                 columnDefs = list(list(className = 'dt-right', targets = 0:1))))
 
 ```
 
@@ -1052,7 +1065,8 @@ DT::datatable(nestedbeattable(dat),
               colnames = c("Section", "Beat", "Count"),
               options = list(pageLength = 100, 
                              dom = 't', 
-                             ordering = FALSE))
+                             ordering = FALSE,
+                             columnDefs = list(list(className = 'dt-right', targets = 0:2))))
 ```
 
 ### Locations
@@ -1065,7 +1079,8 @@ DT::datatable(tab, filter = 'top',
                    rownames = FALSE,
                    colnames = c("Location", "Count"),
                    options = list(pageLength = 100, 
-                                  dom = 'tf'))
+                                  dom = 'tf',
+                                  columnDefs = list(list(className = 'dt-right', targets = 0:1))))
 ```
 
 
@@ -1155,7 +1170,8 @@ DT::datatable(nestedbeattable(dat),
               colnames = c("Section", "Beat", "Count"),
               options = list(pageLength = 100, 
                              dom = 't', 
-                             ordering = FALSE))
+                             ordering = FALSE,
+                             columnDefs = list(list(className = 'dt-right', targets = 0:2))))
 ```
 
 ### Larceny Types
@@ -1169,7 +1185,8 @@ DT::datatable(tab,
               rownames = FALSE,
               colnames = c("Larceny Type", "Count"),
               options = list(pageLength = 100, 
-                             dom = 'tf'))
+                             dom = 'tf',
+                             columnDefs = list(list(className = 'dt-right', targets = 0:1))))
 
 ```
 
@@ -1187,12 +1204,12 @@ if(nrow(personincident) > 0){
     persons <- bind_rows(personincident %>% 
                          filter(PersonType == "Victim") %>%
                          select(CaseNumber, Beat, DateOfEvent, DateOfDeath, 
-                                CaseStatus, Disposition, WeaponType, PersonType, Name, DOB) %>%
+                                CaseStatus, WeaponType, PersonType, Name, DOB) %>%
                          head(),
                      personincident %>% 
                          filter(PersonType == "Arrestee") %>%
                          select(CaseNumber, Beat, DateOfEvent, DateOfDeath, 
-                                CaseStatus, Disposition, WeaponType, PersonType, Name, DOB) %>%
+                                CaseStatus, WeaponType, PersonType, Name, DOB) %>%
                          head()) %>%
         arrange(DateOfEvent)
     #kable(persons)
@@ -1200,9 +1217,10 @@ if(nrow(personincident) > 0){
                   filter = 'top',
                   rownames = FALSE,
                   colnames = c('Case Number', 'Beat', 'Event Date', 'Date of Death', ' Case Status', 
-                               'Disposition', 'Weapon Type', 'Person Type', 'Name', 'DOB'),
+                               'Weapon Type', 'Person Type', 'Name', 'DOB'),
                   options = list(pageLength = 100,
-                                 dom = 'tf'))
+                                 dom = 'tf',
+                                 columnDefs = list(list(className = 'dt-right', targets = 0:9))))
     }
 
 
@@ -1219,7 +1237,8 @@ if(nrow(MCUhoms) > 0){
                   rownames = FALSE,
                   colnames = c('Weapon', 'Count'),
                   options = list(pageLength = 100,
-                                 dom = 'tf'))
+                                 dom = 'tf',
+                                 columnDefs = list(list(className = 'dt-right', targets = 0:1))))
 }
 
 ```
@@ -1237,7 +1256,8 @@ if(nrow(MCUhoms) > 0){
                   rownames = FALSE,
                   colnames = c('Disposition', 'Case Status', 'Count'),
                   options = list(pageLength = 100,
-                                 dom = 'tf'))
+                                 dom = 'tf',
+                                 columnDefs = list(list(className = 'dt-right', targets = 0:2))))
 }
 ```
 
@@ -1260,7 +1280,8 @@ if(nrow(homs) == 0) {
 } else{
     
     map <- hotspotMap(basemap = sectionmap, 
-                      mapdf = homs)
+                      mapdf = homs, 
+                      doHotSpot = FALSE)
     map
 }
 
@@ -1274,7 +1295,8 @@ if(nrow(filter(MCUhoms, SevenDaysGroup > curr.week - 4)) == 0) {
 } else{
     homs28 <- filter(homs, difftime(Sys.Date(), OccurToDate, units = "days") <= 28)
     map <- hotspotMap(basemap = sectionmap, 
-                      mapdf = homs28)
+                      mapdf = homs28, 
+                      doHotSpot = FALSE)
     map
 }
 
@@ -1299,9 +1321,12 @@ rapes %>%
     #kable(col.names = c("CR", "Address", "OccurDate", "ReportDate", "Location", "Clearance"))
     DT::datatable(filter = 'top',
                   rownames = FALSE,
-                  colnames = c('Case Number', 'Address', 'Event Date', 'Report Date', 'Location', 'Clearance'),
+                  colnames = c('Case Number', 'Address', 'Event Date', 
+                               'Report Date', 'Location', 'Clearance'),
                   options = list(pageLength = 100,
-                                 dom = 'tf'))
+                                 dom = 'tf',
+                                 columnDefs = list(list(className = 'dt-right', 
+                                                        targets = 0:5))))
 
 ```
 
@@ -1326,7 +1351,8 @@ rapes %>%
     DT::datatable(rownames = FALSE,
                   colnames = c("Location", "Count"),
                   options = list(pageLength = 100, 
-                                 dom = 't'))
+                                 dom = 't',
+                                 columnDefs = list(list(className = 'dt-right', targets = 0:1))))
 
 ```
 
@@ -1343,7 +1369,14 @@ rapes %>%
                   colnames = c("Charge Description", "Count"),
                   options = list(pageLength = 100, 
                                  dom = 't',
-                                 ordering = FALSE))  
+                                 ordering = FALSE,
+                                 columnDefs = list(list(className = 'dt-right', targets = 0:1))))  
+
+```
+
+### UCR Type
+
+```{r}
 
 rapes %>% 
     select(UCRText) %>%
@@ -1354,7 +1387,8 @@ rapes %>%
                   colnames = c("Rape UCR Type", "Count"),
                   options = list(pageLength = 100, 
                                  dom = 't',
-                                 ordering = FALSE))   
+                                 ordering = FALSE,
+                                 columnDefs = list(list(className = 'dt-right', targets = 0:1))))   
 
 ```
 
@@ -1488,7 +1522,8 @@ DT::datatable(nestedbeattable(dat),
               colnames = c("Section", "Beat", "Count"),
               options = list(pageLength = 100,
                              dom = 't',
-                             ordering = FALSE))
+                             ordering = FALSE,
+                             columnDefs = list(list(className = 'dt-right', targets = 0:2))))
 
 ```
 
@@ -1609,7 +1644,8 @@ DT::datatable(nestedbeattable(dat),
               colnames = c("Section", "Beat", "Count"),
               options = list(pageLength = 100,
                              dom = 't',
-                             ordering = FALSE))
+                             ordering = FALSE,
+                             columnDefs = list(list(className = 'dt-right', targets = 0:2))))
 
 ```
 
