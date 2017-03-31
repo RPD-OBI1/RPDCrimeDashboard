@@ -29,6 +29,8 @@ library(jsonlite)
 library(tidyr)
 library(DT)
 library(RODBC)
+library(treemap)
+library(d3treeR)
 
 source("Y:/Projects/dashboard/RPDCrimeDashboard/Functions/aoristicDayWeek.R")
 source("Y:/Projects/dashboard/RPDCrimeDashboard/Functions/cfsHotspotMap.R")
@@ -395,10 +397,32 @@ DT::datatable(tab,
                              columnDefs = list(list(className = 'dt-right', targets = 0:3))))
 ```
 
-### Comparison to other upstate cities
+### Closure rates
 
 ```{r}
-print("To Do")
+PartOne <- c("Aggravated Assault", "Arson", "Burglary", "Homicide", "Larceny",
+                 "MV Theft", "Rape", "Robbery")
+
+treedata <- df %>%
+    filter(CrimeType %in% PartOne |
+               Firearm == "Firearm") %>%
+    filter(SevenDaysGroup %in% 1:curr.week) %>%
+    count(CrimeType = CrimeType,
+          Clearance = ClearanceStatusValue, 
+          Closure = CaseStatusValue) %>%
+    ungroup()
+
+pdf(NULL)
+clearanceTreeMap <- d3tree2(
+    treemap(
+        treedata,
+        index = c("CrimeType", "Closure", "Clearance"),
+        vSize = "n",
+        draw = FALSE),
+        rootname = "Total"
+    )
+
+clearanceTreeMap
 ```
 
 Column {data-width=500 .tabset .tabset-fade}
