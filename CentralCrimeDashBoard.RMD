@@ -59,7 +59,7 @@ simpleCap <- function(x) {
 
 sectionmap <- leaflet() %>% 
     addProviderTiles("CartoDB.Positron") %>% 
-    fitBounds(lng1 = -77.575370, lat1 = 43.159093, lng2 = -77.626865, lat2 = 43.257633)
+    fitBounds(lng1 = -77.592894, lat1 = 43.138862, lng2 = -77.635598, lat2 = 43.165201)
 
 section <- 9
 sectionname <- "Central"
