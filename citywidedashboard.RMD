@@ -1276,10 +1276,12 @@ if(nrow(homs) == 0) {
 ### 28 day Hotspot map
 
 ```{r}
-if(nrow(filter(MCUhoms, SevenDaysGroup > curr.week - 4)) == 0) {
+homs28 <- filter(homs, difftime(Sys.Date(), OccurToDate, units = "days") <= 28)
+
+if(nrow(homs28) == 0) {
     print("No homicides past 28 days citywide")
 } else{
-    homs28 <- filter(homs, difftime(Sys.Date(), OccurToDate, units = "days") <= 28)
+    
     map <- hotspotMap(basemap = citymap, 
                       mapdf = homs28, 
                       doHotSpot = FALSE)
