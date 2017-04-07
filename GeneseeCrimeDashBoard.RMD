@@ -1463,7 +1463,7 @@ CFS Non-discretionary
 Column {data-width=500}
 -----------------------------------------------------------------------
 
-### Wait time (Dispatch to On Scene time) since `r begindate`
+### Wait time (RPD arrival time) since `r begindate`
 
 ```{r}
 waittime <- cfs.df %>% 
