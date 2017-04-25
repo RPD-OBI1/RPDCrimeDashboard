@@ -271,7 +271,7 @@ if(nrow(MCUhoms) > 0){
 firearmhoms <- MCUhoms %>% 
     filter(YearofEvent == curr.year, WeaponType == "Firearm")
 if(any(! firearmhoms$CaseNumber %in% filter(df, Firearm == "Firearm"))){
-    print("There are firearm homicides that do not appear in the firearm data due to LERMS issues.")
+    cat("There are firearm homicides that do not appear in the firearm data due to LERMS issues.")
 }
 
 tab <- data.frame(CrimeTypes = c("Firearm crime", "Shootings", "Robbery", 
@@ -1199,7 +1199,7 @@ homs <- data.frame(FullAddress = MCUhoms$FullAddress,
 
 
 if(nrow(homs) == 0) {
-    print("No homicides this year")
+    cat("No homicides this year")
 } else{
     
     map <- hotspotMap(basemap = sectionmap, 
@@ -1214,7 +1214,7 @@ if(nrow(homs) == 0) {
 
 ```{r}
 if(nrow(filter(MCUhoms, SevenDaysGroup > curr.week - 4)) == 0) {
-    print("No homicides past 28 days citywide")
+    cat("No homicides past 28 days citywide")
 } else{
     homs28 <- filter(homs, difftime(Sys.Date(), OccurToDate, units = "days") <= 28)
     map <- hotspotMap(basemap = sectionmap, 
@@ -1257,7 +1257,7 @@ rapes %>%
 
 ```{r}
 
-print("Victim/Offender relationship data has not yet been made available by IT.")
+cat("Victim/Offender relationship data has not yet been made available by IT.")
 
 ```
 
@@ -1323,7 +1323,7 @@ Column {data-width=300 .tabset .tabset-fade}
 ```{r}
 
 if(nrow(rapes) == 0) {
-    print("No rapes this year/this section")
+    cat("No rapes this year/this section")
 } else{
     map <- hotspotMap(basemap = sectionmap, 
                       mapdf = rapes %>% filter(Lat != -361))
@@ -1338,7 +1338,7 @@ if(nrow(rapes) == 0) {
 if(nrow(filter(df, Lat != -361 & 
                         CrimeType == "Rape" & 
                         difftime(Sys.Date(), OccurToDate, units = "days") <= 28)) == 0) {
-    print("No rapes in the past 28 days in this section")
+    cat("No rapes in the past 28 days in this section")
 } else{
     rapes <- filter(df, Lat != -361 & 
                         CrimeType == "Rape" & 
