@@ -1614,93 +1614,113 @@ Column{data-width=200}
 
 The Rochester Police Department is shifting towards the use of "process control" and away from year to year comparison statistics. The goal is to be able to compare current crime counts against a benchline of "normal", rather than the benchline of the previous year (which may have been very high or very low compared to past years).
 
-The Office of Business Intelligence has calculated "action limits" which you can see represented as dashed lines on the charts on the right hand side of this page. These limits (both upper and lower) are calculated by using weighted 3 year averages as centering values, and then calculating the standard deviations to find how much variation from that average to expect.
+The Office of Business Intelligence has calculated "action limits" which you can see represented as dashed lines on the chart on the right hand side of this page. These limits (both upper and lower) are calculated by using weighted 3 year averages as centering values, and then calculating the standard deviations to find how much variation from that average to expect.
 
 If current counts for a section and crimetype break the upper action limit, it's a signal to investigate the causes of that rise in activity. If current counts break the lower action limit, it's a signal that there may be a beneficial intervention that can be studied and copied in other sections.
 
 Variation within the action limits is assumed to be normal "statistical noise" not requiring attention or resources above the section level.
 
-Column{data-width=500}
+
+Column{.tabset .tabset-fade}
 ------------------------------------------------------------------------------
 
-### Explanation of the action limit chart, using example data
+### Case-status treemap
 
-`r readRDS("//cor.local/RPD/OBI/Projects/dashboard/HomepageGraphDataCurrDesc.Rdata")[[5]]`
+Treemaps display information as rectangles nested within each other. The data is structured hierarchically, meaning that a hover over a particular crime type will provide the total for that crime for the current year, but a click on a crime type will allow to drill down into the breakdown of the case statuses for that crime. To return to crime types simply click on the heading of the treemap.
 
-`r readRDS("//cor.local/RPD/OBI/Projects/dashboard/HomepageGraphDataSimsDesc.Rdata")[[5]]`
+The proportion of the values shown to the total are represented by the size of the corresponding rectangle.
 
-### Chart
+******
 
 ```{r}
 
-sims.end <- readRDS("//cor.local/RPD/OBI/Projects/dashboard/HomepageGraphDataSimsEnd.Rdata")
-temp.props <- readRDS("//cor.local/RPD/OBI/Projects/dashboard/HomepageGraphDataTempProps.Rdata")
-Target <- temp.props$ribbon.target[length(temp.props$ribbon.target)]
-SimsAvg <- mean(sims.end$Value)
-labeldf <- data.frame(label = c("X% of our simulations show the year-end total above the upper limit."),
-                      x = 20,
-                      y = Target)
-
-g <- ggplot(temp.props) +
-    geom_ribbon(aes(x = Week, ymin = ribbon.lower, ymax = ribbon.upper), 
-                fill = 'blue', 
-                size = 1, 
-                alpha = 0.1) +
-    geom_segment(aes(x = Week - 0.3, xend = Week + 0.3, y= ribbon.lower, yend= ribbon.lower)) +
-    geom_segment(aes(x = Week - 0.3, xend = Week + 0.3, y= ribbon.upper, yend= ribbon.upper)) +
-    geom_point(data= sims.end, 
-               aes(x= Week, y= Value), 
-               colour= 'black', 
-               alpha= 0.02) +
-    geom_point(aes(x = 52, y = Target), 
-               shape= 4, 
-               size= 2) +
-    geom_point(aes(x = 52, y = SimsAvg), 
-               size = 3, 
-               color = 'blue') +
-    geom_line(aes(x = Week, y =currentCounts)) +
-    geom_point(aes(x = Week, y =currentCounts), 
-               colour = temp.props$color) +
-    scale_fill_manual(values = c('orange', 'orange')) +
-    labs(y = 'Count') +
-    theme_bw() +
-    theme(legend.position = 'none') +
-    geom_text(data = labeldf,
-              aes(x = x, y = y, label = label),
-              position = "dodge")
-
-ggplotly(g, tooltip = c('Description'))
+include_graphics('Y:/Projects/dashboard/RPDCrimeDashboard/Objects/ReferenceTreeMap.png')
 
 ```
 
-### Aoristic Heatmaps
 
-An aoristic heatmap shows the proportion of activity that occurs in a given hour, on a given day of the week. Lighter shades correspond with less activity, while darker red shades correspond with more activity. We have placed thick lines that divide between first, second and third platoon hours, and as you can see from the bottom axis, the chart begins at 2300 hrs.
+### Projection plot
 
-The rectangle labeled "Hr23" corresponds with the amount of activity occuring between 2300 and 2359 hrs on that day of the week. For crimes that occur over a longer period of time, or for crimes that occurred at an unknown time within a time range, the weight of that crime is divided evenly between the hours that it could have occurred. For instance, a burglary that occurred at some point between 0800 and 1200 will be spread out evenly between Hr8, Hr9, Hr10 and Hr11.
+The projection chart shows the cumulative weekly values experienced to date for the current year. Points in black show values that follow the expected accumulation path. Points in green are lower than expected and points in red are higher than expected. The blue shaded region refers to the expected path to result in a value between the year-end action limits.  
 
-Column{data-width=500}
-------------------------------------------------------------------------------
+The black faded points on the chart at week 53 show the results of 1000 simulations estimating what our total counts will be at year-end. The large blue point shows the average of those simulations. The black "X" shows the weighted average year-end totals for the past three years. The percentage of the simulations above the upper limit helps to gauge chances of year-end expectations regarding that particular crime if the remainder of the year continues as those have historically.
 
-### Hotspot maps
+******
 
-This panel will show two different maps, each in their own tab. The first tab will show a Year-To-Date map, and the second tab will show a map of the last 28 days. Hotspots will also be shown if there are a large enough number of crimes for hotspots to make sense.
+```{r}
+
+include_graphics('Y:/Projects/dashboard/RPDCrimeDashboard/Objects/ReferenceProjectionPlot.png')
+
+```
+
+
+### Aoristic heatmap
+
+An aoristic heatmap shows the proportion of activity that occurs in a given hour, on a given day of the week. Lighter shades correspond with less activity, while darker red shades correspond with more activity. We have placed vertical lines that divide between first, second and third platoon hours, and as you can see from the bottom axis, the chart begins at 2300 hrs.
+
+The rectangle labeled "Hr23" corresponds with the amount of activity occuring between 2300 and 2359 hrs on that day of the week. For crimes that occur over a longer period of time, or for crimes that occurred at an unknown time within a time range, the weight of that crime is divided evenly between the hours that it could have occurred. For instance, the weight for a burglary that occurred at some point between 0800 and 1200 will be spread out evenly between Hr8, Hr9, Hr10 and Hr11.
+
+******
+
+```{r}
+
+include_graphics('Y:/Projects/dashboard/RPDCrimeDashboard/Objects/ReferenceAoristicPlot.png')
+
+```
+
+
+### Maps
+
+Most tabs have two different maps, each in their own tab. The first tab will show a Year-To-Date map, and the second tab will show a map of the last 28 days. Hotspots will also be shown if there are a large enough number of crimes for hotspots to make sense.
 
 The Larcenies page has two additional maps for car break-ins. These maps are also on their own tabs, and display Year-To-Date car break-ins and the last 28 days of car break-ins.
 
 The Calls for Service maps only display the individual markers on addresses for the past 28 days map. Displaying all calls for service for the Year-To-Date maps slowed the dashboard down due to the volume of data presented on the map. The Year-To-Date Calls for Service maps show hotspots only.
 
-### Map
+If no map appears, likely there is no data to present (i.e. no events to map).
 
-```{r example map}
+******
 
-sectionmap
+```{r}
+
+include_graphics('Y:/Projects/dashboard/RPDCrimeDashboard/Objects/ReferenceMapGenesee.png')
 
 ```
 
-Column{data-width=250}
-------------------------------------------------------------------------------
+
+### CFS - Non-discretionary plot
+
+The non-discretionary graph shows the average RPD response time for various call for service types. The graph is split up into Critical, Urgent and Normal call for service types. Only call for service types that total one percent or more of the total number of non-discretionary calls are displayed. This is still a large number of calls, and was too large to display the name of each call type at the bottom of the graph. Therefore to see the call type name displayed, simply hover your cursor over the relevant circle on the graph (in the real chart; not the reference chart).
+
+The circle size represents the call volume for that type of call. Large circles are for frequent call types, smaller circles are for infrequent call types (but that still represent more than 1% of total non-discretionary calls).
+
+******
+
+```{r}
+
+include_graphics('Y:/Projects/dashboard/RPDCrimeDashboard/Objects/ReferenceNonDiscretionaryCFSPlot.png')
+
+```
+
+
+### CFS - Discretionary plot
+
+The discretionary graph shows the average time spent on a call by officers at the most common discretionary calls in that section (or city-wide, in the city-wide dashboard). Only calls for service that account for more than one percent of the total number of discretionary calls are displayed. 
+
+The size of the circle corresponds with how frequently officers answer that call for service. There are far more TSTOB calls than OOPSB calls, therefore the TSTOB circle is far larger than the OOPSB circle.
+
+Calls are arranged alphabetically along the x axis, and the location of the corresponding circle on the y axis indicates the amount of time spent on the call on average. Only calls that we believe were coded correctly (for on scene time, clear time, etc.) are used to calculate the amount of time spent.
+
+******
+
+```{r}
+
+include_graphics('Y:/Projects/dashboard/RPDCrimeDashboard/Objects/ReferenceDiscretionaryCFSPlot.png')
+
+```
+
 
 ### Additional tables
 
-The column on the right of each page will show additional data tables, including the breakdown of incidents by beat, by weapon type, larceny type, location type, etc.
+The column on the right of each page will show additional data tables, including the breakdown of incidents by beat, by weapon type, larceny type, location type, etc...
+
