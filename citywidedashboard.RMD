@@ -1,19 +1,15 @@
 ---
-title: "Citywide Dashboard"
+title: "Citywide Dashboard, as of `r format(Sys.Date() - 3, '%d %B, %Y')`"
 output: 
   flexdashboard::flex_dashboard:
     logo: Y:/Projects/dashboard/RPDCrimeDashboard/Objects/RPDLogoSMALL.png
     orientation: column
     vertical_layout: fill
-    navbar:
-    - {title: "RPD Office of Business Intelligence", 
-    href: 'http://www.cityofrochester.gov/police/', 
-    align: right }
     theme: cerulean
 
 ---
 
-```{r setup, include=FALSE}
+```{r setup}
 
 curr.year <- as.numeric(format(Sys.Date(), '%Y')) ### This current year to automatically reference the current year
 begindate <- paste0(curr.year, '-01-01') ### For CFS to automatically create the begindate based on current year
@@ -58,6 +54,20 @@ simpleCap <- function(x) {
       sep="", collapse=" ")
 }
 
+#sevenDayGroupTable is a lookup table to get the current week (Group) from the date
+#Because it uses length(Date) from seq.Date, it should work even in leap years
+
+sevenDayGroupTable <- data.frame(Date = seq.Date(from = as.Date(begindate),
+                                                 to = as.Date(paste0(curr.year, "-12-31")),
+                                                 by = 1)) %>%
+    mutate(DOY = 1:length(Date),
+           Group = c(rep(1:51, each = 7), 
+                     rep(52, times = length(Date) - 357)))
+
+curr.week <- sevenDayGroupTable$Group[match(as.numeric(format(Sys.Date(), 
+                                                             '%j')), 
+                                           sevenDayGroupTable$DOY)] - 1
+
 
 #read in section JSON
 sectionJSON <- readLines("https://opendata.arcgis.com/datasets/772f3621fa354ec9abf3ba33f3ace59e_0.geojson") %>%
@@ -83,6 +93,17 @@ citymap <- leaflet() %>%
     fitBounds(lng1 = -77.55, lat1 = 43.11, lng2 = -77.668684, lat2 = 43.264020) %>%
     addGeoJSON(sectionJSON, fillOpacity = .1)
 
+firearm.desc <- trimws(c('Prohibited Use of Weapon City Limits', 
+                        'Use of Dangerous Weapon', 
+                        'Criminal Use Firearm 1st: Commit Violent Class B Felony', 
+                        'Discharges Loaded Firearm', 
+                        'Use Firearm 1st: Possess a Deadly Weapon-Loaded',
+                        'Criminal Use Firearm 2nd: Possess Deadly Weapon: Loaded', 
+                        'Use Firearm 1st: Display Firearm', 
+                        'Criminal Use Firearm 2nd: Display Firearm'))
+
+firearmCrimeTypes <- c("Aggravated Assault", "Robbery", "Homicide", "Rape", "Simple Assault")
+
 #load in RPD's crime data
 
 df <- LERMS_incidents_query(years = curr.year) %>%
@@ -100,8 +121,8 @@ df <- LERMS_incidents_query(years = curr.year) %>%
            ReportDayOfYear = as.numeric(format(ReportDate, "%j")),
            GEOBeat = factor(GEOBeat,
                             levels = unique(GEOBeat[order(substr(GEOBeat, 3, 3), 
-                                                          substr(GEOBeat, 1, 2))]))) %>%
-    mutate(sec = case_when(.$Section == 1 ~ "Lake", 
+                                                          substr(GEOBeat, 1, 2))])),
+           sec = case_when(.$Section == 1 ~ "Lake", 
                            .$Section == 3 ~ "Genesee", 
                            .$Section == 5 ~ "Goodman", 
                            .$Section == 7 ~ "Clinton", 
@@ -112,46 +133,32 @@ df <- LERMS_incidents_query(years = curr.year) %>%
                                    .$WeaponIBRValue == "12" ~ "Blunt Object",
                                    .$WeaponIBRValue %in% c("14", "15") ~ "Physical",
                                    TRUE ~ "Other"),
-           FullAddress = unname(sapply(FullAddress, simpleCap)))
-
+           FullAddress = unname(sapply(FullAddress, simpleCap)),
+           WeaponIBRValue = as.numeric(WeaponIBRValue),
+           Description = trimws(Description)) %>%
+           mutate(Firearm = case_when(.$WeaponIBRValue %in% 1:10 &
+                                   .$CrimeType %in% firearmCrimeTypes ~ "Firearm",
+                               .$CrimeType == "Dangerous Weapons" & 
+                                   .$Description %in% firearm.desc ~ "Firearm",
+                               TRUE ~ "Non-Firearm")) %>%
+    left_join(sevenDayGroupTable, by = c("ReportDayOfYear" = "DOY")) %>%
+    select(-Date) %>%
+    dplyr::rename("SevenDaysGroup" = Group) %>%
+    filter(SevenDaysGroup <= curr.week) %>%
+    mutate(Description = trim(sub(x = Description, pattern = ":.*", replacement = "")))
 
 #use beatNames to make factor levels for beats
-beatNames <- df$GEOBeat %>% 
+beatNames <- df %>%
+    select(GEOBeat) %>%
     unique() %>% 
-    as.character()
-beatNames <- beatNames[! grepl(x = beatNames, pattern = "\\*")] #remove *** as a beat name
-beatLevels <- factor(beatNames[order(substr(beatNames, 3, 3), beatNames)])
-
-firearm.desc <- trimws(c('Prohibited Use of Weapon City Limits', 
-                        'Use of Dangerous Weapon', 
-                        'Criminal Use Firearm 1st: Commit Violent Class B Felony', 
-                        'Discharges Loaded Firearm', 
-                        'Use Firearm 1st: Possess a Deadly Weapon-Loaded',
-                        'Criminal Use Firearm 2nd: Possess Deadly Weapon: Loaded', 
-                        'Use Firearm 1st: Display Firearm', 
-                        'Criminal Use Firearm 2nd: Display Firearm'))
-
-firearmCrimeTypes <- c("Aggravated Assault", "Robbery", "Homicide", "Rape", "Simple Assault")
-df$Firearm <- ifelse(test = (as.numeric(df$WeaponIBRValue) %in% 1:10 & 
-                                 df$CrimeType %in% firearmCrimeTypes) |
-                         (df$CrimeType == "Dangerous Weapons" & 
-                              trimws(df$Description) %in% firearm.desc), 
-                     yes = 'Firearm', 
-                     no = 'Non-firearm')
+    filter(! grepl(x = GEOBeat, pattern = "\\*")) %>% #remove *** as a beat name
+    arrange(substr(GEOBeat, 3, 3), GEOBeat) %>%
+    mutate(GEOBeat = as.factor(GEOBeat)) #this keeps *** as a factor level
 
 CPWs <- df %>% filter(CrimeType == "Dangerous Weapons" & 
                           !trimws(Description) %in% firearm.desc &
-                          as.numeric(WeaponIBRValue) < 11)
-CPWs$OccurFromDate <- as.character(CPWs$OccurFromDate) #for table display purposes
-
-sevenDayGroupTable <- data.frame(DOY= 1:366, 
-                                Group= c(rep(1:51, each= 7), rep(52, each= 9)))
-df$SevenDaysGroup <- sevenDayGroupTable$Group[match(df$ReportDayOfYear, sevenDayGroupTable$DOY)]
-df$Description <- trim(sub(x = df$Description, pattern = ":.*", replacement = ""))
-
-curr.week <- sevenDayGroupTable$Group[match(as.numeric(format(Sys.Date(), 
-                                                             '%j')), 
-                                           sevenDayGroupTable$DOY)] - 1
+                          as.numeric(WeaponIBRValue) < 11) %>%
+    mutate(OccurFromDate = as.character(OccurFromDate)) #for table display purposes
 
 crimes <- c('Aggravated Assault', 'Arson', 'Burglary', 'Homicide', 'Larceny', 'MV Theft', 'Rape', 'Robbery', 'Firearm')
 sec <- c('Lake', 'Genesee', 'Goodman', 'Clinton', 'Central')
@@ -179,14 +186,20 @@ mculist <- pullMCUdata()
 MCUhoms <- mculist[[1]]
 person <- mculist[[2]]
 rm(mculist)
-MCUhoms$CrimeType <- "Homicide"
-MCUhoms$DateOfEvent <- as.Date(MCUhoms$DateOfEvent, format = "%Y-%m-%d")
-MCUhoms$DOYofEvent <- as.numeric(format(MCUhoms$DateOfEvent, "%j"))
-MCUhoms$SevenDaysGroup <- sevenDayGroupTable$Group[match(MCUhoms$DOYofEvent, sevenDayGroupTable$DOY)]
-MCUhoms$YearofEvent <- as.numeric(format(MCUhoms$DateOfEvent, "%Y"))
-MCUhoms <- rename(MCUhoms, sec = Section, Lat = Latitude, Lon = Longitude, FullAddress = Address)
-MCUhoms$CaseStatus <- simpleCap(MCUhoms$CaseStatus)
-MCUhoms <- filter(MCUhoms, YearofEvent == curr.year)
+MCUhoms <- MCUhoms %>%
+    mutate(CrimeType = "Homicide",
+           DateOfEvent = as.Date(DateOfEvent, format = "%Y-%m-%d"),
+           DOYofEvent = as.numeric(format(DateOfEvent, "%j")),
+           YearofEvent = as.numeric(format(DateOfEvent, "%Y")),
+           CaseStatus = unname(sapply(CaseStatus, simpleCap))) %>%
+    filter(YearofEvent == curr.year) %>%
+    dplyr::rename(sec = Section,
+                  Lat = Latitude,
+                  Lon = Longitude,
+                  FullAddress = Address) %>%
+    left_join(sevenDayGroupTable, by = c("DOYofEvent" = "DOY")) %>%
+    select(-Date) %>%
+    dplyr::rename("SevenDaysGroup" = Group)
 
 personincident <- left_join(MCUhoms, person, by = "CaseNumber")
 
@@ -200,13 +213,23 @@ loc <- CFSloc()
 exclude <- c("630 North Clinton Ave, Rochester, NY, 14605", 
              "185 Exchange Blvd, Rochester, NY, 14614",
              "1099 Jay St, Rochester, NY, 14611")
-cfs.df <- LERMS_CFS_query(begindate = begindate)
-cfs.df$RPD_Priority <- ifelse(cfs.df$RPD_Priority == 1, "Critical", 
-                              ifelse(cfs.df$RPD_Priority == 2, "Urgent", 
-                                     ifelse(cfs.df$RPD_Priority == 3, "Normal", 
-                                            "Discretionary")))
-cfs.df$RPD_Priority <- factor(cfs.df$RPD_Priority, 
-                              levels = c("Critical", "Urgent", "Normal", "Discretionary"))
+cfs.df <- LERMS_CFS_query(begindate = begindate, 
+                          enddate = max(sevenDayGroupTable$Date[sevenDayGroupTable$Group == curr.week]))
+
+cfs.df <- cfs.df %>%
+    mutate(RPD_Priority = case_when(.$RPD_Priority == 1 ~ "Critical",
+                                    .$RPD_Priority == 2 ~ "Urgent", 
+                                    .$RPD_Priority == 3 ~ "Normal", 
+                                    TRUE ~ "Discretionary")) %>%
+    mutate(RPD_Priority = factor(RPD_Priority,
+                                 levels = c("Critical", "Urgent", "Normal", "Discretionary")),
+           eventdate = as.Date(eventdate, format = "%Y-%m-%d"),
+           eventDOY = format(eventdate, format = "%j") %>% as.numeric()) %>%
+    left_join(sevenDayGroupTable, by = c("eventDOY" = "DOY")) %>%
+    select(-Date) %>%
+    dplyr::rename("SevenDaysGroup" = Group)
+
+
 
 firearmSPC <- SPC(crimetype = "Firearm")
 svSPC <- SPC(dataf = svjoined, crimetype = "Shooting")
@@ -265,18 +288,33 @@ DT::datatable(tab,
 ### Closure rates
 
 ```{r}
-PartOne <- c("Aggravated Assault", "Arson", "Burglary", "Homicide", "Larceny",
-                 "MV Theft", "Rape", "Robbery")
+CrimeTypes <- c("Aggravated Assault", "Burglary", "Homicide", "Larceny",
+                 "MV Theft", "Rape", "Robbery", "Dangerous Weapons")
 
 treedata <- df %>%
-    filter(CrimeType %in% PartOne |
-               Firearm == "Firearm") %>%
+    filter(CrimeType %in% CrimeTypes) %>%
     filter(SevenDaysGroup %in% 1:curr.week) %>%
     count(CrimeType = CrimeType,
           Clearance = ClearanceStatusValue, 
           Closure = CaseStatusValue) %>%
-    ungroup()
-
+    ungroup() %>%
+    group_by(CrimeType) %>%
+    mutate(CrimeTypeCount = sum(n)) %>%
+    group_by(CrimeType, Closure) %>%
+    mutate(ClosureCount = sum(n)) %>%
+    ungroup() %>%
+    mutate(CrimeType = paste0(CrimeType, " (", 
+                              CrimeTypeCount, ", ",
+                              round(100 * CrimeTypeCount / sum(n), 2), 
+                              "%)  "),
+           Closure = paste0(Closure, " (",
+                            ClosureCount, ", ",
+                            round(100 * ClosureCount / CrimeTypeCount, 2),
+                            "%)  "),
+           Clearance = paste0(Clearance, " (",
+                              n, ", ",
+                              round(100 * n / ClosureCount, 2),
+                              "%)"))
 pdf(NULL)
 clearanceTreeMap <- d3tree2(
     treemap(
@@ -491,7 +529,7 @@ map
 ```{r}
 
 map <- hotspotMap(basemap = citymap, 
-                  mapdf = filter(guns, Lat != -361 & SevenDaysGroup > curr.week - 4))
+                  mapdf = filter(guns, Lat != -361 & SevenDaysGroup >= curr.week - 3))
 map
 
 ```
@@ -550,7 +588,7 @@ DT::datatable(CPWs[c("FullAddress", "Beat", "OccurFromDate", "Description")],
 Shooting Victims
 ======================================================================
 
-Column {data-width=450}
+Column {data-width=400}
 ----------------------------------------------------------------------
 
 ### Projection
@@ -569,7 +607,7 @@ plotlyhmap(mat)
 
 ```
 
-Column {data-width=450 .tabset .tabset-fade}
+Column {data-width=400 .tabset .tabset-fade}
 ----------------------------------------------------------------------
 
 ### YTD Hotspot map
@@ -587,7 +625,7 @@ map
 
 
 svjoin28 <- filter(svjoined,
-                   difftime(Sys.Date(), OccurToDate, units = "days") <= 28)
+                   SevenDaysGroup >= curr.week - 3)
 
 dohotspot <- ifelse(nrow(svjoin28) > 10, yes = TRUE, no = FALSE)
 
@@ -595,7 +633,7 @@ map <- hotspotMapSV(basemap = citymap, mapdf = svjoin28, doHotSpot = dohotspot)
 map
 ```
 
-Column {data-width=200 .tabset .tabset-fade}
+Column {data-width=300 .tabset .tabset-fade}
 ----------------------------------------------------------------------
 
 ### Beats
@@ -659,7 +697,7 @@ temptab$n %>%
 Robbery
 ======================================================================
 
-Column {data-width=450}
+Column {data-width=400}
 -----------------------------------------------------------------------
 
 ### Projection
@@ -679,7 +717,7 @@ plotlyhmap(mat)
 ```
 
 
-Column {data-width=450 .tabset .tabset-fade}
+Column {data-width=400 .tabset .tabset-fade}
 -----------------------------------------------------------------------
 
 ### YTD Hotspot map
@@ -699,14 +737,14 @@ map
 
 robsgeo <- filter(df, Lat != -361 & 
                       CrimeType == "Robbery" & 
-                      difftime(Sys.Date(), OccurToDate, units = "days") <= 28)
+                      SevenDaysGroup >= curr.week - 3)
 map <- hotspotMap(basemap = citymap, 
                   mapdf = robsgeo)
 map
 
 ```
 
-Column {data-width=200 .tabset .tabset-fade}
+Column {data-width=300 .tabset .tabset-fade}
 ------------------------------------------------------------------------
 
 ### Beats
@@ -774,7 +812,7 @@ robs %>%
 Aggravated Assault
 ======================================================================
 
-Column {data-width=450}
+Column {data-width=400}
 -----------------------------------------------------------------------
 
 ### Projection
@@ -795,7 +833,7 @@ plotlyhmap(mat)
 ```
 
 
-Column {data-width=450 .tabset .tabset-fade}
+Column {data-width=400 .tabset .tabset-fade}
 -----------------------------------------------------------------------
 
 ### YTD Hotspot map
@@ -814,13 +852,11 @@ map
 ```{r}
 map <- hotspotMap(basemap = citymap, 
                   mapdf = filter(asltsgeo, 
-                                 difftime(Sys.Date(), 
-                                          OccurToDate, 
-                                          units = "days") <= 28))
+                                 SevenDaysGroup >= curr.week - 3))
 map
 ```
 
-Column {data-width=200 .tabset .tabset-fade}
+Column {data-width=300 .tabset .tabset-fade}
 ------------------------------------------------------------------------
 
 ### Beats
@@ -891,7 +927,7 @@ aslts %>%
 Burglary
 ======================================================================
 
-Column {data-width=450}
+Column {data-width=400}
 -----------------------------------------------------------------------
 
 ### Projection
@@ -911,7 +947,7 @@ mat <- aoristicDayWeek(burgs)
 plotlyhmap(mat)
 ```
 
-Column {data-width=450 .tabset .tabset-fade}
+Column {data-width=400 .tabset .tabset-fade}
 -----------------------------------------------------------------------
 
 ### YTD Hotspot map
@@ -930,11 +966,11 @@ map
 ```{r}
 map <- hotspotMap(basemap = citymap, 
                   mapdf = filter(burgsgeo, 
-                                 difftime(Sys.Date(), OccurToDate, units = "days") <= 28))
+                                 SevenDaysGroup >= curr.week - 3))
 map
 ```
 
-Column {data-width=200 .tabset .tabset-fade}
+Column {data-width=300 .tabset .tabset-fade}
 -----------------------------------------------------------------------
 
 ### Beats
@@ -972,13 +1008,13 @@ DT::datatable(tab, filter = 'top',
 Larceny
 ======================================================================
 
-Column {data-width=450}
+Column {data-width=400}
 -----------------------------------------------------------------------
 
 ### Projection
 
 
-```{r}
+```{r larcenyprojection}
 
 ggplotly(larcSPC[[1]], tooltip = c('Week', 'currentCounts', 'ThreeYrAvg', 'SimsAvg'))
 
@@ -992,7 +1028,7 @@ mat <- aoristicDayWeek(larcs)
 plotlyhmap(mat)
 ```
 
-Column {data-width=450 .tabset .tabset-fade}
+Column {data-width=400 .tabset .tabset-fade}
 -----------------------------------------------------------------------
 
 ### YTD map
@@ -1011,7 +1047,7 @@ map
 ```{r}
 map <- hotspotMap(basemap = citymap, 
                   mapdf = filter(larcsgeo, 
-                                 difftime(Sys.Date(), OccurToDate, units = "days") <= 28))
+                                 SevenDaysGroup >= curr.week - 3))
 map
 
 ```
@@ -1033,13 +1069,13 @@ map
 
 ```{r}
 map <- carbreakins %>%
-    filter(difftime(Sys.Date(), OccurToDate, units = "days") <= 28) %>%
+    filter(SevenDaysGroup >= curr.week - 3) %>%
     hotspotMap(basemap = citymap)
 
 map
 ```
 
-Column {data-width=200 .tabset .tabset-fade}
+Column {data-width=300 .tabset .tabset-fade}
 -----------------------------------------------------------------------
 
 ### Beats
@@ -1157,8 +1193,8 @@ homs <- data.frame(FullAddress = MCUhoms$FullAddress,
                    CaseNumber = MCUhoms$CaseNumber,
                    Lat = MCUhoms$Lat,
                    Lon = MCUhoms$Lon,
+                   SevenDaysGroup = MCUhoms$SevenDaysGroup,
                    stringsAsFactors = FALSE)
-
 
 if(nrow(homs) == 0) {
     cat("No homicides this year")
@@ -1175,7 +1211,7 @@ if(nrow(homs) == 0) {
 ### 28 day Hotspot map
 
 ```{r}
-homs28 <- filter(homs, difftime(Sys.Date(), OccurToDate, units = "days") <= 28)
+homs28 <- filter(homs, SevenDaysGroup >= curr.week - 3)
 
 if(nrow(homs28) == 0) {
     cat("No homicides past 28 days citywide")
@@ -1299,12 +1335,12 @@ if(nrow(rapes) == 0) {
 ```{r}
 if(nrow(filter(df, Lat != -361 & 
                         CrimeType == "Rape" & 
-                        difftime(Sys.Date(), OccurToDate, units = "days") <= 28)) == 0) {
+                        SevenDaysGroup >= curr.week - 3)) == 0) {
     cat("No rapes in the past 28 days in this section")
 } else{
     rapes <- filter(df, Lat != -361 & 
                         CrimeType == "Rape" & 
-                        difftime(Sys.Date(), OccurToDate, units = "days") <= 28)
+                        SevenDaysGroup >= curr.week - 3)
     map <- hotspotMap(basemap = citymap, 
                       mapdf = rapes)
     map
@@ -1381,7 +1417,7 @@ map
 
 map <- cfs.df %>% 
     dplyr::filter(discretionary == FALSE & ! GEOCodedLocation %in% exclude) %>%
-    filter(eventdate >= as.POSIXct(Sys.Date() - 28)) %>%
+    filter(SevenDaysGroup >= curr.week - 3) %>%
     left_join(y = loc, by = "GEOCodedLocation") %>%
     filter(! is.na(Lng)) %>%
     cfsHotspotMap()
@@ -1503,7 +1539,7 @@ map
 
 map <- cfs.df %>% 
     filter(discretionary == TRUE & ! GEOCodedLocation %in% exclude) %>%
-    filter(eventdate >= as.POSIXct(Sys.Date() - 28)) %>%
+    filter(SevenDaysGroup >= curr.week - 3) %>%
     left_join(y = loc, by = "GEOCodedLocation") %>%
     filter(! is.na(Lng)) %>%
     cfsHotspotMap()

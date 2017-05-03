@@ -1,19 +1,15 @@
 ---
-title: "Lake Crime Dashboard"
+title: "Lake Crime Dashboard, as of `r format(Sys.Date() - 3, '%d %B, %Y')`"
 output: 
   flexdashboard::flex_dashboard:
     logo: Y:/Projects/dashboard/RPDCrimeDashboard/Objects/RPDLogoSMALL.png
     orientation: column
     vertical_layout: fill
-    navbar:
-    - {title: "RPD Office of Business Intelligence", 
-    href: 'http://www.cityofrochester.gov/police/', 
-    align: right }
     theme: cerulean
 
 ---
 
-```{r loadpackages, include=FALSE}
+```{r loadpackages}
 library(knitr)
 library(flexdashboard)
 library(RColorBrewer)
@@ -55,7 +51,7 @@ simpleCap <- function(x) {
 
 ```
 
-```{r setup, include=FALSE}
+```{r setup}
 
 sectionmap <- leaflet() %>% 
     addProviderTiles("CartoDB.Positron") %>% 
@@ -64,9 +60,22 @@ sectionmap <- leaflet() %>%
 section <- 1
 sectionname <- "Lake"
 
-
 curr.year <- as.numeric(format(Sys.Date(), '%Y')) ### This current year to automatically reference the current year
 begindate <- paste0(curr.year, '-01-01') ### For CFS to automatically create the begindate based on current year
+
+#sevenDayGroupTable is a lookup table to get the current week (Group) from the date
+#Because it uses length(Date) from seq.Date, it should work even in leap years
+
+sevenDayGroupTable <- data.frame(Date = seq.Date(from = as.Date(begindate),
+                                                 to = as.Date(paste0(curr.year, "-12-31")),
+                                                 by = 1)) %>%
+    mutate(DOY = 1:length(Date),
+           Group = c(rep(1:51, each = 7), 
+                     rep(52, times = length(Date) - 357)))
+
+curr.week <- sevenDayGroupTable$Group[match(as.numeric(format(Sys.Date(), 
+                                                             '%j')), 
+                                           sevenDayGroupTable$DOY)] - 1
 
 #read in section JSON
 sectionJSON <- readLines("https://opendata.arcgis.com/datasets/772f3621fa354ec9abf3ba33f3ace59e_0.geojson") %>%
@@ -97,6 +106,18 @@ sectionbeatsJSON <- beatsJSON$features[lapply(beatsJSON$features, function(x){
 sectionmap <- sectionmap %>%
     addGeoJSON(sectionbeatsJSON, fillOpacity = .1)
 
+
+firearm.desc <- trimws(c('Prohibited Use of Weapon City Limits', 
+                        'Use of Dangerous Weapon', 
+                        'Criminal Use Firearm 1st: Commit Violent Class B Felony', 
+                        'Discharges Loaded Firearm', 
+                        'Use Firearm 1st: Possess a Deadly Weapon-Loaded',
+                        'Criminal Use Firearm 2nd: Possess Deadly Weapon: Loaded', 
+                        'Use Firearm 1st: Display Firearm', 
+                        'Criminal Use Firearm 2nd: Display Firearm'))
+
+firearmCrimeTypes <- c("Aggravated Assault", "Robbery", "Homicide", "Rape", "Simple Assault")
+
 #load in RPD's crime data
 
 df <- LERMS_incidents_query(years = curr.year,
@@ -115,8 +136,8 @@ df <- LERMS_incidents_query(years = curr.year,
            ReportDayOfYear = as.numeric(format(ReportDate, "%j")),
            GEOBeat = factor(GEOBeat,
                             levels = unique(GEOBeat[order(substr(GEOBeat, 3, 3), 
-                                                          substr(GEOBeat, 1, 2))]))) %>%
-    mutate(sec = case_when(.$Section == 1 ~ "Lake", 
+                                                          substr(GEOBeat, 1, 2))])),
+           sec = case_when(.$Section == 1 ~ "Lake", 
                            .$Section == 3 ~ "Genesee", 
                            .$Section == 5 ~ "Goodman", 
                            .$Section == 7 ~ "Clinton", 
@@ -127,45 +148,32 @@ df <- LERMS_incidents_query(years = curr.year,
                                    .$WeaponIBRValue == "12" ~ "Blunt Object",
                                    .$WeaponIBRValue %in% c("14", "15") ~ "Physical",
                                    TRUE ~ "Other"),
-           FullAddress = unname(sapply(FullAddress, simpleCap)))
+           FullAddress = unname(sapply(FullAddress, simpleCap)),
+           WeaponIBRValue = as.numeric(WeaponIBRValue),
+           Description = trimws(Description)) %>%
+           mutate(Firearm = case_when(.$WeaponIBRValue %in% 1:10 &
+                                   .$CrimeType %in% firearmCrimeTypes ~ "Firearm",
+                               .$CrimeType == "Dangerous Weapons" & 
+                                   .$Description %in% firearm.desc ~ "Firearm",
+                               TRUE ~ "Non-Firearm")) %>%
+    left_join(sevenDayGroupTable, by = c("ReportDayOfYear" = "DOY")) %>%
+    select(-Date) %>%
+    dplyr::rename("SevenDaysGroup" = Group) %>%
+    filter(SevenDaysGroup <= curr.week) %>%
+    mutate(Description = trim(sub(x = Description, pattern = ":.*", replacement = "")))
 
 #use beatNames to make factor levels for beats
-beatNames <- df$GEOBeat %>% 
+beatNames <- df %>%
+    select(GEOBeat) %>%
     unique() %>% 
-    as.character()
-beatNames <- beatNames[! grepl(x = beatNames, pattern = "\\*")] #remove *** as a beat name
-beatLevels <- factor(beatNames[order(substr(beatNames, 3, 3), beatNames)])
-
-firearm.desc <- trimws(c('Prohibited Use of Weapon City Limits', 
-                        'Use of Dangerous Weapon', 
-                        'Criminal Use Firearm 1st: Commit Violent Class B Felony', 
-                        'Discharges Loaded Firearm', 
-                        'Use Firearm 1st: Possess a Deadly Weapon-Loaded',
-                        'Criminal Use Firearm 2nd: Possess Deadly Weapon: Loaded', 
-                        'Use Firearm 1st: Display Firearm', 
-                        'Criminal Use Firearm 2nd: Display Firearm'))
-
-firearmCrimeTypes <- c("Aggravated Assault", "Robbery", "Homicide", "Rape", "Simple Assault")
-df$Firearm <- ifelse(test = (as.numeric(df$WeaponIBRValue) %in% 1:10 & 
-                                 df$CrimeType %in% firearmCrimeTypes) |
-                         (df$CrimeType == "Dangerous Weapons" & 
-                              trimws(df$Description) %in% firearm.desc), 
-                     yes = 'Firearm', 
-                     no = 'Non-firearm')
+    filter(! grepl(x = GEOBeat, pattern = "\\*")) %>% #remove *** as a beat name
+    arrange(substr(GEOBeat, 3, 3), GEOBeat) %>%
+    mutate(GEOBeat = as.factor(GEOBeat)) #this keeps *** as a factor level
 
 CPWs <- df %>% filter(CrimeType == "Dangerous Weapons" & 
                           !trimws(Description) %in% firearm.desc &
-                          as.numeric(WeaponIBRValue) < 11)
-CPWs$OccurFromDate <- as.character(CPWs$OccurFromDate) #for table display purposes
-
-sevenDayGroupTable <- data.frame(DOY= 1:366, 
-                                Group= c(rep(1:51, each= 7), rep(52, each= 9)))
-df$SevenDaysGroup <- sevenDayGroupTable$Group[match(df$ReportDayOfYear, sevenDayGroupTable$DOY)]
-df$Description <- trim(sub(x = df$Description, pattern = ":.*", replacement = ""))
-
-curr.week <- sevenDayGroupTable$Group[match(as.numeric(format(Sys.Date(), 
-                                                             '%j')), 
-                                           sevenDayGroupTable$DOY)] - 1
+                          as.numeric(WeaponIBRValue) < 11) %>%
+    mutate(OccurFromDate = as.character(OccurFromDate)) #for table display purposes
 
 crimes <- c('Aggravated Assault', 'Arson', 'Burglary', 'Homicide', 'Larceny', 'MV Theft', 'Rape', 'Robbery', 'Firearm')
 sec <- c('Lake', 'Genesee', 'Goodman', 'Clinton', 'Central')
@@ -198,20 +206,20 @@ mculist <- pullMCUdata()
 MCUhoms <- mculist[[1]] %>%
     filter(Section == sectionname) %>%
     mutate(CrimeType = "Homicide",
-           DateOfEvent = lubridate::as_date(DateOfEvent),
-           YearofEvent = lubridate::year(DateOfEvent),
-           DOYofEvent = lubridate::yday(DateOfEvent)) %>%
+           DateOfEvent = as.Date(DateOfEvent, format = "%Y-%m-%d"),
+           DOYofEvent = as.numeric(format(DateOfEvent, "%j")),
+           YearofEvent = as.numeric(format(DateOfEvent, "%Y")),
+           CaseStatus = unname(sapply(CaseStatus, simpleCap))) %>%
     filter(YearofEvent == curr.year) %>%
     rename(sec = Section, 
            Lat = Latitude, 
            Lon = Longitude, 
-           FullAddress = Address)
+           FullAddress = Address) %>%
+    left_join(sevenDayGroupTable, by = c("DOYofEvent" = "DOY")) %>%
+    select(-Date) %>%
+    dplyr::rename("SevenDaysGroup" = Group)
 
-if(nrow(MCUhoms) > 0){
-    MCUhoms$SevenDaysGroup <- sevenDayGroupTable$Group[match(MCUhoms$DOYofEvent, 
-                                                             sevenDayGroupTable$DOY)]
-    MCUhoms$CaseStatus <- simpleCap(MCUhoms$CaseStatus)
-}
+
 
 person <- mculist[[2]]
 rm(mculist)
@@ -232,12 +240,19 @@ exclude <- c("630 North Clinton Ave, Rochester, NY, 14605",
              "185 Exchange Blvd, Rochester, NY, 14614",
              "1099 Jay St, Rochester, NY, 14611")
 
-cfs.df <- LERMS_CFS_query(begindate = begindate, section = sectionname) %>%
+cfs.df <- LERMS_CFS_query(begindate = begindate, 
+                          section = sectionname,
+                          enddate = max(sevenDayGroupTable$Date[sevenDayGroupTable$Group == curr.week])) %>%
     mutate(RPD_Priority = factor(case_when(.$RPD_Priority == 1 ~ "Critical",
                                            .$RPD_Priority == 2 ~ "Urgent",
                                            .$RPD_Priority == 3 ~ "Normal",
                                            TRUE ~ "Discretionary"),
-                                 levels = c("Critical", "Urgent", "Normal", "Discretionary")))
+                                 levels = c("Critical", "Urgent", "Normal", "Discretionary")),
+           eventdate = as.Date(eventdate, format = "%Y-%m-%d"),
+           eventDOY = format(eventdate, format = "%j") %>% as.numeric()) %>%
+    left_join(sevenDayGroupTable, by = c("eventDOY" = "DOY")) %>%
+    select(-Date) %>%
+    dplyr::rename("SevenDaysGroup" = Group)
 
 firearmSPC <- SPC(crimetype = "Firearm")
 svSPC <- SPC(dataf = svjoined, crimetype = "Shooting")
@@ -247,6 +262,7 @@ robSPC <- SPC(crimetype = "Robbery")
 asltSPC <- SPC(crimetype = "Aggravated Assault")
 burgSPC <- SPC(crimetype = "Burglary")
 larcSPC <- SPC(crimetype = "Larceny")
+odbcCloseAll()
 
 ```
 
@@ -300,17 +316,33 @@ DT::datatable(tab,
 ### Closure rates
 
 ```{r}
-PartOne <- c("Aggravated Assault", "Arson", "Burglary", "Homicide", "Larceny",
-                 "MV Theft", "Rape", "Robbery")
+CrimeTypes <- c("Aggravated Assault", "Burglary", "Homicide", "Larceny",
+                 "MV Theft", "Rape", "Robbery", "Dangerous Weapons")
 
 treedata <- df %>%
-    filter(CrimeType %in% PartOne |
-               Firearm == "Firearm") %>%
+    filter(CrimeType %in% CrimeTypes) %>%
     filter(SevenDaysGroup %in% 1:curr.week) %>%
     count(CrimeType = CrimeType,
           Clearance = ClearanceStatusValue, 
           Closure = CaseStatusValue) %>%
-    ungroup()
+    ungroup() %>%
+    group_by(CrimeType) %>%
+    mutate(CrimeTypeCount = sum(n)) %>%
+    group_by(CrimeType, Closure) %>%
+    mutate(ClosureCount = sum(n)) %>%
+    ungroup() %>%
+    mutate(CrimeType = paste0(CrimeType, " (", 
+                              CrimeTypeCount, ", ",
+                              round(100 * CrimeTypeCount / sum(n), 2), 
+                              "%)  "),
+           Closure = paste0(Closure, " (",
+                            ClosureCount, ", ",
+                            round(100 * ClosureCount / CrimeTypeCount, 2),
+                            "%)  "),
+           Clearance = paste0(Clearance, " (",
+                              n, ", ",
+                              round(100 * n / ClosureCount, 2),
+                              "%)"))
 
 pdf(NULL)
 clearanceTreeMap <- d3tree2(
@@ -539,20 +571,22 @@ Column{data-width=300 .tabset .tabset-fade}
 
 ### Beats
 
+There were `r nrow(guns)` overall firearm-involved crimes (including simulated and immitation firearms).
+
 ```{r}
 dat <- df %>%
     filter(Firearm == "Firearm")
 
 #kable(nestedbeattable(dat),
 #      col.names = c("Section", "Beat", "Count"))
-
-DT::datatable(nestedbeattable(dat), 
+x <- nestedbeattable(dat)
+DT::datatable(x[-1, -1],
+              filter = 'top',
               rownames = FALSE,
-              colnames = c('Section', 'Beat', 'Count'),
+              colnames = c('Beat', 'Count'),
               options = list(dom = 't', 
                              pageLength = 100, 
-                             ordering = FALSE,
-                             columnDefs = list(list(className = 'dt-right', targets = 0:2))))
+                             columnDefs = list(list(className = 'dt-right', targets = 0:1))))
 ```
 
 ### Crime Types
@@ -631,7 +665,7 @@ if(nrow(svjoined) > 0){
 ```{r}
 
 svjoin28 <- filter(svjoined,
-                   difftime(Sys.Date(), OccurToDate, units = "days") <= 28)
+                   SevenDaysGroup >= curr.week - 3)
 
 if(nrow(svjoin28) > 0){
     dohotspot <- ifelse(nrow(svjoin28) > 10, yes = TRUE, no = FALSE)
@@ -648,18 +682,20 @@ Column {data-width=300 .tabset .tabset-fade}
 
 ### Beats
 
+There have been `r nrow(svjoined)` shooting victims thus far.
+
 ```{r}
 if(nrow(svjoined) > 0){
     #kable(nestedbeattable(svjoined), 
     #     col.names = c("Section", "Beat", "Count"))
-  
-    DT::datatable(nestedbeattable(svjoined),
+  x <- nestedbeattable(svjoined)
+    DT::datatable(x[-1, -1],
+                  filter = 'top',
                   rownames = FALSE,
-                  colnames = c("Section", "Beat", "Count"),
+                  colnames = c("Beat", "Count"),
                   options = list(pageLength = 100, 
-                                dom = 't', 
-                                ordering = FALSE,
-                                columnDefs = list(list(className = 'dt-right', targets = 0:2)))
+                                dom = 'tf', 
+                                columnDefs = list(list(className = 'dt-right', targets = 0:1)))
                   )
 }
 
@@ -749,7 +785,7 @@ map
 
 robsgeo <- filter(df, Lat != -361 & 
                       CrimeType == "Robbery" & 
-                      difftime(Sys.Date(), OccurToDate, units = "days") <= 28)
+                      SevenDaysGroup >= curr.week - 3)
 if(nrow(robsgeo) > 0){
     map <- hotspotMap(basemap = sectionmap, 
                   mapdf = robsgeo)
@@ -764,23 +800,27 @@ Column {data-width=300 .tabset .tabset-fade}
 
 ### Beats
 
+There have been `r df %>% dplyr::filter(CrimeType == "Robbery") %>% nrow()` total robberies thus far.
+
 ```{r}
 dat <- df %>%
     dplyr::filter(CrimeType == "Robbery")
 
 #kable(nestedbeattable(dat),
 #      col.names = c("Section", "Beat", "Count"))
-
-DT::datatable(nestedbeattable(dat),
+x <- nestedbeattable(dat)
+DT::datatable(x[-1, -1],
+              filter = 'top',
               rownames = FALSE,
-              colnames = c("Section", "Beat", "Count"),
+              colnames = c("Beat", "Count"),
               options = list(pageLength = 100, 
-                             dom = 't', 
-                             ordering = FALSE,
-                             columnDefs = list(list(className = 'dt-right', targets = 0:2))))
+                             dom = 'tf', 
+                             columnDefs = list(list(className = 'dt-right', targets = 0:1))))
 ```
 
 ### Weapon Types
+
+There have been `r df %>% dplyr::filter(CrimeType == "Robbery") %>% nrow()` total robberies thus far.
 
 ```{r}
 
@@ -798,15 +838,18 @@ DT::datatable(nestedbeattable(dat),
 table(robs$WeaponGroup) %>%
     as.data.frame() %>%
     #kable(col.names = c("Weapon", "Count"), row.names = FALSE)
-    DT::datatable(rownames = FALSE,
+    DT::datatable(filter = 'top',
+                  rownames = FALSE,
                   colnames = c("Weapon", "Count"),
                   options = list(pageLength = 100,
-                                 dom = 't',
+                                 dom = 'tf',
                                  columnDefs = list(list(className = 'dt-right', targets = 0:1))))
 
 ```
 
 ### Locations
+
+There have been `r df %>% dplyr::filter(CrimeType == "Robbery") %>% nrow()` total robberies thus far.
 
 ```{r}
 
@@ -867,7 +910,7 @@ map
 ```{r}
 map <- hotspotMap(basemap = sectionmap, 
                   mapdf = filter(asltsgeo, 
-                                 difftime(Sys.Date(), OccurToDate, units = "days") <= 28))
+                                 SevenDaysGroup >= curr.week - 3))
 map
 ```
 
@@ -876,23 +919,27 @@ Column {data-width=300 .tabset .tabset-fade}
 
 ### Beats
 
+There have been `r df %>% dplyr::filter(CrimeType == "Aggravated Assault") %>% nrow()` total aggravated assaults thus far.
+
 ```{r}
 dat <- df %>%
     dplyr::filter(CrimeType == "Aggravated Assault")
 
 #kable(nestedbeattable(dat),
 #      col.names = c("Section", "Beat", "Count"))
-
-DT::datatable(nestedbeattable(dat),
+x <- nestedbeattable(dat)
+DT::datatable(x[-1,-1],
+              filter = 'top',
               rownames = FALSE,
-              colnames = c("Section", "Beat", "Count"),
+              colnames = c("Beat", "Count"),
               options = list(pageLength = 100, 
-                             dom = 't', 
-                             ordering = FALSE,
-                             columnDefs = list(list(className = 'dt-right', targets = 0:2))))
+                             dom = 'tf', 
+                             columnDefs = list(list(className = 'dt-right', targets = 0:1))))
 ```
 
 ### Weapon Types
+
+There have been `r df %>% dplyr::filter(CrimeType == "Aggravated Assault") %>% nrow()` total aggravated assaults thus far.
 
 ```{r}
 
@@ -920,6 +967,8 @@ table(aslts$WeaponGroup) %>%
 ```
 
 ### Locations
+
+There have been `r df %>% dplyr::filter(CrimeType == "Aggravated Assault") %>% nrow()` total aggravated assaults thus far.
 
 ```{r}
 
@@ -981,7 +1030,7 @@ map
 ```{r}
 map <- hotspotMap(basemap = sectionmap, 
                   mapdf = filter(burgsgeo, 
-                                 difftime(Sys.Date(), OccurToDate, units = "days") <= 28))
+                                 SevenDaysGroup >= curr.week - 3))
 map
 ```
 
@@ -990,22 +1039,27 @@ Column {data-width=300 .tabset .tabset-fade}
 
 ### Beats
 
+There have been `r df %>% dplyr::filter(CrimeType == "Burglary") %>% nrow()` total burglaries thus far.
+
 ```{r}
 dat <- df %>%
     dplyr::filter(CrimeType == "Burglary")
 
 #kable(nestedbeattable(dat),
 #      col.names = c("Section", "Beat", "Count"))
-DT::datatable(nestedbeattable(dat),
+x <- nestedbeattable(dat)
+DT::datatable(x[-1,-1],
+              filter ='top',
               rownames = FALSE,
-              colnames = c("Section", "Beat", "Count"),
+              colnames = c("Beat", "Count"),
               options = list(pageLength = 100, 
-                             dom = 't', 
-                             ordering = FALSE,
-                             columnDefs = list(list(className = 'dt-right', targets = 0:2))))
+                             dom = 'tf', 
+                             columnDefs = list(list(className = 'dt-right', targets = 0:1))))
 ```
 
 ### Locations
+
+There have been `r df %>% dplyr::filter(CrimeType == "Burglary") %>% nrow()` total burglaries thus far.
 
 ```{r}
 tab <- as.data.frame(table(burgs$LocationScene), stringsAsFactors = TRUE)
@@ -1062,7 +1116,7 @@ map
 ```{r}
 map <- hotspotMap(basemap = sectionmap, 
                   mapdf = filter(larcsgeo, 
-                                 difftime(Sys.Date(), OccurToDate, units = "days") <= 28))
+                                 SevenDaysGroup >= curr.week - 3))
 map
 
 ```
@@ -1084,7 +1138,7 @@ map
 
 ```{r}
 map <- carbreakins %>%
-    filter(difftime(Sys.Date(), OccurToDate, units = "days") <= 28) %>%
+    filter(SevenDaysGroup >= curr.week - 3) %>%
     hotspotMap(basemap = sectionmap)
 
 map
@@ -1095,22 +1149,27 @@ Column {data-width=300 .tabset .tabset-fade}
 
 ### Beats
 
+There have been `r df %>% dplyr::filter(CrimeType == "Larceny") %>% nrow()` total larcenies thus far.
+
 ```{r}
 dat <- df %>%
     dplyr::filter(CrimeType == "Larceny")
 
 #kable(nestedbeattable(dat),
 #      col.names = c("Section", "Beat", "Count"))
-DT::datatable(nestedbeattable(dat),
+x <- nestedbeattable(dat)
+DT::datatable(x[-1,-1],
+              filter = 'top',
               rownames = FALSE,
-              colnames = c("Section", "Beat", "Count"),
+              colnames = c("Beat", "Count"),
               options = list(pageLength = 100, 
-                             dom = 't', 
-                             ordering = FALSE,
-                             columnDefs = list(list(className = 'dt-right', targets = 0:2))))
+                             dom = 'tf', 
+                             columnDefs = list(list(className = 'dt-right', targets = 0:1))))
 ```
 
 ### Larceny Types
+
+There have been `r df %>% dplyr::filter(CrimeType == "Larceny") %>% nrow()` total larcenies thus far.
 
 ```{r}
 tab <- as.data.frame(table(larcs$LarcenyType), stringsAsFactors = TRUE)
@@ -1208,7 +1267,9 @@ homs <- data.frame(FullAddress = MCUhoms$FullAddress,
                    CaseNumber = MCUhoms$CaseNumber,
                    Lat = MCUhoms$Lat,
                    Lon = MCUhoms$Lon,
+                   SevenDaysGroup = MCUhoms$SevenDaysGroup,
                    stringsAsFactors = FALSE)
+
 
 
 if(nrow(homs) == 0) {
@@ -1229,7 +1290,7 @@ if(nrow(homs) == 0) {
 if(nrow(filter(MCUhoms, SevenDaysGroup > curr.week - 4)) == 0) {
     cat("No homicides past 28 days citywide")
 } else{
-    homs28 <- filter(homs, difftime(Sys.Date(), OccurToDate, units = "days") <= 28)
+    homs28 <- filter(homs, SevenDaysGroup >= curr.week - 3)
     map <- hotspotMap(basemap = sectionmap, 
                       mapdf = homs28, 
                       doHotSpot = FALSE)
@@ -1283,10 +1344,11 @@ rapes %>%
     as.data.frame() %>% 
     arrange(desc(Freq)) %>%
     #kable(col.names = c("Location", "Count"))
-    DT::datatable(rownames = FALSE,
+    DT::datatable(filter = 'top',
+                  rownames = FALSE,
                   colnames = c("Location", "Count"),
                   options = list(pageLength = 100, 
-                                 dom = 't',
+                                 dom = 'tf',
                                  columnDefs = list(list(className = 'dt-right', targets = 0:1))))
 
 ```
@@ -1300,23 +1362,27 @@ rapes %>%
     as.data.frame() %>%
     arrange(desc(Freq)) %>%
     #kable(col.names = c("Charge Description", "Count"))
-    DT::datatable(rownames = FALSE,
+    DT::datatable(filter = 'top',
+                  rownames = FALSE,
                   colnames = c("Charge Description", "Count"),
                   options = list(pageLength = 100, 
-                                 dom = 't',
-                                 ordering = FALSE,
+                                 dom = 'tf',
                                  columnDefs = list(list(className = 'dt-right', targets = 0:1))))  
+```
 
+### UCR Types
+
+```{r}
 rapes %>% 
     select(UCRText) %>%
     table() %>%
     as.data.frame() %>%
     #kable(col.names = c("Rape UCR type", "Count"))
-    DT::datatable(rownames = FALSE,
+    DT::datatable(filter = 'top',
+                  rownames = FALSE,
                   colnames = c("Rape UCR Type", "Count"),
                   options = list(pageLength = 100, 
-                                 dom = 't',
-                                 ordering = FALSE,
+                                 dom = 'tf',
                                  columnDefs = list(list(className = 'dt-right', targets = 0:1))))   
 
 ```
@@ -1343,12 +1409,12 @@ if(nrow(rapes) == 0) {
 ```{r}
 if(nrow(filter(df, Lat != -361 & 
                         CrimeType == "Rape" & 
-                        difftime(Sys.Date(), OccurToDate, units = "days") <= 28)) == 0) {
+                        SevenDaysGroup >= curr.week - 3)) == 0) {
     cat("No rapes in the past 28 days in this section")
 } else{
     rapes <- filter(df, Lat != -361 & 
                         CrimeType == "Rape" & 
-                        difftime(Sys.Date(), OccurToDate, units = "days") <= 28)
+                        SevenDaysGroup >= curr.week - 3)
     map <- hotspotMap(basemap = sectionmap, 
                       mapdf = rapes)
     map
@@ -1439,6 +1505,11 @@ Column {data-width=250 .tabset .tabset-fade}
 
 ### Beats
 
+There have been `r cfs.df %>% 
+    dplyr::filter(discretionary == FALSE & ! GEOCodedLocation %in% exclude) %>%
+    left_join(y = loc, by = "GEOCodedLocation") %>%
+    filter(! is.na(Lng)) %>% nrow()` non-discretionary CFS to date.
+
 ```{r}
 
 dat <- cfs.df %>%
@@ -1446,13 +1517,14 @@ dat <- cfs.df %>%
     filter(discretionary == FALSE)
 #kable(nestedbeattable(dat),
 #      col.names = c("Section", "Beat", "Count"))
-DT::datatable(nestedbeattable(dat),
+x <- nestedbeattable(dat)
+DT::datatable(x[-1,-1],
+              filter = 'top',
               rownames = FALSE,
-              colnames = c("Section", "Beat", "Count"),
+              colnames = c("Beat", "Count"),
               options = list(pageLength = 100,
-                             dom = 't',
-                             ordering = FALSE,
-                             columnDefs = list(list(className = 'dt-right', targets = 0:2))))
+                             dom = 'tf',
+                             columnDefs = list(list(className = 'dt-right', targets = 0:1))))
 
 ```
 
@@ -1561,6 +1633,11 @@ Column {data-width=250 .tabset .tabset-fade}
 
 ### Beats
 
+There have been `r cfs.df %>% 
+    filter(discretionary == TRUE & ! GEOCodedLocation %in% exclude) %>%
+    left_join(y = loc, by = "GEOCodedLocation") %>%
+    filter(! is.na(Lng)) %>% nrow()` discretionary CFS to date. 
+
 ```{r}
 
 dat <- cfs.df %>%
@@ -1568,13 +1645,14 @@ dat <- cfs.df %>%
     filter(discretionary == TRUE)
 #kable(nestedbeattable(dat),
 #      col.names = c("Section", "Beat", "Count"))
-DT::datatable(nestedbeattable(dat),
+x <- nestedbeattable(dat)
+DT::datatable(x[-1,-1],
+              filter = 'top',
               rownames = FALSE,
-              colnames = c("Section", "Beat", "Count"),
+              colnames = c("Beat", "Count"),
               options = list(pageLength = 100,
-                             dom = 't',
-                             ordering = FALSE,
-                             columnDefs = list(list(className = 'dt-right', targets = 0:2))))
+                             dom = 'tf',
+                             columnDefs = list(list(className = 'dt-right', targets = 0:1))))
 
 ```
 
