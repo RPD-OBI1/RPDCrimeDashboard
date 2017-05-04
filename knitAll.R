@@ -9,6 +9,6 @@ rmarkdown::render("CentralCrimeDashBoard.RMD")
 end <- Sys.time()
 took <- difftime(end, start)
 
-fileConn <- file("took.txt")
-writeLines(paste(Sys.Date(), took, " seconds"), fileConn)
+fileConn <- file(paste0("HowLongItTook/", Sys.Date(), "took.txt"))
+writeLines(paste(Sys.Date(), took, " ", units(took)), fileConn)
 close(fileConn)
