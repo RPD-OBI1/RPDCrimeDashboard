@@ -243,7 +243,7 @@ larcSPC <- SPC(crimetype = "Larceny")
 ```
 
 
-Overview
+Overview {data-navmenu="Home"}
 ======================================================================
 
 Column{data-width=500}
@@ -487,7 +487,7 @@ p <- ggplot(filter(histdata, CrimeType == "Rape"), aes(x = Yr, y = Counts)) +
 ggplotly(p, tooltip = c("Yr", "Counts", "SimsAvg"))
 ```
 
-Firearm Crime 
+Firearm Crime {data-navmenu="Violent Crime"} 
 ======================================================================
 
 Column {data-width=400}
@@ -585,7 +585,7 @@ DT::datatable(CPWs[c("FullAddress", "Beat", "OccurFromDate", "Description")],
                              columnDefs = list(list(className = 'dt-right', targets = 0:3))))
 ```
 
-Shooting Victims
+Shooting Victims {data-navmenu="Violent Crime"}
 ======================================================================
 
 Column {data-width=400}
@@ -694,7 +694,7 @@ temptab$n %>%
 
 ```
 
-Robbery
+Robbery {data-navmenu="Violent Crime"}
 ======================================================================
 
 Column {data-width=400}
@@ -809,7 +809,7 @@ robs %>%
                                  columnDefs = list(list(className = 'dt-right', targets = 0:1))))
 ```
 
-Aggravated Assault
+Aggravated Assault {data-navmenu="Violent Crime"}
 ======================================================================
 
 Column {data-width=400}
@@ -924,7 +924,7 @@ aslts %>%
 ```
 
 
-Burglary
+Burglary {data-navmenu="Property Crime"}
 ======================================================================
 
 Column {data-width=400}
@@ -1005,7 +1005,7 @@ DT::datatable(tab, filter = 'top',
 ```
 
 
-Larceny
+Larceny {data-navmenu="Property Crime"}
 ======================================================================
 
 Column {data-width=400}
@@ -1111,7 +1111,7 @@ DT::datatable(tab,
 
 ```
 
-Homicide
+Homicide {data-navmenu="Violent Crime"}
 ======================================================================
 
 Column {data-width=600 .tabset .tabset-fade}
@@ -1225,7 +1225,7 @@ if(nrow(homs28) == 0) {
 
 ```
 
-Rape
+Rape {data-navmenu="Violent Crime"}
 ======================================================================
 
 Column {data-width=600 .tabset .tabset-fade}
@@ -1349,7 +1349,7 @@ if(nrow(filter(df, Lat != -361 &
 ```
 
 
-CFS Non-discretionary
+Non-discretionary CFS {data-navmenu="Calls For Service"}
 ======================================================================
 
 Column {data-width=500}
@@ -1473,7 +1473,7 @@ hist <- ggplot(tab, aes(x = reorder(CallTypeCode, Count),
 ggplotly(hist, tooltip = c("Count"))
 ```
 
-CFS Discretionary
+Discretionary CFS {data-navmenu="Calls For Service"}
 =======================================================================
 
 Column {data-width=500}
@@ -1595,7 +1595,7 @@ hist <- ggplot(tab, aes(x = reorder(CallTypeCode, Count),
 ggplotly(hist, tooltip = c("Count"))
 ```
 
-Reference
+Reference {data-navmenu="Home"}
 ======================================================================
 
 Column{data-width=200}
@@ -1621,14 +1621,7 @@ Treemaps display information as rectangles nested within each other. The data is
 
 The proportion of the values shown to the total are represented by the size of the corresponding rectangle.
 
-******
-
-```{r}
-
-include_graphics('Y:/Projects/dashboard/RPDCrimeDashboard/Objects/ReferenceTreeMap.png')
-
-```
-
+![](Y:/Projects/dashboard/RPDCrimeDashboard/Objects/ReferenceTreeMap.png)
 
 ### Projection plot
 
@@ -1636,13 +1629,8 @@ The projection chart shows the cumulative weekly values experienced to date for 
 
 The black faded points on the chart at week 53 show the results of 1000 simulations estimating what our total counts will be at year-end. The large blue point shows the average of those simulations. The black "X" shows the weighted average year-end totals for the past three years. The percentage of the simulations above the upper limit helps to gauge chances of year-end expectations regarding that particular crime if the remainder of the year continues as those have historically.
 
-******
+![](Y:/Projects/dashboard/RPDCrimeDashboard/Objects/ReferenceProjectionPlot.png)
 
-```{r}
-
-include_graphics('Y:/Projects/dashboard/RPDCrimeDashboard/Objects/ReferenceProjectionPlot.png')
-
-```
 
 
 ### Aoristic heatmap
@@ -1651,13 +1639,9 @@ An aoristic heatmap shows the proportion of activity that occurs in a given hour
 
 The rectangle labeled "Hr23" corresponds with the amount of activity occuring between 2300 and 2359 hrs on that day of the week. For crimes that occur over a longer period of time, or for crimes that occurred at an unknown time within a time range, the weight of that crime is divided evenly between the hours that it could have occurred. For instance, the weight for a burglary that occurred at some point between 0800 and 1200 will be spread out evenly between Hr8, Hr9, Hr10 and Hr11.
 
-******
+![](include_graphics('Y:/Projects/dashboard/RPDCrimeDashboard/Objects/ReferenceAoristicPlot.png)
 
-```{r}
 
-include_graphics('Y:/Projects/dashboard/RPDCrimeDashboard/Objects/ReferenceAoristicPlot.png')
-
-```
 
 
 ### Maps
@@ -1670,13 +1654,8 @@ The Calls for Service maps only display the individual markers on addresses for 
 
 If no map appears, likely there is no data to present (i.e. no events to map).
 
-******
+![](include_graphics('Y:/Projects/dashboard/RPDCrimeDashboard/Objects/ReferenceMapCity.png)
 
-```{r}
-
-include_graphics('Y:/Projects/dashboard/RPDCrimeDashboard/Objects/ReferenceMapCity.png')
-
-```
 
 
 ### CFS - Non-discretionary plot
@@ -1685,13 +1664,8 @@ The non-discretionary graph shows the average RPD response time for various call
 
 The circle size represents the call volume for that type of call. Large circles are for frequent call types, smaller circles are for infrequent call types (but that still represent more than 1% of total non-discretionary calls).
 
-******
+![](Y:/Projects/dashboard/RPDCrimeDashboard/Objects/ReferenceNonDiscretionaryCFSPlot.png)
 
-```{r}
-
-include_graphics('Y:/Projects/dashboard/RPDCrimeDashboard/Objects/ReferenceNonDiscretionaryCFSPlot.png')
-
-```
 
 
 ### CFS - Discretionary plot
@@ -1702,13 +1676,8 @@ The size of the circle corresponds with how frequently officers answer that call
 
 Calls are arranged alphabetically along the x axis, and the location of the corresponding circle on the y axis indicates the amount of time spent on the call on average. Only calls that we believe were coded correctly (for on scene time, clear time, etc.) are used to calculate the amount of time spent.
 
-******
 
-```{r}
-
-include_graphics('Y:/Projects/dashboard/RPDCrimeDashboard/Objects/ReferenceDiscretionaryCFSPlot.png')
-
-```
+![](Y:/Projects/dashboard/RPDCrimeDashboard/Objects/ReferenceDiscretionaryCFSPlot.png)
 
 
 ### Additional tables
