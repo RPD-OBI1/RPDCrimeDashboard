@@ -543,8 +543,6 @@ Column{data-width=300 .tabset .tabset-fade}
 dat <- df %>%
     filter(Firearm == "Firearm")
 
-#kable(nestedbeattable(dat),
-#      col.names = c("Section", "Beat", "Count"))
 
 DT::datatable(nestedbeattable(dat), 
               rownames = FALSE,
@@ -576,8 +574,9 @@ DT::datatable(guntablenest(df),
 There were `r nrow(CPWs)` CPW crimes (excluding knives/brass knuckle crimes). These CPWs are not counted in the overall firearm-related statistics.
 
 ```{r}
-#kable(CPWs[c("FullAddress", "Beat", "OccurFromDate", "Description")], col.names = c('Address', 'Beat', 'Date', 'Description'))
-DT::datatable(CPWs[c("FullAddress", "Beat", "OccurFromDate", "Description")],
+
+CPWs$Description <- factor(CPWs$Description)
+DT::datatable(CPWs[c("FullAddress", "GEOBeat", "OccurFromDate", "Description")],
               filter = 'top',
               rownames = FALSE,
               colnames = c('Address', 'Beat', 'Date', 'Description'),
@@ -769,20 +768,13 @@ DT::datatable(nestedbeattable(dat),
 
 ```{r}
 
-#robs %>%
-#    select(Firearm) %>%
-#    table() %>%
-#    as.data.frame() %>%
-#    #kable(col.names = c("Type", "Count"), row.names = FALSE)
-#    DT::datatable(rownames = FALSE,
-#                  colnames = c("Type", "Count"),
-#                  options = list(pageLength = 100, 
-#                                 dom ='t', 
-#                                 ordering = FALSE))
 
-table(robs$WeaponGroup) %>%
-    as.data.frame() %>%
-    #kable(col.names = c("Weapon", "Count"), row.names = FALSE)
+
+robs %>%
+    group_by(WeaponGroup) %>%
+    count() %>%
+    arrange(desc(n)) %>%
+    mutate(WeaponGroup = factor(WeaponGroup)) %>%
     DT::datatable(rownames = FALSE,
                   colnames = c("Weapon", "Count"),
                   options = list(pageLength = 100,
@@ -796,11 +788,10 @@ table(robs$WeaponGroup) %>%
 ```{r}
 
 robs %>% 
-    select(LocationSceneDescription) %>%
-    table() %>%
-    as.data.frame() %>%
-    arrange(desc(Freq)) %>%
-    #kable(row.names = FALSE, col.names = c("Location", "Count"))
+    group_by(LocationSceneDescription) %>%
+    count() %>%
+    arrange(desc(n)) %>%
+    mutate(LocationSceneDescription = factor(LocationSceneDescription)) %>%
     DT::datatable(filter = 'top',
                   rownames = FALSE,
                   colnames = c("Location", "Count"),
@@ -1098,10 +1089,13 @@ DT::datatable(nestedbeattable(dat),
 ### Larceny Types
 
 ```{r}
-tab <- as.data.frame(table(larcs$LarcenyType), stringsAsFactors = TRUE)
-tab <- tab[order(tab$Freq, decreasing = TRUE),]
-#kable(tab, row.names = FALSE, col.names = c("Larceny Type", "Counts"))
-DT::datatable(tab,
+
+larcs %>%
+    group_by(LarcenyTypeDescription) %>%
+    count() %>%
+    mutate(LarcenyTypeDescription = factor(LarcenyTypeDescription)) %>%
+    arrange(desc(n)) %>%
+    DT::datatable(
               filter = 'top',
               rownames = FALSE,
               colnames = c("Larceny Type", "Count"),
@@ -1122,16 +1116,14 @@ Column {data-width=600 .tabset .tabset-fade}
 
 ```{r}
 if(nrow(personincident) > 0){
-    persons <- bind_rows(personincident %>% 
-                         filter(PersonType == "Victim") %>%
-                         select(CaseNumber, Beat, DateOfEvent, DateOfDeath, 
-                                CaseStatus, WeaponType, PersonType, Name, DOB) %>%
-                         head(),
-                     personincident %>% 
-                         filter(PersonType == "Arrestee") %>%
-                         select(CaseNumber, Beat, DateOfEvent, DateOfDeath, 
-                                CaseStatus, WeaponType, PersonType, Name, DOB) %>%
-                         head()) %>%
+    persons <- personincident %>% 
+        filter(PersonType %in% c("Victim", "Arrestee")) %>%
+        select(CaseNumber, Beat, DateOfEvent, DateOfDeath, 
+               CaseStatus, WeaponType, PersonType, Name, DOB) %>%
+        mutate(PersonType = factor(PersonType),
+               Beat = factor(Beat),
+               WeaponType = factor(WeaponType),
+               CaseStatus = factor(CaseStatus)) %>%
         arrange(DateOfEvent)
     #kable(persons)
     DT::datatable(persons,
@@ -1152,7 +1144,6 @@ if(nrow(personincident) > 0){
 
 ```{r}
 if(nrow(MCUhoms) > 0){
-    #kable(as.data.frame(table(MCUhoms$WeaponType)), col.names = c("Weapon", "Count"))
     DT::datatable(as.data.frame(table(MCUhoms$WeaponType)),
                   filter = 'top',
                   rownames = FALSE,
@@ -1168,9 +1159,7 @@ if(nrow(MCUhoms) > 0){
 
 ```{r}
 if(nrow(MCUhoms) > 0){
-    #kable(as.matrix(table(incident$Disposition[incident$YearofEvent == curr.year], 
-    #                      incident$CaseStatus[incident$YearofEvent == curr.year])))
-  
+    
     DT::datatable(as.data.frame(table(MCUhoms$Disposition[MCUhoms$YearofEvent == curr.year], 
                                  MCUhoms$CaseStatus[MCUhoms$YearofEvent == curr.year])),
                   filter = 'top',
@@ -1234,14 +1223,15 @@ Column {data-width=600 .tabset .tabset-fade}
 ### Table overview
 
 ```{r}
-rapes <- filter(df, CrimeType == "Rape")
-rapes$OccurToDate<- as.character(rapes$OccurFromDate)
+rapes <- df %>%
+    filter(CrimeType == "Rape")
 
 rapes %>%
     select(CaseNumber, FullAddress, OccurToDate, 
            ReportDate, LocationSceneDescription, CaseStatusValue) %>%
+    mutate(LocationSceneDescription = factor(LocationSceneDescription),
+           CaseStatusValue = factor(CaseStatusValue)) %>%
     arrange(ReportDate) %>%
-    #kable(col.names = c("CR", "Address", "OccurDate", "ReportDate", "Location", "Clearance"))
     DT::datatable(filter = 'top',
                   rownames = FALSE,
                   colnames = c('Case Number', 'Address', 'Event Date', 'Report Date', 'Location', 'Clearance'),
@@ -1268,7 +1258,6 @@ rapes %>%
     table() %>% 
     as.data.frame() %>% 
     arrange(desc(Freq)) %>%
-    #kable(col.names = c("Location", "Count"))
     DT::datatable(rownames = FALSE,
                   colnames = c("Location", "Count"),
                   options = list(pageLength = 100, 
@@ -1281,15 +1270,15 @@ rapes %>%
 
 ```{r}
 rapes %>%
-    select(Description) %>%
-    table() %>%
-    as.data.frame() %>%
-    arrange(desc(Freq)) %>%
-    #kable(col.names = c("Charge Description", "Count"))
-    DT::datatable(rownames = FALSE,
+    group_by(Description) %>%
+    count() %>%
+    arrange(desc(n)) %>%
+    mutate(Description = factor(Description)) %>%
+    DT::datatable(filter = 'top',
+                  rownames = FALSE,
                   colnames = c("Charge Description", "Count"),
                   options = list(pageLength = 100, 
-                                 dom = 't',
+                                 dom = 'tf',
                                  ordering = FALSE,
                                  columnDefs = list(list(className = 'dt-right', targets = 0:1))))  
 
@@ -1300,14 +1289,14 @@ rapes %>%
 ```{r}
 
 rapes %>% 
-    select(UCRText) %>%
-    table() %>%
-    as.data.frame() %>%
-    #kable(col.names = c("Rape UCR type", "Count"))
-    DT::datatable(rownames = FALSE,
+    group_by(UCRText) %>%
+    count() %>%
+    mutate(UCRText = factor(UCRText)) %>%
+    DT::datatable(filter = 'top',
+                  rownames = FALSE,
                   colnames = c("Rape UCR Type", "Count"),
                   options = list(pageLength = 100, 
-                                 dom = 't',
+                                 dom = 'tf',
                                  ordering = FALSE,
                                  columnDefs = list(list(className = 'dt-right', targets = 0:1))))
 
@@ -1639,7 +1628,7 @@ An aoristic heatmap shows the proportion of activity that occurs in a given hour
 
 The rectangle labeled "Hr23" corresponds with the amount of activity occuring between 2300 and 2359 hrs on that day of the week. For crimes that occur over a longer period of time, or for crimes that occurred at an unknown time within a time range, the weight of that crime is divided evenly between the hours that it could have occurred. For instance, the weight for a burglary that occurred at some point between 0800 and 1200 will be spread out evenly between Hr8, Hr9, Hr10 and Hr11.
 
-![](include_graphics('Y:/Projects/dashboard/RPDCrimeDashboard/Objects/ReferenceAoristicPlot.png)
+![](include_graphics(Y:/Projects/dashboard/RPDCrimeDashboard/Objects/ReferenceAoristicPlot.png)
 
 
 
@@ -1654,7 +1643,7 @@ The Calls for Service maps only display the individual markers on addresses for 
 
 If no map appears, likely there is no data to present (i.e. no events to map).
 
-![](include_graphics('Y:/Projects/dashboard/RPDCrimeDashboard/Objects/ReferenceMapCity.png)
+![](include_graphics(Y:/Projects/dashboard/RPDCrimeDashboard/Objects/ReferenceMapCity.png)
 
 
 

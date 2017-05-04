@@ -580,7 +580,7 @@ dat <- df %>%
 #kable(nestedbeattable(dat),
 #      col.names = c("Section", "Beat", "Count"))
 x <- nestedbeattable(dat)
-DT::datatable(x[-1, -1],
+DT::datatable(x[-1, -1] %>% mutate(Beat = factor(Beat)),
               filter = 'top',
               rownames = FALSE,
               colnames = c('Beat', 'Count'),
@@ -686,10 +686,8 @@ There have been `r nrow(svjoined)` shooting victims thus far.
 
 ```{r}
 if(nrow(svjoined) > 0){
-    #kable(nestedbeattable(svjoined), 
-    #     col.names = c("Section", "Beat", "Count"))
-  x <- nestedbeattable(svjoined)
-    DT::datatable(x[-1, -1],
+    x <- nestedbeattable(svjoined)
+    DT::datatable(x[-1, -1] %>% mutate(Beat = factor(Beat)),
                   filter = 'top',
                   rownames = FALSE,
                   colnames = c("Beat", "Count"),
@@ -809,7 +807,7 @@ dat <- df %>%
 #kable(nestedbeattable(dat),
 #      col.names = c("Section", "Beat", "Count"))
 x <- nestedbeattable(dat)
-DT::datatable(x[-1, -1],
+DT::datatable(x[-1, -1] %>% mutate(Beat = factor(Beat)),
               filter = 'top',
               rownames = FALSE,
               colnames = c("Beat", "Count"),
@@ -824,26 +822,17 @@ There have been `r df %>% dplyr::filter(CrimeType == "Robbery") %>% nrow()` tota
 
 ```{r}
 
-#robs %>%
-#    select(Firearm) %>%
-#    table() %>%
-#    as.data.frame() %>%
-#    #kable(col.names = c("Type", "Count"), row.names = FALSE)
-#    DT::datatable(rownames = FALSE,
-#                  colnames = c("Type", "Count"),
-#                  options = list(pageLength = 100, 
-#                                 dom ='t', 
-#                                 ordering = FALSE))
-
-table(robs$WeaponGroup) %>%
-    as.data.frame() %>%
-    #kable(col.names = c("Weapon", "Count"), row.names = FALSE)
-    DT::datatable(filter = 'top',
-                  rownames = FALSE,
+robs %>%
+    group_by(WeaponGroup) %>%
+    count() %>%
+    arrange(desc(n)) %>%
+    mutate(WeaponGroup = factor(WeaponGroup)) %>%
+    DT::datatable(rownames = FALSE,
                   colnames = c("Weapon", "Count"),
                   options = list(pageLength = 100,
-                                 dom = 'tf',
+                                 dom = 't',
                                  columnDefs = list(list(className = 'dt-right', targets = 0:1))))
+
 
 ```
 
@@ -854,11 +843,10 @@ There have been `r df %>% dplyr::filter(CrimeType == "Robbery") %>% nrow()` tota
 ```{r}
 
 robs %>% 
-    select(LocationSceneDescription) %>%
-    table() %>%
-    as.data.frame() %>%
-    arrange(desc(Freq)) %>%
-    #kable(row.names = FALSE, col.names = c("Location", "Count"))
+    group_by(LocationSceneDescription) %>%
+    count() %>%
+    arrange(desc(n)) %>%
+    mutate(LocationSceneDescription = factor(LocationSceneDescription)) %>%
     DT::datatable(filter = 'top',
                   rownames = FALSE,
                   colnames = c("Location", "Count"),
@@ -1172,10 +1160,12 @@ DT::datatable(x[-1,-1],
 There have been `r df %>% dplyr::filter(CrimeType == "Larceny") %>% nrow()` total larcenies thus far.
 
 ```{r}
-tab <- as.data.frame(table(larcs$LarcenyType), stringsAsFactors = TRUE)
-tab <- tab[order(tab$Freq, decreasing = TRUE),]
-#kable(tab, row.names = FALSE, col.names = c("Larceny Type", "Counts"))
-DT::datatable(tab,
+larcs %>%
+    group_by(LarcenyTypeDescription) %>%
+    count() %>%
+    mutate(LarcenyTypeDescription = factor(LarcenyTypeDescription)) %>%
+    arrange(desc(n)) %>%
+    DT::datatable(
               filter = 'top',
               rownames = FALSE,
               colnames = c("Larceny Type", "Count"),
@@ -1196,21 +1186,21 @@ Column {data-width=600 .tabset .tabset-fade}
 
 ```{r}
 if(nrow(personincident) > 0){
-    persons <- bind_rows(personincident %>% 
-                         filter(PersonType == "Victim") %>%
-                         select(CaseNumber, DateOfEvent, DateOfDeath, Name, 
-                                PersonType, CaseStatus, Beat, WeaponType),
-                         personincident %>% 
-                             filter(PersonType == "Arrestee") %>%
-                             select(CaseNumber, DateOfEvent, DateOfDeath, Name, 
-                                    PersonType, CaseStatus, Beat, WeaponType)) %>%
+    persons <- personincident %>% 
+        filter(PersonType %in% c("Victim", "Arrestee")) %>%
+        select(CaseNumber, Beat, DateOfEvent, DateOfDeath, 
+               CaseStatus, WeaponType, PersonType, Name, DOB) %>%
+        mutate(PersonType = factor(PersonType),
+               Beat = factor(Beat),
+               WeaponType = factor(WeaponType),
+               CaseStatus = factor(CaseStatus)) %>%
         arrange(DateOfEvent)
     #kable(persons)
     DT::datatable(persons,
                   filter = 'top',
                   rownames = FALSE,
-                  colnames = c('Case Number', 'Event Date', 'Date of Death', 'Name',
-                               'Person Type', ' Case Status', 'Beat', 'Weapon Type'),
+                  colnames = c('Case Number', 'Beat', 'Event Date', 'Date of Death', ' Case Status', 
+                               'Weapon Type', 'Person Type', 'Name', 'DOB'),
                   options = list(pageLength = 100,
                                  dom = 'tf',
                                  columnDefs = list(list(className = 'dt-right', targets = 0:8))))
@@ -1240,9 +1230,7 @@ if(nrow(MCUhoms) > 0){
 
 ```{r}
 if(nrow(MCUhoms) > 0){
-    #kable(as.matrix(table(incident$Disposition[incident$YearofEvent == curr.year], 
-    #                      incident$CaseStatus[incident$YearofEvent == curr.year])))
-  
+    
     DT::datatable(as.data.frame(table(MCUhoms$Disposition[MCUhoms$YearofEvent == curr.year], 
                                  MCUhoms$CaseStatus[MCUhoms$YearofEvent == curr.year])),
                   filter = 'top',
@@ -1306,21 +1294,22 @@ Column {data-width=600 .tabset .tabset-fade}
 ### Table overview
 
 ```{r}
-rapes <- filter(df, CrimeType == "Rape")
-rapes$OccurToDate<- as.character(rapes$OccurFromDate)
+rapes <- df %>%
+    filter(CrimeType == "Rape")
 
 rapes %>%
     select(CaseNumber, FullAddress, OccurToDate, 
            ReportDate, LocationSceneDescription, CaseStatusValue) %>%
+    mutate(LocationSceneDescription = factor(LocationSceneDescription),
+           CaseStatusValue = factor(CaseStatusValue)) %>%
     arrange(ReportDate) %>%
-    #kable(col.names = c("CR", "Address", "OccurDate", "ReportDate", "Location", "Clearance"))
+    mutate(OccurToDate = as.Date(OccurToDate, format = "%Y-%m-%d")) %>%
     DT::datatable(filter = 'top',
                   rownames = FALSE,
-                  colnames = c('Case Number', 'Address', 'Event Date', 
-                               'Report Date', 'Location', 'Clearance'),
+                  colnames = c('Case Number', 'Address', 'Event Date', 'Report Date', 'Location', 'Clearance'),
                   options = list(pageLength = 100,
                                  dom = 'tf',
-                                 columnDefs = list(list(className = 'dt-right', targets = 0:5))))
+                                 columnDefs = list(list(className = 'dt-right', targets = 0:4))))
 
 ```
 
@@ -1336,17 +1325,16 @@ cat("Victim/Offender relationship data has not yet been made available by IT.")
 
 ```{r}
 
+
 rapes %>% 
     select(LocationSceneDescription) %>%
     table() %>% 
     as.data.frame() %>% 
     arrange(desc(Freq)) %>%
-    #kable(col.names = c("Location", "Count"))
-    DT::datatable(filter = 'top',
-                  rownames = FALSE,
+    DT::datatable(rownames = FALSE,
                   colnames = c("Location", "Count"),
                   options = list(pageLength = 100, 
-                                 dom = 'tf',
+                                 dom = 't',
                                  columnDefs = list(list(className = 'dt-right', targets = 0:1))))
 
 ```
@@ -1355,33 +1343,34 @@ rapes %>%
 
 ```{r}
 rapes %>%
-    select(Description) %>%
-    table() %>%
-    as.data.frame() %>%
-    arrange(desc(Freq)) %>%
-    #kable(col.names = c("Charge Description", "Count"))
+    group_by(Description) %>%
+    count() %>%
+    arrange(desc(n)) %>%
+    mutate(Description = factor(Description)) %>%
     DT::datatable(filter = 'top',
                   rownames = FALSE,
                   colnames = c("Charge Description", "Count"),
                   options = list(pageLength = 100, 
                                  dom = 'tf',
+                                 ordering = FALSE,
                                  columnDefs = list(list(className = 'dt-right', targets = 0:1))))  
+ 
 ```
 
 ### UCR Types
 
 ```{r}
 rapes %>% 
-    select(UCRText) %>%
-    table() %>%
-    as.data.frame() %>%
-    #kable(col.names = c("Rape UCR type", "Count"))
+    group_by(UCRText) %>%
+    count() %>%
+    mutate(UCRText = factor(UCRText)) %>%
     DT::datatable(filter = 'top',
                   rownames = FALSE,
                   colnames = c("Rape UCR Type", "Count"),
                   options = list(pageLength = 100, 
                                  dom = 'tf',
-                                 columnDefs = list(list(className = 'dt-right', targets = 0:1))))   
+                                 ordering = FALSE,
+                                 columnDefs = list(list(className = 'dt-right', targets = 0:1))))
 
 ```
 
