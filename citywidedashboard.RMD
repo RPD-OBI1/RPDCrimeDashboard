@@ -544,7 +544,7 @@ dat <- df %>%
     filter(Firearm == "Firearm")
 
 
-DT::datatable(nestedbeattable(dat), 
+DT::datatable(nestedbeattable(dat) %>% mutate(Beat = factor(Beat)), 
               rownames = FALSE,
               colnames = c('Section', 'Beat', 'Count'),
               options = list(dom = 't', 
@@ -642,7 +642,7 @@ if(nrow(svjoined) > 0){
     #kable(nestedbeattable(svjoined), 
     #     col.names = c("Section", "Beat", "Count"))
   
-    DT::datatable(nestedbeattable(svjoined),
+    DT::datatable(nestedbeattable(svjoined) %>% mutate(Beat = factor(Beat)),
                   rownames = FALSE,
                   colnames = c("Section", "Beat", "Count"),
                   options =list(pageLength = 100, 
@@ -755,7 +755,7 @@ dat <- df %>%
 #kable(nestedbeattable(dat),
 #      col.names = c("Section", "Beat", "Count"))
 
-DT::datatable(nestedbeattable(dat),
+DT::datatable(nestedbeattable(dat) %>% mutate(Beat = factor(Beat)),
               rownames = FALSE,
               colnames = c("Section", "Beat", "Count"),
               options = list(pageLength = 100, 
@@ -859,7 +859,7 @@ dat <- df %>%
 #kable(nestedbeattable(dat),
 #      col.names = c("Section", "Beat", "Count"))
 
-DT::datatable(nestedbeattable(dat),
+DT::datatable(nestedbeattable(dat) %>% mutate(Beat = factor(Beat)),
               rownames = FALSE,
               colnames = c("Section", "Beat", "Count"),
               options = list(pageLength = 100, 
@@ -972,7 +972,7 @@ dat <- df %>%
 
 #kable(nestedbeattable(dat),
 #      col.names = c("Section", "Beat", "Count"))
-DT::datatable(nestedbeattable(dat),
+DT::datatable(nestedbeattable(dat) %>% mutate(Beat = factor(Beat)),
               rownames = FALSE,
               colnames = c("Section", "Beat", "Count"),
               options = list(pageLength = 100, 
@@ -1077,7 +1077,7 @@ dat <- df %>%
 
 #kable(nestedbeattable(dat),
 #      col.names = c("Section", "Beat", "Count"))
-DT::datatable(nestedbeattable(dat),
+DT::datatable(nestedbeattable(dat) %>% mutate(Beat = factor(Beat)),
               rownames = FALSE,
               colnames = c("Section", "Beat", "Count"),
               options = list(pageLength = 100, 
@@ -1427,7 +1427,7 @@ dat <- cfs.df %>%
     filter(discretionary == FALSE)
 #kable(nestedbeattable(dat),
 #      col.names = c("Section", "Beat", "Count"))
-DT::datatable(nestedbeattable(dat),
+DT::datatable(nestedbeattable(dat) %>% mutate(Beat = factor(Beat)),
               rownames = FALSE,
               colnames = c("Section", "Beat", "Count"),
               options = list(pageLength = 100,
@@ -1549,7 +1549,7 @@ dat <- cfs.df %>%
     filter(discretionary == TRUE)
 #kable(nestedbeattable(dat),
 #      col.names = c("Section", "Beat", "Count"))
-DT::datatable(nestedbeattable(dat),
+DT::datatable(nestedbeattable(dat) %>% mutate(Beat = factor(Beat)),
               rownames = FALSE,
               colnames = c("Section", "Beat", "Count"),
               options = list(pageLength = 100,

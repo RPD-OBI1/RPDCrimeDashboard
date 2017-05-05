@@ -916,7 +916,7 @@ dat <- df %>%
 #kable(nestedbeattable(dat),
 #      col.names = c("Section", "Beat", "Count"))
 x <- nestedbeattable(dat)
-DT::datatable(x[-1,-1],
+DT::datatable(x[-1,-1] %>% mutate(Beat = factor(Beat)),
               filter = 'top',
               rownames = FALSE,
               colnames = c("Beat", "Count"),
@@ -1036,7 +1036,7 @@ dat <- df %>%
 #kable(nestedbeattable(dat),
 #      col.names = c("Section", "Beat", "Count"))
 x <- nestedbeattable(dat)
-DT::datatable(x[-1,-1],
+DT::datatable(x[-1,-1] %>% mutate(Beat = factor(Beat)),
               filter ='top',
               rownames = FALSE,
               colnames = c("Beat", "Count"),
@@ -1146,7 +1146,7 @@ dat <- df %>%
 #kable(nestedbeattable(dat),
 #      col.names = c("Section", "Beat", "Count"))
 x <- nestedbeattable(dat)
-DT::datatable(x[-1,-1],
+DT::datatable(x[-1,-1] %>% mutate(Beat = factor(Beat)),
               filter = 'top',
               rownames = FALSE,
               colnames = c("Beat", "Count"),
@@ -1505,7 +1505,7 @@ dat <- cfs.df %>%
 #kable(nestedbeattable(dat),
 #      col.names = c("Section", "Beat", "Count"))
 x <- nestedbeattable(dat)
-DT::datatable(x[-1,-1],
+DT::datatable(x[-1,-1] %>% mutate(Beat = factor(Beat)),
               filter = 'top',
               rownames = FALSE,
               colnames = c("Beat", "Count"),
@@ -1633,7 +1633,7 @@ dat <- cfs.df %>%
 #kable(nestedbeattable(dat),
 #      col.names = c("Section", "Beat", "Count"))
 x <- nestedbeattable(dat)
-DT::datatable(x[-1,-1],
+DT::datatable(x[-1,-1] %>% mutate(Beat = factor(Beat)),
               filter = 'top',
               rownames = FALSE,
               colnames = c("Beat", "Count"),
