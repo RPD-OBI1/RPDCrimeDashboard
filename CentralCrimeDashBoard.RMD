@@ -585,7 +585,7 @@ DT::datatable(x[-1, -1] %>% mutate(Beat = factor(Beat)),
               filter = 'top',
               rownames = FALSE,
               colnames = c('Beat', 'Count'),
-              options = list(dom = 't', 
+              options = list(dom = 'tf', 
                              pageLength = 100, 
                              columnDefs = list(list(className = 'dt-right', targets = 0:1))))
 ```
@@ -730,10 +730,11 @@ if(nrow(svjoined) > 0){
         as.data.frame() %>%
         arrange(.) %>%
         
-    DT::datatable(rownames = FALSE, 
+    DT::datatable(filter = 'top',
+                  rownames = FALSE, 
                   colnames = c("Victims per Incident", "Count"),
                   options = list(pageLength = 100, 
-                                 dom = 't', 
+                                 dom = 'tf', 
                                  ordering = FALSE,
                                  columnDefs = list(list(className = 'dt-right', targets = 0:1))))
 
@@ -823,16 +824,16 @@ There have been `r df %>% dplyr::filter(CrimeType == "Robbery") %>% nrow()` tota
 
 ```{r}
 
-robs %>%
-    group_by(WeaponGroup) %>%
-    count() %>%
-    arrange(desc(n)) %>%
-    mutate(WeaponGroup = factor(WeaponGroup)) %>%
-    DT::datatable(rownames = FALSE,
-                  colnames = c("Weapon", "Count"),
+if(nrow(MCUhoms) > 0){
+    #kable(as.data.frame(table(MCUhoms$WeaponType)), col.names = c("Weapon", "Count"))
+    DT::datatable(as.data.frame(table(MCUhoms$WeaponType)),
+                  filter = 'top',
+                  rownames = FALSE,
+                  colnames = c('Weapon', 'Count'),
                   options = list(pageLength = 100,
-                                 dom = 't',
+                                 dom = 'tf',
                                  columnDefs = list(list(className = 'dt-right', targets = 0:1))))
+}
 
 
 ```
@@ -1326,16 +1327,16 @@ cat("Victim/Offender relationship data has not yet been made available by IT.")
 
 ```{r}
 
-
 rapes %>% 
     select(LocationSceneDescription) %>%
     table() %>% 
     as.data.frame() %>% 
     arrange(desc(Freq)) %>%
-    DT::datatable(rownames = FALSE,
+    DT::datatable(filter = 'top',
+                  rownames = FALSE,
                   colnames = c("Location", "Count"),
                   options = list(pageLength = 100, 
-                                 dom = 't',
+                                 dom = 'tf',
                                  columnDefs = list(list(className = 'dt-right', targets = 0:1))))
 
 ```

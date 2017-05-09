@@ -775,10 +775,11 @@ robs %>%
     count() %>%
     arrange(desc(n)) %>%
     mutate(WeaponGroup = factor(WeaponGroup)) %>%
-    DT::datatable(rownames = FALSE,
+    DT::datatable(filter = 'top',
+                  rownames = FALSE,
                   colnames = c("Weapon", "Count"),
                   options = list(pageLength = 100,
-                                 dom = 't',
+                                 dom = 'tf',
                                  columnDefs = list(list(className = 'dt-right', targets = 0:1))))
 
 ```
@@ -1258,10 +1259,11 @@ rapes %>%
     table() %>% 
     as.data.frame() %>% 
     arrange(desc(Freq)) %>%
-    DT::datatable(rownames = FALSE,
+    DT::datatable(filter = 'top',
+                  rownames = FALSE,
                   colnames = c("Location", "Count"),
                   options = list(pageLength = 100, 
-                                 dom = 't',
+                                 dom = 'tf',
                                  columnDefs = list(list(className = 'dt-right', targets = 0:1))))
 
 ```
@@ -1594,7 +1596,7 @@ Column{data-width=200}
 
 The Rochester Police Department is shifting towards the use of "process control" and away from year to year comparison statistics. The goal is to be able to compare current crime counts against a benchline of "normal", rather than the benchline of the previous year (which may have been very high or very low compared to past years).
 
-The Office of Business Intelligence has calculated "action limits" which you can see represented as dashed lines on the chart on the right hand side of this page. These limits (both upper and lower) are calculated by using weighted 3 year averages as centering values, and then calculating the standard deviations to find how much variation from that average to expect.
+The Office of Business Intelligence has calculated "action limits" which you can see represented as dashed lines on the projection plots. These limits (both upper and lower) are calculated by using weighted 3 year averages as centering values, and then calculating the standard deviations to find how much variation from that average to expect.
 
 If current counts for a section and crimetype break the upper action limit, it's a signal to investigate the causes of that rise in activity. If current counts break the lower action limit, it's a signal that there may be a beneficial intervention that can be studied and copied in other sections.
 
@@ -1604,7 +1606,7 @@ Variation within the action limits is assumed to be normal "statistical noise" n
 Column{.tabset .tabset-fade}
 ------------------------------------------------------------------------------
 
-### Case-status treemap
+### Case Status
 
 Treemaps display information as rectangles nested within each other. The data is structured hierarchically, meaning that a hover over a particular crime type will provide the total for that crime for the current year, but a click on a crime type will allow to drill down into the breakdown of the case statuses for that crime. To return to crime types simply click on the heading of the treemap.
 
@@ -1612,7 +1614,7 @@ The proportion of the values shown to the total are represented by the size of t
 
 ![](Y:/Projects/dashboard/RPDCrimeDashboard/Objects/ReferenceTreeMap.png)
 
-### Projection plot
+### Projection
 
 The projection chart shows the cumulative weekly values experienced to date for the current year. Points in black show values that follow the expected accumulation path. Points in green are lower than expected and points in red are higher than expected. The blue shaded region refers to the expected path to result in a value between the year-end action limits.  
 
@@ -1622,13 +1624,13 @@ The black faded points on the chart at week 53 show the results of 1000 simulati
 
 
 
-### Aoristic heatmap
+### Aoristic
 
 An aoristic heatmap shows the proportion of activity that occurs in a given hour, on a given day of the week. Lighter shades correspond with less activity, while darker red shades correspond with more activity. We have placed vertical lines that divide between first, second and third platoon hours, and as you can see from the bottom axis, the chart begins at 2300 hrs.
 
 The rectangle labeled "Hr23" corresponds with the amount of activity occuring between 2300 and 2359 hrs on that day of the week. For crimes that occur over a longer period of time, or for crimes that occurred at an unknown time within a time range, the weight of that crime is divided evenly between the hours that it could have occurred. For instance, the weight for a burglary that occurred at some point between 0800 and 1200 will be spread out evenly between Hr8, Hr9, Hr10 and Hr11.
 
-![](include_graphics(Y:/Projects/dashboard/RPDCrimeDashboard/Objects/ReferenceAoristicPlot.png)
+![](Y:/Projects/dashboard/RPDCrimeDashboard/Objects/ReferenceAoristicPlot.png)
 
 
 
@@ -1643,11 +1645,11 @@ The Calls for Service maps only display the individual markers on addresses for 
 
 If no map appears, likely there is no data to present (i.e. no events to map).
 
-![](include_graphics(Y:/Projects/dashboard/RPDCrimeDashboard/Objects/ReferenceMapCity.png)
+![](Y:/Projects/dashboard/RPDCrimeDashboard/Objects/ReferenceMapCity.png)
 
 
 
-### CFS - Non-discretionary plot
+### CFS - wait time
 
 The non-discretionary graph shows the average RPD response time for various call for service types. The graph is split up into Critical, Urgent and Normal call for service types. Only call for service types that total one percent or more of the total number of non-discretionary calls are displayed. This is still a large number of calls, and was too large to display the name of each call type at the bottom of the graph. Therefore to see the call type name displayed, simply hover your cursor over the relevant circle on the graph (in the real chart; not the reference chart).
 
@@ -1657,7 +1659,7 @@ The circle size represents the call volume for that type of call. Large circles 
 
 
 
-### CFS - Discretionary plot
+### CFS - time spent
 
 The discretionary graph shows the average time spent on a call by officers at the most common discretionary calls in that section (or city-wide, in the city-wide dashboard). Only calls for service that account for more than one percent of the total number of discretionary calls are displayed. 
 
@@ -1669,7 +1671,7 @@ Calls are arranged alphabetically along the x axis, and the location of the corr
 ![](Y:/Projects/dashboard/RPDCrimeDashboard/Objects/ReferenceDiscretionaryCFSPlot.png)
 
 
-### Additional tables
+### Tables
 
 The column on the right of each page will show additional data tables, including the breakdown of incidents by beat, by weapon type, larceny type, location type, etc...
 
