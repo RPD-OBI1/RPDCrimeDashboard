@@ -823,9 +823,9 @@ There have been `r df %>% dplyr::filter(CrimeType == "Robbery") %>% nrow()` tota
 
 ```{r}
 
-if(nrow(MCUhoms) > 0){
+if(nrow(robs) > 0){
     #kable(as.data.frame(table(MCUhoms$WeaponType)), col.names = c("Weapon", "Count"))
-    DT::datatable(as.data.frame(table(MCUhoms$WeaponType)),
+    DT::datatable(as.data.frame(table(robs$WeaponGroup)),
                   filter = 'top',
                   rownames = FALSE,
                   colnames = c('Weapon', 'Count'),
@@ -833,7 +833,6 @@ if(nrow(MCUhoms) > 0){
                                  dom = 'tf',
                                  columnDefs = list(list(className = 'dt-right', targets = 0:1))))
 }
-
 
 ```
 
@@ -1725,7 +1724,7 @@ The Calls for Service maps only display the individual markers on addresses for 
 
 If no map appears, likely there is no data to present (i.e. no events to map).
 
-![](Y:/Projects/dashboard/RPDCrimeDashboard/Objects/ReferenceMapLake.png)
+![](Y:/Projects/dashboard/RPDCrimeDashboard/Objects/ReferenceMapGoodman.png)
 
 ### CFS - wait time
 
