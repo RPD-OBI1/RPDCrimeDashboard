@@ -1612,6 +1612,8 @@ Treemaps display information as rectangles nested within each other. The data is
 
 The proportion of the values shown to the total are represented by the size of the corresponding rectangle.
 
+Closure and count information for homicides will be inaccurate due to LERMS data issues. Elsewhere in the dashboard, we use MCU data for homicides instead of LERMS data, but that is not possible for the treemap.
+
 ![](Y:/Projects/dashboard/RPDCrimeDashboard/Objects/ReferenceTreeMap.png)
 
 ### Projection
