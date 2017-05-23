@@ -6,7 +6,6 @@ output:
     orientation: column
     vertical_layout: fill
     theme: cerulean
-
 ---
 
 ```{r setup}
@@ -493,6 +492,8 @@ Firearm Crime {data-navmenu="Violent Crime"}
 Column {data-width=400}
 ------------------------------------------------------------------------------
 
+> Firearm Crime
+
 ### Projection
 
 ```{r}
@@ -589,6 +590,8 @@ Shooting Victims {data-navmenu="Violent Crime"}
 
 Column {data-width=400}
 ----------------------------------------------------------------------
+
+> Shooting Victims
 
 ### Projection
 
@@ -699,6 +702,8 @@ Robbery {data-navmenu="Violent Crime"}
 Column {data-width=400}
 -----------------------------------------------------------------------
 
+> Robbery
+
 ### Projection
 
 ```{r}
@@ -806,6 +811,8 @@ Aggravated Assault {data-navmenu="Violent Crime"}
 
 Column {data-width=400}
 -----------------------------------------------------------------------
+
+> Aggravated Assault
 
 ### Projection
 
@@ -922,6 +929,8 @@ Burglary {data-navmenu="Property Crime"}
 Column {data-width=400}
 -----------------------------------------------------------------------
 
+> Burglary
+
 ### Projection
 
 
@@ -1002,6 +1011,8 @@ Larceny {data-navmenu="Property Crime"}
 
 Column {data-width=400}
 -----------------------------------------------------------------------
+
+> Larceny
 
 ### Projection
 
@@ -1112,6 +1123,7 @@ Homicide {data-navmenu="Violent Crime"}
 Column {data-width=600 .tabset .tabset-fade}
 -----------------------------------------------------------------------
 
+> Homicide
 
 ### Victims & Arrestees
 
@@ -1217,6 +1229,8 @@ if(nrow(homs28) == 0) {
 
 Rape {data-navmenu="Violent Crime"}
 ======================================================================
+
+> Rape
 
 Column {data-width=600 .tabset .tabset-fade}
 -----------------------------------------------------------------------
@@ -1346,6 +1360,8 @@ Non-discretionary CFS {data-navmenu="Calls For Service"}
 Column {data-width=500}
 -----------------------------------------------------------------------
 
+> Non-discretionary calls for service
+
 ### Wait time (RPD arrival time) since `r begindate`
 
 ```{r}
@@ -1469,6 +1485,8 @@ Discretionary CFS {data-navmenu="Calls For Service"}
 
 Column {data-width=500}
 -----------------------------------------------------------------------
+
+> Discretionary calls for service
 
 ### On scene time since `r begindate`
 

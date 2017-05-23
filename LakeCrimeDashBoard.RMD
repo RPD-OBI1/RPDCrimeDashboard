@@ -1,5 +1,5 @@
 ---
-title: "Lake Crime Dashboard, as of `r format(Sys.Date() - 3, '%d %B, %Y')`"
+title: "Lake Crime Dashboard, as of `r format(Sys.Date() - 5, '%d %B, %Y')`"
 output: 
   flexdashboard::flex_dashboard:
     logo: Y:/Projects/dashboard/RPDCrimeDashboard/Objects/RPDLogoSMALL.png
@@ -522,7 +522,9 @@ Firearm Crime {data-navmenu="Violent Crime"}
 Column {data-width=400}
 ------------------------------------------------------------------------------
 
-### Projection for Firearm Crime
+> Firearm Crime
+
+### Projection
 
 ```{r}
 
@@ -626,7 +628,9 @@ Shooting Victims {data-navmenu="Violent Crime"}
 Column {data-width=400}
 ----------------------------------------------------------------------
 
-### Projection for Shooting Victims
+> Shooting Victims
+
+### Projection
 
 ```{r}
 ggplotly(svSPC[[1]], tooltip = c('Week', 'currentCounts', 'ThreeYrAvg', 'SimsAvg'))
@@ -747,7 +751,9 @@ Robbery {data-navmenu="Violent Crime"}
 Column {data-width=400}
 -----------------------------------------------------------------------
 
-### Projection for Robbery
+> Robbery
+
+### Projection
 
 ```{r}
 
@@ -863,7 +869,9 @@ Aggravated Assault {data-navmenu="Violent Crime"}
 Column {data-width=400}
 -----------------------------------------------------------------------
 
-### Projection for Aggravated Assault
+> Aggravated Assault
+
+### Projection
 
 
 ```{r}
@@ -984,7 +992,9 @@ Burglary {data-navmenu="Property Crime"}
 Column {data-width=400}
 -----------------------------------------------------------------------
 
-### Projection for Burglary
+> Burglary
+
+### Projection
 
 
 ```{r}
@@ -1070,7 +1080,9 @@ Larceny {data-navmenu="Property Crime"}
 Column {data-width=400}
 -----------------------------------------------------------------------
 
-### Projection for Larceny
+> Larceny
+
+### Projection
 
 
 ```{r}
@@ -1183,6 +1195,7 @@ Homicide {data-navmenu="Violent Crime"}
 Column {data-width=600 .tabset .tabset-fade}
 -----------------------------------------------------------------------
 
+> Homicides
 
 ### Victims & Arrestees
 
@@ -1292,6 +1305,8 @@ Rape {data-navmenu="Violent Crime"}
 
 Column {data-width=600 .tabset .tabset-fade}
 -----------------------------------------------------------------------
+
+> Rape
 
 ### Table overview
 
@@ -1418,6 +1433,8 @@ Non-discretionary CFS {data-navmenu="Calls For Service"}
 
 Column {data-width=500}
 -----------------------------------------------------------------------
+
+> Non-discretionary calls for service
 
 ### Wait time (RPD arrival time) for non-discretionary calls since `r begindate`
 
@@ -1549,7 +1566,10 @@ Discretionary CFS  {data-navmenu="Calls For Service"}
 Column {data-width=500}
 -----------------------------------------------------------------------
 
+> Discretionary calls for service
+
 ### On scene time for discretionary calls since `r begindate`
+
 
 ```{r}
 onscenetime <- cfs.df %>% 
