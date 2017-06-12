@@ -6,6 +6,7 @@ rmarkdown::render("GeneseeCrimeDashBoard.RMD")
 rmarkdown::render("GoodmanCrimeDashBoard.RMD")
 rmarkdown::render("ClintonCrimeDashBoard.RMD")
 rmarkdown::render("CentralCrimeDashBoard.RMD")
+rmarkdown::render("PatrolSectionOverview.RMD")
 end <- Sys.time()
 took <- difftime(end, start)
 

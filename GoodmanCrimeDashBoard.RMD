@@ -1,5 +1,5 @@
 ---
-title: "Goodman Crime Dashboard, as of `r format(Sys.Date() - 5, '%d %B, %Y')`"
+title: "Goodman Crime Dashboard, as of `r format(Sys.Date() - 4, '%d %B, %Y')`"
 output: 
   flexdashboard::flex_dashboard:
     logo: Y:/Projects/dashboard/RPDCrimeDashboard/Objects/RPDLogoSMALL.png
@@ -522,7 +522,14 @@ Firearm Crime {data-navmenu="Violent Crime"}
 Column {data-width=400}
 ------------------------------------------------------------------------------
 
-> Firearm Crime
+```{r fig.align='center', fig.height = 1}
+
+par(mar=c(0,0,0,0))
+plot(c(0, 1000), c(0, 20), type = 'n', xlab = '', ylab = '', xaxt = 'n', yaxt ='n', bty = 'n')
+rect(0, 0, 1000, 20, col = 'white', border = 'darkgrey', lwd = 1)
+text(x = 500, y = 10, labels = "Firearm Crime", cex = 2, col = 'black')
+
+```
 
 ### Projection
 
@@ -628,7 +635,14 @@ Shooting Victims {data-navmenu="Violent Crime"}
 Column {data-width=400}
 ----------------------------------------------------------------------
 
-> Shooting Victims
+```{r fig.align='center', fig.height = 1}
+
+par(mar=c(0,0,0,0))
+plot(c(0, 1000), c(0, 20), type = 'n', xlab = '', ylab = '', xaxt = 'n', yaxt ='n', bty = 'n')
+rect(0, 0, 1000, 20, col = 'white', border = 'darkgrey', lwd = 1)
+text(x = 500, y = 10, labels = "Shooting Victims", cex = 2, col = 'black')
+
+```
 
 ### Projection
 
@@ -751,7 +765,14 @@ Robbery {data-navmenu="Violent Crime"}
 Column {data-width=400}
 -----------------------------------------------------------------------
 
-> Robbery
+```{r fig.align='center', fig.height = 1}
+
+par(mar=c(0,0,0,0))
+plot(c(0, 1000), c(0, 20), type = 'n', xlab = '', ylab = '', xaxt = 'n', yaxt ='n', bty = 'n')
+rect(0, 0, 1000, 20, col = 'white', border = 'darkgrey', lwd = 1)
+text(x = 500, y = 10, labels = "Robbery", cex = 2, col = 'black')
+
+```
 
 ### Projection
 
@@ -867,10 +888,16 @@ Aggravated Assault {data-navmenu="Violent Crime"}
 Column {data-width=400}
 -----------------------------------------------------------------------
 
-> Aggravated Assault
+```{r fig.align='center', fig.height = 1}
+
+par(mar=c(0,0,0,0))
+plot(c(0, 1000), c(0, 20), type = 'n', xlab = '', ylab = '', xaxt = 'n', yaxt ='n', bty = 'n')
+rect(0, 0, 1000, 20, col = 'white', border = 'darkgrey', lwd = 1)
+text(x = 500, y = 10, labels = "Aggravated Assault", cex = 2, col = 'black')
+
+```
 
 ### Projection
-
 
 ```{r}
 
@@ -990,10 +1017,16 @@ Burglary {data-navmenu="Property Crime"}
 Column {data-width=400}
 -----------------------------------------------------------------------
 
-> Burglary
+```{r fig.align='center', fig.height = 1}
+
+par(mar=c(0,0,0,0))
+plot(c(0, 1000), c(0, 20), type = 'n', xlab = '', ylab = '', xaxt = 'n', yaxt ='n', bty = 'n')
+rect(0, 0, 1000, 20, col = 'white', border = 'darkgrey', lwd = 1)
+text(x = 500, y = 10, labels = "Burglary", cex = 2, col = 'black')
+
+```
 
 ### Projection
-
 
 ```{r}
 
@@ -1078,10 +1111,16 @@ Larceny {data-navmenu="Property Crime"}
 Column {data-width=400}
 -----------------------------------------------------------------------
 
-> Larceny
+```{r fig.align='center', fig.height = 1}
+
+par(mar=c(0,0,0,0))
+plot(c(0, 1000), c(0, 20), type = 'n', xlab = '', ylab = '', xaxt = 'n', yaxt ='n', bty = 'n')
+rect(0, 0, 1000, 20, col = 'white', border = 'darkgrey', lwd = 1)
+text(x = 500, y = 10, labels = "Larceny", cex = 2, col = 'black')
+
+```
 
 ### Projection
-
 
 ```{r}
 
@@ -1193,6 +1232,14 @@ Homicide {data-navmenu="Violent Crime"}
 Column {data-width=600 .tabset .tabset-fade}
 -----------------------------------------------------------------------
 
+```{r fig.align='center', fig.height = 1}
+
+par(mar=c(0,0,0,0))
+plot(c(0, 1000), c(0, 20), type = 'n', xlab = '', ylab = '', xaxt = 'n', yaxt ='n', bty = 'n')
+rect(0, 0, 1000, 20, col = 'white', border = 'darkgrey', lwd = 1)
+text(x = 500, y = 10, labels = "Homicide", cex = 2, col = 'black')
+
+```
 
 ### Victims & Arrestees
 
@@ -1302,6 +1349,15 @@ Rape {data-navmenu="Violent Crime"}
 
 Column {data-width=600 .tabset .tabset-fade}
 -----------------------------------------------------------------------
+
+```{r fig.align='center', fig.height = 1}
+
+par(mar=c(0,0,0,0))
+plot(c(0, 1000), c(0, 20), type = 'n', xlab = '', ylab = '', xaxt = 'n', yaxt ='n', bty = 'n')
+rect(0, 0, 1000, 20, col = 'white', border = 'darkgrey', lwd = 1)
+text(x = 500, y = 10, labels = "Rape", cex = 2, col = 'black')
+
+```
 
 ### Table overview
 
@@ -1428,7 +1484,14 @@ Non-discretionary CFS {data-navmenu="Calls For Service"}
 Column {data-width=500}
 -----------------------------------------------------------------------
 
-> Non-discretionary calls for service
+```{r fig.align='center', fig.height = 1}
+
+par(mar=c(0,0,0,0))
+plot(c(0, 1000), c(0, 20), type = 'n', xlab = '', ylab = '', xaxt = 'n', yaxt ='n', bty = 'n')
+rect(0, 0, 1000, 20, col = 'white', border = 'darkgrey', lwd = 1)
+text(x = 500, y = 10, labels = "Non-discretionary calls for service", cex = 2, col = 'black')
+
+```
 
 ### Wait time (RPD arrival time) since `r begindate`
 
@@ -1560,7 +1623,14 @@ Discretionary CFS  {data-navmenu="Calls For Service"}
 Column {data-width=500}
 -----------------------------------------------------------------------
 
-> Discretionary calls for service
+```{r fig.align='center', fig.height = 1}
+
+par(mar=c(0,0,0,0))
+plot(c(0, 1000), c(0, 20), type = 'n', xlab = '', ylab = '', xaxt = 'n', yaxt ='n', bty = 'n')
+rect(0, 0, 1000, 20, col = 'white', border = 'darkgrey', lwd = 1)
+text(x = 500, y = 10, labels = "Discretionary calls for service", cex = 2, col = 'black')
+
+```
 
 ### On scene time since `r begindate`
 
