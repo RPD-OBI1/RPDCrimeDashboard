@@ -1,5 +1,5 @@
 ---
-title: "Goodman Crime Dashboard, as of `r format(Sys.Date() - 4, '%d %B, %Y')`"
+title: "Goodman Crime Dashboard, as of `r format(Sys.Date() - 3, '%d %B, %Y')`"
 output: 
   flexdashboard::flex_dashboard:
     logo: Y:/Projects/dashboard/RPDCrimeDashboard/Objects/RPDLogoSMALL.png
@@ -129,11 +129,13 @@ df <- LERMS_incidents_query(years = curr.year,
                           substr(CaseNumber, start = 8, stop = 13)),
            OffenseDate = as.Date(OffenseDate, format = "%Y-%m-%d"),
            ReportDate = as.Date(ReportDate, format = "%Y-%m-%d"),
+           OccurToDate = as.Date(OccurToDate, format = "%Y-%m-%d"),
+           OccurFromDate = as.Date(OccurFromDate, format = "%Y-%m-%d"),
            OffenseDOW = factor(OffenseDOW, 
                                levels = c("Sunday", "Monday", "Tuesday", "Wednesday",
                                    "Thursday", "Friday", "Saturday"), 
                                ordered = TRUE),
-           ReportDayOfYear = as.numeric(format(ReportDate, "%j")),
+           OccurToDayOfYear = as.numeric(format(OccurToDate, "%j")),
            GEOBeat = factor(GEOBeat,
                             levels = unique(GEOBeat[order(substr(GEOBeat, 3, 3), 
                                                           substr(GEOBeat, 1, 2))])),
@@ -156,7 +158,7 @@ df <- LERMS_incidents_query(years = curr.year,
                                .$CrimeType == "Dangerous Weapons" & 
                                    .$Description %in% firearm.desc ~ "Firearm",
                                TRUE ~ "Non-Firearm")) %>%
-    left_join(sevenDayGroupTable, by = c("ReportDayOfYear" = "DOY")) %>%
+    left_join(sevenDayGroupTable, by = c("OccurToDayOfYear" = "DOY")) %>%
     select(-Date) %>%
     dplyr::rename("SevenDaysGroup" = Group) %>%
     filter(SevenDaysGroup <= curr.week) %>%
@@ -287,9 +289,9 @@ if(nrow(MCUhoms) > 0){
 
 firearmhoms <- MCUhoms %>% 
     filter(YearofEvent == curr.year, WeaponType == "Firearm")
-if(any(! firearmhoms$CaseNumber %in% filter(df, Firearm == "Firearm"))){
-    cat("There are firearm homicides that do not appear in the firearm data due to LERMS issues.")
-}
+# if(any(! firearmhoms$CaseNumber %in% filter(df, Firearm == "Firearm"))){
+#     cat("There are firearm homicides that do not appear in the firearm data due to LERMS issues.")
+# }
 
 tab <- data.frame(CrimeTypes = c("Firearm crime", "Shootings", "Robbery", 
                                  "Aggravated Assault", "Burglary", "Larceny"),
@@ -580,7 +582,7 @@ Column{data-width=300 .tabset .tabset-fade}
 
 ### Beats
 
-There were `r nrow(guns)` overall firearm-involved crimes (including simulated and immitation firearms).
+There were `r nrow(guns)` overall firearm-involved crimes (including simulated and imitation firearms).
 
 ```{r}
 dat <- df %>%
@@ -706,11 +708,10 @@ There have been `r nrow(svjoined)` shooting victims thus far.
 if(nrow(svjoined) > 0){
     x <- nestedbeattable(svjoined)
     DT::datatable(x[-1, -1] %>% mutate(Beat = factor(Beat)),
-                  filter = 'top',
                   rownames = FALSE,
                   colnames = c("Beat", "Count"),
                   options = list(pageLength = 100, 
-                                dom = 'tf', 
+                                dom = 't',
                                 columnDefs = list(list(className = 'dt-right', targets = 0:1)))
                   )
 }
@@ -718,7 +719,7 @@ if(nrow(svjoined) > 0){
 ```
 
 
-```{r}
+```{r eval=FALSE}
 svjoined$CrimeType.x <- factor(svjoined$CrimeType.x, levels = c("Shooting", "Homicide"))
 #kable(as.data.frame(table(svjoined$CrimeType.x)), col.names = c("Type", "Count"))
 DT::datatable(as.data.frame(table(svjoined$CrimeType.x)),
