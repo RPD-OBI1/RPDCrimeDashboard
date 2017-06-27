@@ -1,0 +1,1561 @@
+---
+title: "`r params$sectionname` Crime Dashboard, as of `r format(Sys.Date() - 2, '%d %B, %Y')`"
+output: 
+  flexdashboard::flex_dashboard:
+    logo: Y:/Projects/dashboard/RPDCrimeDashboard/Objects/RPDLogoSMALL.png
+    orientation: column
+    vertical_layout: fill
+    theme: cerulean
+params:
+    sectionname:
+        label: "Section"
+        value: "Lake"
+        
+---
+
+
+```{r loadpackages, include=FALSE}
+
+sectionsmatch <- data.frame(section = c(1, 3, 5, 7, 9),
+                            sectionname = c("Lake", "Genesee", "Goodman", "Clinton", "Central"),
+                            lng1 = c(-77.617488, -77.604633, -77.615712, -77.575370, -77.592894),
+                            lat1 = c(43.158172, 43.114570, 43.124344, 43.159093, 43.138862),
+                            lng2 = c(-77.668684, -77.686093, -77.522970, -77.626865, -77.635598),
+                            lat2 = c(43.264020, 43.159699, 43.237813, 43.257633, 43.165201),
+                            stringsAsFactors = FALSE)
+section <- sectionsmatch[match(params$sectionname, sectionsmatch$sectionname),"section"]
+lng1FB <- sectionsmatch[match(params$sectionname, sectionsmatch$sectionname), "lng1"]
+lat1FB <- sectionsmatch[match(params$sectionname, sectionsmatch$sectionname), "lat1"]
+lng2FB <- sectionsmatch[match(params$sectionname, sectionsmatch$sectionname), "lng2"]
+lat2FB <- sectionsmatch[match(params$sectionname, sectionsmatch$sectionname), "lat2"]
+
+library(knitr)
+library(flexdashboard)
+library(RColorBrewer)
+library(stringr)
+library(ggplot2)
+library(plotly)
+library(KernSmooth)
+library(raster)
+library(leaflet)
+library(dplyr)
+library(reshape2)
+library(jsonlite)
+library(tidyr)
+library(DT)
+library(RODBC)
+library(treemap)
+library(d3treeR)
+
+source("Y:/Projects/dashboard/RPDCrimeDashboard/Functions/aoristicDayWeek.R")
+source("Y:/Projects/dashboard/RPDCrimeDashboard/Functions/guntablenest.R")
+source("Y:/Projects/dashboard/RPDCrimeDashboard/Functions/kerntorast.R")
+source("Y:/Projects/dashboard/RPDCrimeDashboard/Functions/hotspotMap.R")
+source("Y:/Projects/dashboard/RPDCrimeDashboard/Functions/hotspotMapSV.R")
+source("Y:/Projects/dashboard/RPDCrimeDashboard/Functions/LERMS_incidents.R")
+source("Y:/Projects/dashboard/RPDCrimeDashboard/Functions/nestedbeattable.R")
+source("Y:/Projects/dashboard/RPDCrimeDashboard/Functions/plotlyhmap.R")
+source("Y:/Projects/dashboard/RPDCrimeDashboard/Functions/SPC.R")
+source("Y:/Projects/dashboard/RPDCrimeDashboard/Functions/pullMCUdata.R")
+source("Y:/Projects/dashboard/RPDCrimeDashboard/Functions/loadshootingvictims.R")
+source("Y:/Projects/dashboard/RPDCrimeDashboard/Functions/CFSloc.R")
+
+simpleCap <- function(x) {
+  s <- strsplit(x, " ")[[1]]
+  paste(toupper(substring(s, 1,1)), tolower(substring(s, 2)),
+      sep = "", collapse = " ")
+}
+
+```
+
+```{r setup}
+
+sectionmap <- leaflet() %>% 
+    addProviderTiles("CartoDB.Positron") %>% 
+    fitBounds(lng1 = lng1FB, lat1 = lat1FB, lng2 = lng2FB, lat2 = lat2FB)
+
+curr.year <- as.numeric(format(Sys.Date(), '%Y')) ### This current year to automatically reference the current year
+begindate <- paste0(curr.year, '-01-01') ### For CFS to automatically create the begindate based on current year
+
+#sevenDayGroupTable is a lookup table to get the current week (Group) from the date
+#Because it uses length(Date) from seq.Date, it should work even in leap years
+
+sevenDayGroupTable <- data.frame(Date = seq.Date(from = as.Date(begindate),
+                                                 to = as.Date(paste0(curr.year, "-12-31")),
+                                                 by = 1)) %>%
+    mutate(DOY = 1:length(Date),
+           Group = c(rep(1:51, each = 7), 
+                     rep(52, times = length(Date) - 357)))
+
+curr.week <- sevenDayGroupTable$Group[match(as.numeric(format(Sys.Date(), 
+                                                             '%j')), 
+                                           sevenDayGroupTable$DOY)] - 1
+
+#read in section JSON
+sectionJSON <- readLines("https://opendata.arcgis.com/datasets/772f3621fa354ec9abf3ba33f3ace59e_0.geojson") %>%
+    paste(collapse = "\n") %>%
+    fromJSON(simplifyVector = FALSE)
+beatsJSON <- readLines("https://opendata.arcgis.com/datasets/61ebab2e63ae4371a998bcb202b3bed4_2.geojson") %>%
+    paste(collapse = "\n") %>%
+    fromJSON(simplifyVector = FALSE)
+
+#gather section names and set color palettes for sections and beats
+secNames <- sapply(sectionJSON$features, function(x) x$properties$Section)
+sectionpal <- colorFactor(palette = colorspace::sequential_hcl(5),
+                   domain = secNames)
+
+sectionJSON$features <- lapply(sectionJSON$features, function(x){
+    x$properties$style <- list(
+        fillColor = sectionpal(x$properties$Section)
+    )
+    x
+})
+
+sectionbeatsJSON <- beatsJSON$features[lapply(beatsJSON$features, 
+                                              function(x) {x$properties$Section}) 
+                                       == params$sectionname]
+
+#add beats
+
+sectionmap <- sectionmap %>%
+    addGeoJSON(sectionbeatsJSON, fillOpacity = .1)
+
+
+firearm.desc <- trimws(c('Prohibited Use of Weapon City Limits', 
+                        'Use of Dangerous Weapon', 
+                        'Criminal Use Firearm 1st: Commit Violent Class B Felony', 
+                        'Discharges Loaded Firearm', 
+                        'Use Firearm 1st: Possess a Deadly Weapon-Loaded',
+                        'Criminal Use Firearm 2nd: Possess Deadly Weapon: Loaded', 
+                        'Use Firearm 1st: Display Firearm', 
+                        'Criminal Use Firearm 2nd: Display Firearm'))
+
+firearmCrimeTypes <- c("Aggravated Assault", "Robbery", "Homicide", "Rape", "Simple Assault")
+
+#load in RPD's crime data
+
+df <- LERMS_incidents_query(years = curr.year,
+                            section = section) %>%
+    distinct(CaseNumber, FullAddress, ReportDate, Description, .keep_all = TRUE) %>%
+    filter(MostSerious == 1, CaseStatusValue != 'Unfounded') %>%
+    arrange(ReportDate) %>%
+    mutate(CRNum = paste0(substr(CaseNumber, start = 3, stop = 5),
+                          substr(CaseNumber, start = 8, stop = 13)),
+           OffenseDate = as.Date(OffenseDate, format = "%Y-%m-%d"),
+           ReportDate = as.Date(ReportDate, format = "%Y-%m-%d"),
+           OccurToDate = as.Date(OccurToDate, format = "%Y-%m-%d"),
+           OccurFromDate = as.Date(OccurFromDate, format = "%Y-%m-%d"),
+           OffenseDOW = factor(OffenseDOW, 
+                               levels = c("Sunday", "Monday", "Tuesday", "Wednesday",
+                                   "Thursday", "Friday", "Saturday"), 
+                               ordered = TRUE),
+           OccurToDayOfYear = as.numeric(format(OccurToDate, "%j")),
+           GEOBeat = factor(GEOBeat,
+                            levels = unique(GEOBeat[order(substr(GEOBeat, 3, 3), 
+                                                          substr(GEOBeat, 1, 2))])),
+           sec = case_when(.$Section == 1 ~ "Lake", 
+                           .$Section == 3 ~ "Genesee", 
+                           .$Section == 5 ~ "Goodman", 
+                           .$Section == 7 ~ "Clinton", 
+                           .$Section == 9 ~ "Central"),
+           WeaponGroup = case_when(.$WeaponIBRValue %in% c("01", "02", "03", "04", "05",
+                                                         "06", "07", "08", "09", "10") ~ "Firearm",
+                                   .$WeaponIBRValue == "11" ~ "Knife/Cutting Instrument",
+                                   .$WeaponIBRValue == "12" ~ "Blunt Object",
+                                   .$WeaponIBRValue %in% c("14", "15") ~ "Physical",
+                                   TRUE ~ "Other"),
+           FullAddress = unname(sapply(FullAddress, simpleCap)),
+           WeaponIBRValue = as.numeric(WeaponIBRValue),
+           Description = trimws(Description)) %>%
+           mutate(Firearm = case_when(.$WeaponIBRValue %in% 1:10 &
+                                   .$CrimeType %in% firearmCrimeTypes ~ "Firearm",
+                               .$CrimeType == "Dangerous Weapons" & 
+                                   .$Description %in% firearm.desc ~ "Firearm",
+                               TRUE ~ "Non-Firearm")) %>%
+    left_join(sevenDayGroupTable, by = c("OccurToDayOfYear" = "DOY")) %>%
+    dplyr::select(-Date) %>%
+    dplyr::rename("SevenDaysGroup" = Group) %>%
+    filter(SevenDaysGroup <= curr.week) %>%
+    mutate(Description = trim(sub(x = Description, pattern = ":.*", replacement = "")))
+
+#use beatNames to make factor levels for beats
+beatNames <- df %>%
+    dplyr::select(GEOBeat) %>%
+    unique() %>% 
+    filter(! grepl(x = GEOBeat, pattern = "\\*")) %>% #remove *** as a beat name
+    arrange(substr(GEOBeat, 3, 3), GEOBeat) %>%
+    mutate(GEOBeat = as.factor(GEOBeat)) #this keeps *** as a factor level
+
+CPWs <- df %>% filter(CrimeType == "Dangerous Weapons" & 
+                          !trimws(Description) %in% firearm.desc &
+                          as.numeric(WeaponIBRValue) < 11) %>%
+    mutate(OccurFromDate = as.character(OccurFromDate)) #for table display purposes
+
+crimes <- c('Aggravated Assault', 'Arson', 'Burglary', 'Homicide', 'Larceny', 'MV Theft', 'Rape', 'Robbery', 'Firearm')
+sec <- c('Lake', 'Genesee', 'Goodman', 'Clinton', 'Central')
+
+pal <- brewer.pal(name = "Reds", n = 9)
+
+PropVals <- read.csv("Y:/Projects/dashboard/RPDCrimeDashboard/Objects/ProportionsAndCounts.csv", 
+                     header= T) %>%
+    filter(Section == params$sectionname)
+ShootingControlLimits <- read.csv("Y:/Projects/dashboard/RPDCrimeDashboard/Objects/3YrWeightedControlLimitsShootings.csv") %>%
+    filter(Section == params$sectionname)
+ShootingProps <- read.csv("Y:/Projects/dashboard/RPDCrimeDashboard/Objects/ProportionsAndCountsShootings.csv", 
+                          stringsAsFactors = FALSE) %>%
+    filter(Section == params$sectionname)
+
+histdata <- read.csv(file = "Y:/Projects/dashboard/RPDCrimeDashboard/Objects/historicaldata.csv", 
+                     stringsAsFactors = FALSE, 
+                     header = TRUE) %>%
+    filter(Section == section)
+
+controllimits <- read.csv(file = "Y:/Projects/dashboard/RPDCrimeDashboard/Objects//3YrWeightedControlLimits.csv", 
+                          header = TRUE) %>%
+    filter(Section == params$sectionname)
+
+controllimits <- rbind(data.frame(controllimits, Year = 2017),
+                       data.frame(controllimits, Year = 2018),
+                       data.frame(controllimits, Year = 2019))
+
+mculist <- pullMCUdata()
+MCUhoms <- mculist[[1]] %>%
+    filter(Section == params$sectionname) %>%
+    mutate(CrimeType = "Homicide",
+           DateOfEvent = as.Date(DateOfEvent, format = "%Y-%m-%d"),
+           DOYofEvent = as.numeric(format(DateOfEvent, "%j")),
+           YearofEvent = as.numeric(format(DateOfEvent, "%Y")),
+           CaseStatus = unname(sapply(CaseStatus, simpleCap))) %>%
+    filter(YearofEvent == curr.year) %>%
+    rename(sec = Section, 
+           Lat = Latitude, 
+           Lon = Longitude, 
+           FullAddress = Address) %>%
+    left_join(sevenDayGroupTable, by = c("DOYofEvent" = "DOY")) %>%
+    dplyr::select(-Date) %>%
+    dplyr::rename("SevenDaysGroup" = Group)
+
+
+
+person <- mculist[[2]]
+rm(mculist)
+
+personincident <- left_join(MCUhoms, person, by = "CaseNumber")
+
+sv <- loadshootingvictims()
+drops <- c("Lat", "Lon")
+svjoined <- left_join(x = sv, y = df, by = c("CaseNumber" = "CRNum")) %>%
+    dplyr::select(-one_of(drops)) %>%
+    rename(Lat = Latitude, Lon = Longitude) %>%
+    filter(sec == params$sectionname)
+rm(sv)
+
+loc <- CFSloc()
+#Exclude is for later use, excluding from hotspots/mapping/etc
+exclude <- c("630 North Clinton Ave, Rochester, NY, 14605", 
+             "185 Exchange Blvd, Rochester, NY, 14614",
+             "1099 Jay St, Rochester, NY, 14611")
+
+firearmSPC <- SPC(crimetype = "Firearm")
+svSPC <- SPC(dataf = svjoined, crimetype = "Shooting")
+homicideSPC <- SPC(dataf = MCUhoms, crimetype = "Homicide")
+rapeSPC <- SPC(crimetype = "Rape")
+robSPC <- SPC(crimetype = "Robbery")
+asltSPC <- SPC(crimetype = "Aggravated Assault")
+burgSPC <- SPC(crimetype = "Burglary")
+larcSPC <- SPC(crimetype = "Larceny")
+odbcCloseAll()
+
+```
+
+
+
+Overview {data-navmenu="Home"}
+======================================================================
+
+Column{data-width=500}
+------------------------------------------------------------------------------
+
+### Breakdown of crimes & action limits
+
+```{r}
+#Check to make sure this year's firearm homicides are in the firearm data
+if(nrow(MCUhoms) > 0){
+    MCUhoms$CaseNumber <- paste0("20", 
+                                 substr(MCUhoms$CaseNumber, 1, 3),
+                                 "00", 
+                                 substr(MCUhoms$CaseNumber, 4, 9))
+    }
+
+firearmhoms <- MCUhoms %>% 
+    filter(YearofEvent == curr.year, WeaponType == "Firearm")
+# if(any(! firearmhoms$CaseNumber %in% filter(df, Firearm == "Firearm"))){
+#     cat("There are firearm homicides that do not appear in the firearm data due to LERMS issues.")
+# }
+
+tab <- data.frame(CrimeTypes = c("Firearm crime", "Shootings", "Robbery", 
+                                 "Aggravated Assault", "Burglary", "Larceny"),
+                  Counts = c(firearmSPC[[4]], svSPC[[4]], robSPC[[4]], 
+                             asltSPC[[4]], burgSPC[[4]], larcSPC[[4]]),
+                  RiskOfRed = c(firearmSPC[[2]], svSPC[[2]], robSPC[[2]], 
+                                asltSPC[[2]], burgSPC[[2]], larcSPC[[2]]),
+                  ChanceOfGreen = c(firearmSPC[[3]], svSPC[[3]], robSPC[[3]], 
+                                    asltSPC[[3]], burgSPC[[3]], larcSPC[[3]]))
+#knitr::kable(tab, col.names = c("Crime Types", 
+#                                "YTD Totals", 
+#                                "% chance of exceeding upper action limit", 
+#                                "% chance of beating lower action limit"))
+DT::datatable(tab,
+              rownames = FALSE,
+              colnames = c("Crime Types", 
+                           "YTD Totals", 
+                           "% chance of exceeding upper action limit", 
+                           "% chance of beating lower action limit"),
+              options = list(dom = 'tf',
+                             columnDefs = list(list(className = 'dt-right', targets = 0:3))))
+```
+
+### Closure rates
+
+```{r}
+CrimeTypes <- c("Aggravated Assault", "Burglary", "Homicide", "Larceny",
+                 "MV Theft", "Rape", "Robbery", "Dangerous Weapons")
+
+treedata <- df %>%
+    filter(CrimeType %in% CrimeTypes) %>%
+    filter(SevenDaysGroup %in% 1:curr.week) %>%
+    count(CrimeType = CrimeType,
+          Clearance = ClearanceStatusValue, 
+          Closure = CaseStatusValue) %>%
+    ungroup() %>%
+    group_by(CrimeType) %>%
+    mutate(CrimeTypeCount = sum(n)) %>%
+    group_by(CrimeType, Closure) %>%
+    mutate(ClosureCount = sum(n)) %>%
+    ungroup() %>%
+    mutate(CrimeType = paste0(CrimeType, " (", 
+                              CrimeTypeCount, ", ",
+                              round(100 * CrimeTypeCount / sum(n), 2), 
+                              "%)  "),
+           Closure = paste0(Closure, " (",
+                            ClosureCount, ", ",
+                            round(100 * ClosureCount / CrimeTypeCount, 2),
+                            "%)  "),
+           Clearance = paste0(Clearance, " (",
+                              n, ", ",
+                              round(100 * n / ClosureCount, 2),
+                              "%)"))
+
+pdf(NULL)
+clearanceTreeMap <- d3tree2(
+    treemap(
+        treedata,
+        index = c("CrimeType", "Closure", "Clearance"),
+        vSize = "n",
+        draw = FALSE),
+        rootname = "Total"
+    )
+
+clearanceTreeMap
+```
+
+Column {data-width=500 .tabset .tabset-fade}
+------------------------------------------------------------------------------
+
+### Firearm Crime
+
+```{r}
+firearmcontrol <- filter(controllimits, Crime == "Firearm")
+SimsAvg <- mean(firearmSPC[[5]]$Value)
+p <- ggplot(filter(histdata, CrimeType == "Firearm"), aes(x = Yr, y = Counts)) +
+    geom_line() +
+    geom_point() +
+    theme_bw() +
+    ggtitle("Historical counts for firearm crime") +
+    geom_line(data = firearmcontrol, aes(x = Year, y = UpperLimit), linetype = "dashed") +
+    geom_line(data = firearmcontrol, aes(x = Year, y = LowerLimit), linetype = "dashed") +
+    scale_x_continuous(breaks = 2009:2019) +
+    geom_point(data = firearmSPC[[5]], aes(x = curr.year, y = Value), alpha = .01) +
+    geom_point(aes(x = curr.year, y = SimsAvg), shape = 16, size = 3, color = 'blue') +
+    labs(x = "Year")
+    
+ggplotly(p, tooltip = c("Yr", "Counts", "SimsAvg"))
+```
+
+### Shooting Victims
+
+```{r shootingsmainpage}
+
+SimsAvg <- mean(svSPC[[5]]$Value)
+p <- ggplot(filter(histdata, CrimeType == "Shooting"), aes(x = Yr, y = Counts)) +
+    geom_line() +
+    geom_point() +
+    theme_bw() +
+    ggtitle("Historical counts for shootings") +
+    geom_line(data = ShootingControlLimits, aes(x = Year, y = UpperLimit), linetype = "dashed") +
+    geom_line(data = ShootingControlLimits, aes(x = Year, y = LowerLimit), linetype = "dashed") +
+    scale_x_continuous(breaks = 2009:2019) +
+    geom_point(data = svSPC[[5]], aes(x = curr.year, y = Value), alpha = .01) +
+    geom_point(aes(x = curr.year, y = SimsAvg), shape = 16, size = 3, color = 'blue') +
+    labs(x = "Year")
+    
+ggplotly(p, tooltip = c("Yr", "Counts", "SimsAvg"))
+```
+
+### Robbery
+
+```{r}
+robcontrol <- filter(controllimits, Crime == "Robbery")
+SimsAvg <- mean(robSPC[[5]]$Value)
+p <- ggplot(filter(histdata, CrimeType == "Robbery"), aes(x = Yr, y = Counts)) +
+    geom_line() +
+    geom_point() +
+    theme_bw() +
+    ggtitle("Historical counts for robbery") +
+    geom_line(data = robcontrol, aes(x = Year, y = UpperLimit), linetype = "dashed") +
+    geom_line(data = robcontrol, aes(x = Year, y = LowerLimit), linetype = "dashed") +
+    scale_x_continuous(breaks = 2009:2019) +
+    geom_point(data = robSPC[[5]], aes(x = curr.year, y = Value), alpha = .01) +
+    geom_point(aes(x = curr.year, y = SimsAvg), shape = 16, size = 3, color = 'blue') +
+    labs(x = "Year")
+ggplotly(p, tooltip = c("Yr", "Counts", "SimsAvg"))
+```
+
+### Aggravated Assault
+
+```{r}
+asltcontrol <- filter(controllimits, Crime == "Aggravated Assault")
+SimsAvg <- mean(asltSPC[[5]]$Value)
+p <- ggplot(filter(histdata, CrimeType == "Aggravated Assault"), aes(x = Yr, y = Counts)) +
+    geom_line() +
+    geom_point() +
+    theme_bw() +
+    ggtitle("Historical counts for aggravated assault") +
+    geom_line(data = asltcontrol, aes(x = Year, y = UpperLimit), linetype = "dashed") +
+    geom_line(data = asltcontrol, aes(x = Year, y = LowerLimit), linetype = "dashed") +
+    scale_x_continuous(breaks = 2009:2019) +
+    geom_point(data = asltSPC[[5]], aes(x = curr.year, y = Value), alpha = .01) +
+    geom_point(aes(x = curr.year, y = SimsAvg), shape = 16, size = 3, color = 'blue') +
+    labs(x = "Year")
+ggplotly(p, tooltip = c("Yr", "Counts", "SimsAvg"))
+```
+
+### Burglary
+
+```{r}
+burgcontrol <- filter(controllimits, Crime == "Burglary")
+SimsAvg <- mean(burgSPC[[5]]$Value)
+p <- ggplot(filter(histdata, CrimeType == "Burglary"), aes(x = Yr, y = Counts)) +
+    geom_line() +
+    geom_point() +
+    theme_bw() +
+    ggtitle("Historical counts for burglary") +
+    geom_line(data = burgcontrol, aes(x = Year, y = UpperLimit), linetype = "dashed") +
+    geom_line(data = burgcontrol, aes(x = Year, y = LowerLimit), linetype = "dashed") +
+    scale_x_continuous(breaks = 2009:2019) +
+    geom_point(data = burgSPC[[5]], aes(x = curr.year, y = Value), alpha = .01) +
+    geom_point(aes(x = curr.year, y = SimsAvg), shape = 16, size = 3, color = 'blue') +
+    labs(x = "Year")
+ggplotly(p, tooltip = c("Yr", "Counts", "SimsAvg"))
+```
+
+### Larceny
+
+```{r}
+larccontrol <- filter(controllimits, Crime == "Larceny")
+SimsAvg <- mean(larcSPC[[5]]$Value)
+p <- ggplot(filter(histdata, CrimeType == "Larceny"), aes(x = Yr, y = Counts)) +
+    geom_line() +
+    geom_point() +
+    theme_bw() +
+    ggtitle("Historical counts for larceny") +
+    geom_line(data = larccontrol, aes(x = Year, y = UpperLimit), linetype = "dashed") +
+    geom_line(data = larccontrol, aes(x = Year, y = LowerLimit), linetype = "dashed") +
+    scale_x_continuous(breaks = 2009:2019) +
+    geom_point(data = larcSPC[[5]], aes(x = curr.year, y = Value), alpha = .01) +
+    geom_point(aes(x = curr.year, y = SimsAvg), shape = 16, size = 3, color = 'blue') +
+    labs(x = "Year")
+ggplotly(p, tooltip = c("Yr", "Counts", "SimsAvg"))
+```
+
+### Homicide
+
+```{r}
+homcontrol <- filter(controllimits, Crime == "Homicide")
+SimsAvg <- mean(homicideSPC[[5]]$Value)
+#yaxismax <- ceiling(max(filter(histdata, CrimeType == "Homicide") %>% select(Counts), homcontrol$UpperLimit[1]))
+p <- ggplot(filter(histdata, CrimeType == "Homicide"), aes(x = Yr, y = Counts)) +
+    geom_line() +
+    geom_point() +
+    theme_bw() +
+    ggtitle("Historical counts for homicide") +
+    geom_line(data = homcontrol, aes(x = Year, y = UpperLimit), linetype = "dashed") +
+    geom_line(data = homcontrol, aes(x = Year, y = LowerLimit), linetype = "dashed") +
+    scale_x_continuous(breaks = 2009:2019) +
+    #scale_y_continuous(breaks = 0:yaxismax, labels = 0:yaxismax) +
+    geom_point(data = homicideSPC[[5]], aes(x = curr.year, y = Value), alpha = .01) +
+    geom_point(aes(x = curr.year, y = SimsAvg), shape = 16, size = 3, color = 'blue') +
+    labs(x = "Year")
+ggplotly(p, tooltip = c("Yr", "Counts", "SimsAvg"))
+```
+
+### Rape
+
+```{r}
+rapecontrol <- filter(controllimits, Crime == "Rape")
+SimsAvg <- mean(rapeSPC[[5]]$Value)
+p <- ggplot(filter(histdata, CrimeType == "Rape"), aes(x = Yr, y = Counts)) +
+    geom_line() +
+    geom_point() +
+    theme_bw() +
+    ggtitle("Historical counts for rape") +
+    geom_line(data = rapecontrol, aes(x = Year, y = UpperLimit), linetype = "dashed") +
+    geom_line(data = rapecontrol, aes(x = Year, y = LowerLimit), linetype = "dashed") +
+    scale_x_continuous(breaks = 2009:2019) +
+    geom_point(data = rapeSPC[[5]], aes(x = curr.year, y = Value), alpha = .01) +
+    geom_point(aes(x = curr.year, y = SimsAvg), shape = 16, size = 3, color = 'blue') +
+    labs(x = "Year")
+ggplotly(p, tooltip = c("Yr", "Counts", "SimsAvg"))
+```
+
+Firearm Crime {data-navmenu="Violent Crime"}
+======================================================================
+
+Column {data-width=400}
+------------------------------------------------------------------------------
+
+```{r fig.align='center', fig.height = 1}
+
+par(mar=c(0,0,0,0))
+plot(c(0, 1000), c(0, 20), type = 'n', xlab = '', ylab = '', xaxt = 'n', yaxt ='n', bty = 'n')
+rect(0, 0, 1000, 20, col = 'white', border = 'darkgrey', lwd = 1)
+text(x = 500, y = 10, labels = "Firearm Crime", cex = 2, col = 'black')
+
+```
+
+### Projection
+
+```{r}
+
+ggplotly(firearmSPC[[1]], tooltip = c('Week', 'currentCounts', 'ThreeYrAvg', 'SimsAvg'))
+
+```
+
+### Aoristic heatmap
+
+```{r}
+df$WeaponIBRValue <- as.numeric(df$WeaponIBRValue)
+mat <- aoristicDayWeek(filter(df, WeaponIBRValue < 11))
+plotlyhmap(mat)
+
+```
+
+Column {data-width=400 .tabset .tabset-fade}
+------------------------------------------------------------------------------
+
+### YTD Hotspot map
+
+```{r}
+
+guns <- filter(df, Firearm == "Firearm")
+map <- hotspotMap(sectionmap, 
+                  filter(guns, Lat != -361))
+map
+
+```
+
+### 28 day Hotspot map
+
+```{r}
+
+guns28 <- guns %>%
+    filter(Lat != -361 & SevenDaysGroup > curr.week - 4)
+if(nrow(guns28) > 0){
+    map <- hotspotMap(sectionmap, guns28)
+    map
+}
+
+```
+
+Column{data-width=300 .tabset .tabset-fade}
+-------------------------------------------------------------------------------
+
+### Beats
+
+There were `r nrow(guns)` overall firearm-involved crimes (including simulated and imitation firearms).
+
+```{r}
+dat <- df %>%
+    filter(Firearm == "Firearm")
+
+#kable(nestedbeattable(dat),
+#      col.names = c("Section", "Beat", "Count"))
+x <- nestedbeattable(dat)
+DT::datatable(x[-1, -1] %>% mutate(Beat = factor(Beat)),
+              filter = 'top',
+              rownames = FALSE,
+              colnames = c('Beat', 'Count'),
+              options = list(dom = 'tf', 
+                             pageLength = 100, 
+                             columnDefs = list(list(className = 'dt-right', targets = 0:1))))
+```
+
+### Crime Types
+
+There were `r nrow(guns)` overall firearm-involved crimes (including simulated and immitation firearms).
+
+```{r}
+
+#kable(guntablenest(df), col.names = c("CrimeType", "Description", "Counts"), row.names = FALSE)
+DT::datatable(guntablenest(df), 
+              rownames = FALSE,
+              colnames = c("Crime Type", "Description", "Counts"), 
+              options = list(pageLength = 100, 
+                             dom = 'tf',
+                             ordering = FALSE,
+                             columnDefs = list(list(className = 'dt-right', targets = 0:2))))
+```
+
+### CPWs
+
+There were `r nrow(CPWs)` CPW crimes (excluding knives/brass knuckle crimes). These CPWs are not counted in the overall firearm-related statistics.
+
+```{r}
+#kable(CPWs[c("FullAddress", "Beat", "OccurFromDate", "Description")], col.names = c('Address', 'Beat', 'Date', 'Description'))
+DT::datatable(CPWs[c("FullAddress", "Beat", "OccurFromDate", "Description")],
+              filter = 'top',
+              rownames = FALSE,
+              colnames = c('Address', 'Beat', 'Date', 'Description'),
+              options = list(pageLength = 100, 
+                             dom = 'tf',
+                             columnDefs = list(list(className = 'dt-right', targets = 0:3))))
+```
+
+Shooting Victims {data-navmenu="Violent Crime"}
+======================================================================
+
+Column {data-width=400}
+----------------------------------------------------------------------
+
+```{r fig.align='center', fig.height = 1}
+
+par(mar=c(0,0,0,0))
+plot(c(0, 1000), c(0, 20), type = 'n', xlab = '', ylab = '', xaxt = 'n', yaxt ='n', bty = 'n')
+rect(0, 0, 1000, 20, col = 'white', border = 'darkgrey', lwd = 1)
+text(x = 500, y = 10, labels = "Shooting Victims", cex = 2, col = 'black')
+
+```
+
+### Projection
+
+```{r}
+ggplotly(svSPC[[1]], tooltip = c('Week', 'currentCounts', 'ThreeYrAvg', 'SimsAvg'))
+
+```
+
+### Aoristic Heatmap
+
+```{r}
+if(nrow(svjoined) > 0){
+    mat <- aoristicDayWeek(svjoined)
+    plotlyhmap(mat)
+}
+
+
+```
+
+Column {data-width=400 .tabset .tabset-fade}
+----------------------------------------------------------------------
+
+### YTD Hotspot map
+
+```{r}
+if(nrow(svjoined) > 0){
+    dohotspot <- ifelse(nrow(svjoined) > 10, yes = TRUE, no = FALSE)
+    map <- hotspotMapSV(basemap = sectionmap, 
+                        mapdf = svjoined, 
+                        doHotSpot = dohotspot)
+    map
+}
+
+```
+
+### 28 day Hotspot map
+
+```{r}
+
+svjoin28 <- filter(svjoined,
+                   SevenDaysGroup >= curr.week - 3)
+
+if(nrow(svjoin28) > 0){
+    dohotspot <- ifelse(nrow(svjoin28) > 10, yes = TRUE, no = FALSE)
+    
+    map <- hotspotMapSV(basemap = sectionmap, 
+                        mapdf = svjoin28, 
+                        doHotSpot = dohotspot)
+    map
+}
+```
+
+Column {data-width=300 .tabset .tabset-fade}
+----------------------------------------------------------------------
+
+### Beats
+
+There have been `r nrow(svjoined)` shooting victims thus far.
+
+```{r}
+if(nrow(svjoined) > 0){
+    x <- nestedbeattable(svjoined)
+    DT::datatable(x[-1, -1] %>% mutate(Beat = factor(Beat)),
+                  rownames = FALSE,
+                  colnames = c("Beat", "Count"),
+                  options = list(pageLength = 100, 
+                                dom = 't', 
+                                columnDefs = list(list(className = 'dt-right', targets = 0:1)))
+                  )
+}
+
+```
+
+```{r, eval = FALSE}
+svjoined$CrimeType.x <- factor(svjoined$CrimeType.x, levels = c("Shooting", "Homicide"))
+#kable(as.data.frame(table(svjoined$CrimeType.x)), col.names = c("Type", "Count"))
+DT::datatable(as.data.frame(table(svjoined$CrimeType.x)),
+             filter = 'top',
+             rownames = FALSE,
+             colnames = c("Type", "Count"),
+             options = list(pageLength = 100,
+                            columnDefs = list(list(className = 'dt-right', targets = 0:1))))
+
+```
+
+
+### Multiples & Homicides
+
+There were `r nrow(svjoined)` total shooting victims in `r length(unique(svjoined$CaseNumber))` incidents.
+
+`r nrow(filter(svjoined, CrimeType.x == "Homicide"))` of these victims are victims of homicide.
+
+```{r}
+
+if(nrow(svjoined) > 0){
+    temptab <- svjoined %>% count(CaseNumber)
+    temptab$n <- factor(temptab$n, levels = 1:max(temptab$n))
+    temptab$n %>% 
+        table() %>%
+        as.data.frame() %>%
+        arrange(.) %>%
+        
+    DT::datatable(filter = 'top',
+                  rownames = FALSE, 
+                  colnames = c("Victims per Incident", "Count"),
+                  options = list(pageLength = 100, 
+                                 dom = 'tf', 
+                                 ordering = FALSE,
+                                 columnDefs = list(list(className = 'dt-right', targets = 0:1))))
+
+}
+
+```
+
+Robbery {data-navmenu="Violent Crime"}
+======================================================================
+
+Column {data-width=400}
+-----------------------------------------------------------------------
+
+```{r fig.align='center', fig.height = 1}
+
+par(mar=c(0,0,0,0))
+plot(c(0, 1000), c(0, 20), type = 'n', xlab = '', ylab = '', xaxt = 'n', yaxt ='n', bty = 'n')
+rect(0, 0, 1000, 20, col = 'white', border = 'darkgrey', lwd = 1)
+text(x = 500, y = 10, labels = "Robbery", cex = 2, col = 'black')
+
+```
+
+### Projection
+
+```{r}
+
+ggplotly(robSPC[[1]], tooltip = c('Week', 'currentCounts', 'ThreeYrAvg', 'SimsAvg'))
+
+```
+
+### Aoristic Heatmap
+
+```{r}
+robs <- filter(df, CrimeType == "Robbery")
+mat <- aoristicDayWeek(robs)
+plotlyhmap(mat)
+```
+
+
+Column {data-width=400 .tabset .tabset-fade}
+-----------------------------------------------------------------------
+
+### YTD Hotspot map
+
+```{r}
+
+robsgeo <- filter(df, Lat != -361 & CrimeType == "Robbery")
+map <- hotspotMap(basemap = sectionmap, 
+                  mapdf = robsgeo)
+map
+
+```
+
+### 28 day Hotspot map
+
+```{r}
+
+robsgeo <- filter(df, Lat != -361 & 
+                      CrimeType == "Robbery" & 
+                      SevenDaysGroup >= curr.week - 3)
+if(nrow(robsgeo) > 0){
+    map <- hotspotMap(basemap = sectionmap, 
+                  mapdf = robsgeo)
+    map
+}
+
+
+```
+
+Column {data-width=300 .tabset .tabset-fade}
+------------------------------------------------------------------------
+
+### Beats
+
+There have been `r df %>% dplyr::filter(CrimeType == "Robbery") %>% nrow()` total robberies thus far.
+
+```{r}
+dat <- df %>%
+    dplyr::filter(CrimeType == "Robbery")
+
+#kable(nestedbeattable(dat),
+#      col.names = c("Section", "Beat", "Count"))
+x <- nestedbeattable(dat)
+DT::datatable(x[-1, -1] %>% mutate(Beat = factor(Beat)),
+              filter = 'top',
+              rownames = FALSE,
+              colnames = c("Beat", "Count"),
+              options = list(pageLength = 100, 
+                             dom = 'tf', 
+                             columnDefs = list(list(className = 'dt-right', targets = 0:1))))
+```
+
+### Weapon Types
+
+There have been `r df %>% dplyr::filter(CrimeType == "Robbery") %>% nrow()` total robberies thus far.
+
+```{r}
+
+robs %>%
+    group_by(WeaponGroup) %>%
+    count() %>%
+    arrange(desc(n)) %>%
+    mutate(WeaponGroup = factor(WeaponGroup)) %>%
+    DT::datatable(filter = 'top',
+                  rownames = FALSE,
+                  colnames = c("Weapon", "Count"),
+                  options = list(pageLength = 100,
+                                 dom = 'tf',
+                                 columnDefs = list(list(className = 'dt-right', targets = 0:1))))
+
+
+```
+
+### Locations
+
+There have been `r df %>% dplyr::filter(CrimeType == "Robbery") %>% nrow()` total robberies thus far.
+
+```{r}
+
+robs %>% 
+    group_by(LocationSceneDescription) %>%
+    count() %>%
+    arrange(desc(n)) %>%
+    mutate(LocationSceneDescription = factor(LocationSceneDescription)) %>%
+    DT::datatable(filter = 'top',
+                  rownames = FALSE,
+                  colnames = c("Location", "Count"),
+                  options = list(pageLength = 100, 
+                                 dom = 'tf',
+                                 columnDefs = list(list(className = 'dt-right', targets = 0:1))))
+```
+
+Aggravated Assault {data-navmenu="Violent Crime"}
+======================================================================
+
+Column {data-width=400}
+-----------------------------------------------------------------------
+
+```{r fig.align='center', fig.height = 1}
+
+par(mar=c(0,0,0,0))
+plot(c(0, 1000), c(0, 20), type = 'n', xlab = '', ylab = '', xaxt = 'n', yaxt ='n', bty = 'n')
+rect(0, 0, 1000, 20, col = 'white', border = 'darkgrey', lwd = 1)
+text(x = 500, y = 10, labels = "Aggravated Assault", cex = 2, col = 'black')
+
+```
+
+### Projection
+
+
+```{r}
+
+ggplotly(asltSPC[[1]], tooltip = c('Week', 'currentCounts', 'ThreeYrAvg', 'SimsAvg'))
+
+```
+
+### Aoristic heatmap
+
+```{r}
+aslts <- filter(df, CrimeType == "Aggravated Assault")
+mat <- aoristicDayWeek(aslts)
+plotlyhmap(mat)
+```
+
+
+Column {data-width=400 .tabset .tabset-fade}
+-----------------------------------------------------------------------
+
+### YTD Hotspot map
+
+```{r}
+
+asltsgeo <- filter(df, Lat != -361 & CrimeType == "Aggravated Assault")
+map <- hotspotMap(basemap = sectionmap, 
+                  mapdf = asltsgeo)
+map
+
+```
+
+### 28 day Hotspot map
+
+```{r}
+map <- hotspotMap(basemap = sectionmap, 
+                  mapdf = filter(asltsgeo, 
+                                 SevenDaysGroup >= curr.week - 3))
+map
+```
+
+Column {data-width=300 .tabset .tabset-fade}
+------------------------------------------------------------------------
+
+### Beats
+
+There have been `r df %>% dplyr::filter(CrimeType == "Aggravated Assault") %>% nrow()` total aggravated assaults thus far.
+
+```{r}
+dat <- df %>%
+    dplyr::filter(CrimeType == "Aggravated Assault")
+
+#kable(nestedbeattable(dat),
+#      col.names = c("Section", "Beat", "Count"))
+x <- nestedbeattable(dat)
+DT::datatable(x[-1,-1] %>% mutate(Beat = factor(Beat)),
+              filter = 'top',
+              rownames = FALSE,
+              colnames = c("Beat", "Count"),
+              options = list(pageLength = 100, 
+                             dom = 'tf', 
+                             columnDefs = list(list(className = 'dt-right', targets = 0:1))))
+```
+
+### Weapon Types
+
+There have been `r df %>% dplyr::filter(CrimeType == "Aggravated Assault") %>% nrow()` total aggravated assaults thus far.
+
+```{r}
+
+#aslts %>%
+#    select(Firearm) %>%
+#    table() %>%
+#    as.data.frame() %>%
+#    #kable(col.names = c("Type", "Count"), row.names = FALSE)
+#    DT::datatable(rownames = FALSE,
+#                  colnames = c("Type", "Count"),
+#                  options = list(pageLength = 100, 
+#                                 dom ='t', 
+#                                 ordering = FALSE))
+
+table(aslts$WeaponGroup) %>%
+    as.data.frame() %>%
+    #kable(col.names = c("Weapon", "Count"), row.names = FALSE)
+    DT::datatable(filter = 'top',
+                  rownames = FALSE,
+                  colnames = c("Weapon", "Count"),
+                  options = list(pageLength = 100, 
+                                 dom = 'tf',
+                                 columnDefs = list(list(className = 'dt-right', targets = 0:1))))
+
+```
+
+### Locations
+
+There have been `r df %>% dplyr::filter(CrimeType == "Aggravated Assault") %>% nrow()` total aggravated assaults thus far.
+
+```{r}
+
+aslts %>% 
+    dplyr::select(LocationSceneDescription) %>%
+    table() %>%
+    as.data.frame() %>%
+    arrange(desc(Freq)) %>%
+    #kable(row.names = FALSE, col.names = c("Location", "Count"))
+    DT::datatable(filter = 'top',
+                  rownames = FALSE,
+                  colnames = c("Location", "Count"),
+                  options = list(pageLength = 100, 
+                                 dom = 'tf',
+                                 columnDefs = list(list(className = 'dt-right', targets = 0:1))))
+
+```
+
+
+Burglary {data-navmenu="Property Crime"}
+======================================================================
+
+Column {data-width=400}
+-----------------------------------------------------------------------
+
+```{r fig.align='center', fig.height = 1}
+
+par(mar=c(0,0,0,0))
+plot(c(0, 1000), c(0, 20), type = 'n', xlab = '', ylab = '', xaxt = 'n', yaxt ='n', bty = 'n')
+rect(0, 0, 1000, 20, col = 'white', border = 'darkgrey', lwd = 1)
+text(x = 500, y = 10, labels = "Burglary", cex = 2, col = 'black')
+
+```
+
+### Projection
+
+```{r}
+
+ggplotly(burgSPC[[1]], tooltip = c('Week', 'currentCounts', 'ThreeYrAvg', 'SimsAvg'))
+
+```
+
+### Aoristic heatmap
+
+```{r}
+burgs <- filter(df, CrimeType == "Burglary")
+mat <- aoristicDayWeek(burgs)
+plotlyhmap(mat)
+```
+
+Column {data-width=400 .tabset .tabset-fade}
+-----------------------------------------------------------------------
+
+### YTD Hotspot map
+
+```{r}
+
+burgsgeo <- filter(df, Lat != -361 & CrimeType == "Burglary")
+map <- hotspotMap(basemap = sectionmap, 
+                  mapdf = burgsgeo)
+map
+
+```
+
+### 28 day Hotspot map
+
+```{r}
+map <- hotspotMap(basemap = sectionmap, 
+                  mapdf = filter(burgsgeo, 
+                                 SevenDaysGroup >= curr.week - 3))
+map
+```
+
+Column {data-width=300 .tabset .tabset-fade}
+-----------------------------------------------------------------------
+
+### Beats
+
+There have been `r df %>% dplyr::filter(CrimeType == "Burglary") %>% nrow()` total burglaries thus far.
+
+```{r}
+dat <- df %>%
+    dplyr::filter(CrimeType == "Burglary")
+
+#kable(nestedbeattable(dat),
+#      col.names = c("Section", "Beat", "Count"))
+x <- nestedbeattable(dat)
+DT::datatable(x[-1,-1] %>% mutate(Beat = factor(Beat)),
+              filter ='top',
+              rownames = FALSE,
+              colnames = c("Beat", "Count"),
+              options = list(pageLength = 100, 
+                             dom = 'tf', 
+                             columnDefs = list(list(className = 'dt-right', targets = 0:1))))
+```
+
+### Locations
+
+There have been `r df %>% dplyr::filter(CrimeType == "Burglary") %>% nrow()` total burglaries thus far.
+
+```{r}
+tab <- as.data.frame(table(burgs$LocationScene), stringsAsFactors = TRUE)
+tab <- tab[order(tab$Freq, decreasing = TRUE),]
+#kable(tab, row.names = FALSE, col.names = c("Location", "Count"))
+DT::datatable(tab, filter = 'top',
+                   rownames = FALSE,
+                   colnames = c("Location", "Count"),
+                   options = list(pageLength = 100, 
+                                  dom = 'tf',
+                                  columnDefs = list(list(className = 'dt-right', targets = 0:1))))
+```
+
+
+Larceny {data-navmenu="Property Crime"}
+======================================================================
+
+Column {data-width=400}
+-----------------------------------------------------------------------
+
+```{r fig.align='center', fig.height = 1}
+
+par(mar=c(0,0,0,0))
+plot(c(0, 1000), c(0, 20), type = 'n', xlab = '', ylab = '', xaxt = 'n', yaxt ='n', bty = 'n')
+rect(0, 0, 1000, 20, col = 'white', border = 'darkgrey', lwd = 1)
+text(x = 500, y = 10, labels = "Larceny", cex = 2, col = 'black')
+
+```
+
+### Projection
+
+```{r}
+
+ggplotly(larcSPC[[1]], tooltip = c('Week', 'currentCounts', 'ThreeYrAvg', 'SimsAvg'))
+
+```
+
+### Aoristic heatmap
+
+```{r}
+larcs <- filter(df, CrimeType == "Larceny")
+mat <- aoristicDayWeek(larcs)
+plotlyhmap(mat)
+```
+
+Column {data-width=400 .tabset .tabset-fade}
+-----------------------------------------------------------------------
+
+### YTD map
+
+```{r}
+
+larcsgeo <- filter(df, Lat != -361 & CrimeType == "Larceny")
+map <- hotspotMap(basemap = sectionmap, 
+                  mapdf = larcsgeo)
+map
+
+```
+
+### 28 day map
+
+```{r}
+map <- hotspotMap(basemap = sectionmap, 
+                  mapdf = filter(larcsgeo, 
+                                 SevenDaysGroup >= curr.week - 3))
+map
+
+```
+
+### YTD map - Theft from MV
+
+```{r}
+
+carbreakins <- filter(df, Lat != -361 & 
+                       CrimeType == "Larceny" & 
+                       LarcenyTypeDescription == "Theft from Motor Vehicle")
+map <- hotspotMap(basemap = sectionmap, 
+                  mapdf = carbreakins)
+map
+
+```
+
+### 28 day map - Theft from MV
+
+```{r}
+map <- carbreakins %>%
+    filter(SevenDaysGroup >= curr.week - 3) %>%
+    hotspotMap(basemap = sectionmap)
+
+map
+```
+
+Column {data-width=300 .tabset .tabset-fade}
+-----------------------------------------------------------------------
+
+### Beats
+
+There have been `r df %>% dplyr::filter(CrimeType == "Larceny") %>% nrow()` total larcenies thus far.
+
+```{r}
+dat <- df %>%
+    dplyr::filter(CrimeType == "Larceny")
+
+#kable(nestedbeattable(dat),
+#      col.names = c("Section", "Beat", "Count"))
+x <- nestedbeattable(dat)
+DT::datatable(x[-1,-1] %>% mutate(Beat = factor(Beat)),
+              filter = 'top',
+              rownames = FALSE,
+              colnames = c("Beat", "Count"),
+              options = list(pageLength = 100, 
+                             dom = 'tf', 
+                             columnDefs = list(list(className = 'dt-right', targets = 0:1))))
+```
+
+### Larceny Types
+
+There have been `r df %>% dplyr::filter(CrimeType == "Larceny") %>% nrow()` total larcenies thus far.
+
+```{r}
+larcs %>%
+    group_by(LarcenyTypeDescription) %>%
+    count() %>%
+    mutate(LarcenyTypeDescription = factor(LarcenyTypeDescription)) %>%
+    arrange(desc(n)) %>%
+    DT::datatable(
+              filter = 'top',
+              rownames = FALSE,
+              colnames = c("Larceny Type", "Count"),
+              options = list(pageLength = 100, 
+                             dom = 'tf',
+                             columnDefs = list(list(className = 'dt-right', targets = 0:1))))
+
+```
+
+Homicide {data-navmenu="Violent Crime"}
+======================================================================
+
+Column {data-width=600 .tabset .tabset-fade}
+-----------------------------------------------------------------------
+
+```{r fig.align='center', fig.height = 1}
+
+par(mar=c(0,0,0,0))
+plot(c(0, 1000), c(0, 20), type = 'n', xlab = '', ylab = '', xaxt = 'n', yaxt ='n', bty = 'n')
+rect(0, 0, 1000, 20, col = 'white', border = 'darkgrey', lwd = 1)
+text(x = 500, y = 10, labels = "Homicide", cex = 2, col = 'black')
+
+```
+
+### Victims & Arrestees
+
+```{r}
+if(nrow(personincident) > 0){
+    persons <- personincident %>% 
+        filter(PersonType %in% c("Victim", "Arrestee")) %>%
+        dplyr::select(CaseNumber, Beat, DateOfEvent, DateOfDeath, 
+               CaseStatus, WeaponType, PersonType, Name, DOB) %>%
+        mutate(PersonType = factor(PersonType),
+               Beat = factor(Beat),
+               WeaponType = factor(WeaponType),
+               CaseStatus = factor(CaseStatus)) %>%
+        arrange(DateOfEvent)
+    #kable(persons)
+    DT::datatable(persons,
+                  filter = 'top',
+                  rownames = FALSE,
+                  colnames = c('Case Number', 'Beat', 'Event Date', 'Date of Death', ' Case Status', 
+                               'Weapon Type', 'Person Type', 'Name', 'DOB'),
+                  options = list(pageLength = 100,
+                                 dom = 'tf',
+                                 columnDefs = list(list(className = 'dt-right', targets = 0:8))))
+    }
+
+
+```
+
+
+### Weapon Types
+
+```{r}
+if(nrow(MCUhoms) > 0){
+    #kable(as.data.frame(table(MCUhoms$WeaponType)), col.names = c("Weapon", "Count"))
+    DT::datatable(as.data.frame(table(MCUhoms$WeaponType)),
+                  filter = 'top',
+                  rownames = FALSE,
+                  colnames = c('Weapon', 'Count'),
+                  options = list(pageLength = 100,
+                                 dom = 'tf',
+                                 columnDefs = list(list(className = 'dt-right', targets = 0:1))))
+}
+
+```
+
+### Case status
+
+```{r}
+if(nrow(MCUhoms) > 0){
+    
+    DT::datatable(as.data.frame(table(MCUhoms$Disposition[MCUhoms$YearofEvent == curr.year], 
+                                 MCUhoms$CaseStatus[MCUhoms$YearofEvent == curr.year])),
+                  filter = 'top',
+                  rownames = FALSE,
+                  colnames = c('Disposition', 'Case Status', 'Count'),
+                  options = list(pageLength = 100,
+                                 dom = 'tf',
+                                 columnDefs = list(list(className = 'dt-right', targets = 0:2))))
+}
+```
+
+Column {data-width=300 .tabset .tabset-fade}
+-----------------------------------------------------------------------
+
+### YTD Hotspot map
+
+```{r}
+homs <- data.frame(FullAddress = MCUhoms$FullAddress,
+                   OccurToDate = MCUhoms$DateOfEvent,
+                   CaseNumber = MCUhoms$CaseNumber,
+                   Lat = MCUhoms$Lat,
+                   Lon = MCUhoms$Lon,
+                   SevenDaysGroup = MCUhoms$SevenDaysGroup,
+                   stringsAsFactors = FALSE)
+
+
+
+if(nrow(homs) == 0) {
+    cat("No homicides this year")
+} else{
+    
+    map <- hotspotMap(basemap = sectionmap, 
+                      mapdf = homs,
+                      doHotSpot = FALSE)
+    map
+}
+
+```
+
+### 28 day Hotspot map
+
+```{r}
+if(nrow(filter(MCUhoms, SevenDaysGroup > curr.week - 4)) == 0) {
+    cat("No homicides past 28 days citywide")
+} else{
+    homs28 <- filter(homs, SevenDaysGroup >= curr.week - 3)
+    map <- hotspotMap(basemap = sectionmap, 
+                      mapdf = homs28, 
+                      doHotSpot = FALSE)
+    map
+}
+
+```
+
+Rape {data-navmenu="Violent Crime"}
+======================================================================
+
+Column {data-width=600 .tabset .tabset-fade}
+-----------------------------------------------------------------------
+
+```{r fig.align='center', fig.height = 1}
+
+par(mar=c(0,0,0,0))
+plot(c(0, 1000), c(0, 20), type = 'n', xlab = '', ylab = '', xaxt = 'n', yaxt ='n', bty = 'n')
+rect(0, 0, 1000, 20, col = 'white', border = 'darkgrey', lwd = 1)
+text(x = 500, y = 10, labels = "Rape", cex = 2, col = 'black')
+
+```
+
+### Table overview
+
+```{r}
+rapes <- df %>%
+    filter(CrimeType == "Rape")
+
+rapes %>%
+    dplyr::select(CaseNumber, FullAddress, OccurToDate, 
+           ReportDate, LocationSceneDescription, CaseStatusValue) %>%
+    mutate(LocationSceneDescription = factor(LocationSceneDescription),
+           CaseStatusValue = factor(CaseStatusValue)) %>%
+    arrange(ReportDate) %>%
+    mutate(OccurToDate = as.Date(OccurToDate, format = "%Y-%m-%d")) %>%
+    DT::datatable(filter = 'top',
+                  rownames = FALSE,
+                  colnames = c('Case Number', 'Address', 'Event Date', 'Report Date', 'Location', 'Clearance'),
+                  options = list(pageLength = 100,
+                                 dom = 'tf',
+                                 columnDefs = list(list(className = 'dt-right', targets = 0:4))))
+
+```
+
+### Victim/Offender relationship
+
+```{r}
+
+cat("Victim/Offender relationship data has not yet been made available by IT.")
+
+```
+
+### Location/Scene
+
+```{r}
+
+
+rapes %>% 
+    dplyr::select(LocationSceneDescription) %>%
+    table() %>% 
+    as.data.frame() %>% 
+    arrange(desc(Freq)) %>%
+    DT::datatable(filter = 'top',
+                  rownames = FALSE,
+                  colnames = c("Location", "Count"),
+                  options = list(pageLength = 100, 
+                                 dom = 'tf',
+                                 columnDefs = list(list(className = 'dt-right', targets = 0:1))))
+
+```
+
+### Charges
+
+```{r}
+rapes %>%
+    group_by(Description) %>%
+    count() %>%
+    arrange(desc(n)) %>%
+    mutate(Description = factor(Description)) %>%
+    DT::datatable(filter = 'top',
+                  rownames = FALSE,
+                  colnames = c("Charge Description", "Count"),
+                  options = list(pageLength = 100, 
+                                 dom = 'tf',
+                                 ordering = FALSE,
+                                 columnDefs = list(list(className = 'dt-right', targets = 0:1))))  
+ 
+```
+
+### UCR Types
+
+```{r}
+rapes %>% 
+    group_by(UCRText) %>%
+    count() %>%
+    mutate(UCRText = factor(UCRText)) %>%
+    DT::datatable(filter = 'top',
+                  rownames = FALSE,
+                  colnames = c("Rape UCR Type", "Count"),
+                  options = list(pageLength = 100, 
+                                 dom = 'tf',
+                                 ordering = FALSE,
+                                 columnDefs = list(list(className = 'dt-right', targets = 0:1))))
+
+```
+
+Column {data-width=300 .tabset .tabset-fade}
+-----------------------------------------------------------------------
+
+### YTD Hotspot map
+
+```{r}
+
+if(nrow(rapes) == 0) {
+    cat("No rapes this year/this section")
+} else{
+    map <- hotspotMap(basemap = sectionmap, 
+                      mapdf = rapes %>% filter(Lat != -361))
+    map
+}
+
+```
+
+### 28 day Hotspot map
+
+```{r}
+if(nrow(filter(df, Lat != -361 & 
+                        CrimeType == "Rape" & 
+                        SevenDaysGroup >= curr.week - 3)) == 0) {
+    cat("No rapes in the past 28 days in this section")
+} else{
+    rapes <- filter(df, Lat != -361 & 
+                        CrimeType == "Rape" & 
+                        SevenDaysGroup >= curr.week - 3)
+    map <- hotspotMap(basemap = sectionmap, 
+                      mapdf = rapes)
+    map
+}
+
+```
+
+
+
+
+Reference {data-navmenu="Home"}
+======================================================================
+
+Column{data-width=200}
+-------------------------------------------------------------------------------
+
+### Action limits explained
+
+The Rochester Police Department is shifting towards the use of "process control" and away from year to year comparison statistics. The goal is to be able to compare current crime counts against a benchline of "normal", rather than the benchline of the previous year (which may have been very high or very low compared to past years).
+
+The Office of Business Intelligence has calculated "action limits" which you can see represented as dashed lines on the projection plots. These limits (both upper and lower) are calculated by using weighted 3 year averages as centering values, and then calculating the standard deviations to find how much variation from that average to expect.
+
+If current counts for a section and crimetype break the upper action limit, it's a signal to investigate the causes of that rise in activity. If current counts break the lower action limit, it's a signal that there may be a beneficial intervention that can be studied and copied in other sections.
+
+Variation within the action limits is assumed to be normal "statistical noise" not requiring attention or resources above the section level.
+
+Column{data-width=200}
+-------------------------------------------------------------------------------
+
+### Action limits explained
+
+The Rochester Police Department is shifting towards the use of "process control" and away from year to year comparison statistics. The goal is to be able to compare current crime counts against a benchline of "normal", rather than the benchline of the previous year (which may have been very high or very low compared to past years).
+
+The Office of Business Intelligence has calculated "action limits" which you can see represented as dashed lines on the projection plots. These limits (both upper and lower) are calculated by using weighted 3 year averages as centering values, and then calculating the standard deviations to find how much variation from that average to expect.
+
+If current counts for a section and crimetype break the upper action limit, it's a signal to investigate the causes of that rise in activity. If current counts break the lower action limit, it's a signal that there may be a beneficial intervention that can be studied and copied in other sections.
+
+Variation within the action limits is assumed to be normal "statistical noise" not requiring attention or resources above the section level.
+
+
+Column{.tabset .tabset-fade}
+------------------------------------------------------------------------------
+
+### Case Status
+
+Treemaps display information as rectangles nested within each other. The data is structured hierarchically, meaning that a hover over a particular crime type will provide the total for that crime for the current year, but a click on a crime type will allow to drill down into the breakdown of the case statuses for that crime. To return to crime types simply click on the heading of the treemap.
+
+The proportion of the values shown to the total are represented by the size of the corresponding rectangle.
+
+Closure and count information for homicides will be inaccurate due to LERMS data issues. Elsewhere in the dashboard, we use MCU data for homicides instead of LERMS data, but that is not possible for the treemap.
+
+![](Y:/Projects/dashboard/RPDCrimeDashboard/Objects/ReferenceTreeMap.png)
+
+### Projection
+
+The projection chart shows the cumulative weekly values experienced to date for the current year. Points in black show values that follow the expected accumulation path. Points in green are lower than expected and points in red are higher than expected. The blue shaded region refers to the expected path to result in a value between the year-end action limits.  
+
+The black faded points on the chart at week 53 show the results of 1000 simulations estimating what our total counts will be at year-end. The large blue point shows the average of those simulations. The black "X" shows the weighted average year-end totals for the past three years. The percentage of the simulations above the upper limit helps to gauge chances of year-end expectations regarding that particular crime if the remainder of the year continues as those have historically.
+
+![](Y:/Projects/dashboard/RPDCrimeDashboard/Objects/ReferenceProjectionPlot.png)
+
+### Aoristic
+
+An aoristic heatmap shows the proportion of activity that occurs in a given hour, on a given day of the week. Lighter shades correspond with less activity, while darker red shades correspond with more activity. We have placed vertical lines that divide between first, second and third platoon hours, and as you can see from the bottom axis, the chart begins at 2300 hrs. The rectangle labeled 'Hr23' corresponds with the amount of activity occuring between 2300 and 2359 hrs on that day of the week.
+
+For crimes that occur over a longer period of time, or for crimes that occurred at an unknown time within a time range, the weight of that crime is divided evenly between the hours that it could have occurred. For instance, the weight for a burglary that occurred at some point between 0800 and 1200 will be spread out evenly between Hr8, Hr9, Hr10 and Hr11.
+
+![](Y:/Projects/dashboard/RPDCrimeDashboard/Objects/ReferenceAoristicPlot.png)
+
+
+### Maps
+
+Most tabs have two different maps, each in their own tab. The first tab will show a Year-To-Date map, and the second tab will show a map of the last 28 days. Hotspots will also be shown if there are a large enough number of crimes for hotspots to make sense.
+
+The Larcenies page has two additional maps for car break-ins. These maps are also on their own tabs, and display Year-To-Date car break-ins and the last 28 days of car break-ins.
+
+If no map appears, likely there is no data to present (i.e. no events to map).
+
+![](Y:/Projects/dashboard/RPDCrimeDashboard/Objects/ReferenceMapLake.png)
+
+
+### Tables
+
+The column on the right of each page will show additional data tables, including the breakdown of incidents by beat, by weapon type, larceny type, location type, etc...
+

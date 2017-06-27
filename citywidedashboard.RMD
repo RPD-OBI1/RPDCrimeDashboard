@@ -1,5 +1,5 @@
 ---
-title: "Citywide Dashboard, as of `r format(Sys.Date() - 3, '%d %B, %Y')`"
+title: "Citywide Crime Dashboard, as of `r format(Sys.Date() - 2, '%d %B, %Y')`"
 output: 
   flexdashboard::flex_dashboard:
     logo: Y:/Projects/dashboard/RPDCrimeDashboard/Objects/RPDLogoSMALL.png
@@ -32,20 +32,16 @@ library(treemap)
 library(d3treeR)
 
 source("Y:/Projects/dashboard/RPDCrimeDashboard/Functions/aoristicDayWeek.R")
-source("Y:/Projects/dashboard/RPDCrimeDashboard/Functions/cfsHotspotMap.R")
 source("Y:/Projects/dashboard/RPDCrimeDashboard/Functions/guntablenest.R")
 source("Y:/Projects/dashboard/RPDCrimeDashboard/Functions/kerntorast.R")
 source("Y:/Projects/dashboard/RPDCrimeDashboard/Functions/hotspotMap.R")
 source("Y:/Projects/dashboard/RPDCrimeDashboard/Functions/hotspotMapSV.R")
-source("Y:/Projects/dashboard/RPDCrimeDashboard/Functions/LERMS_getCallsForService.R")
 source("Y:/Projects/dashboard/RPDCrimeDashboard/Functions/LERMS_incidents.R")
 source("Y:/Projects/dashboard/RPDCrimeDashboard/Functions/nestedbeattable.R")
 source("Y:/Projects/dashboard/RPDCrimeDashboard/Functions/plotlyhmap.R")
 source("Y:/Projects/dashboard/RPDCrimeDashboard/Functions/SPC.R")
 source("Y:/Projects/dashboard/RPDCrimeDashboard/Functions/pullMCUdata.R")
 source("Y:/Projects/dashboard/RPDCrimeDashboard/Functions/loadshootingvictims.R")
-source("Y:/Projects/dashboard/RPDCrimeDashboard/Functions/CFSloc.R")
-
 
 simpleCap <- function(x) {
   s <- strsplit(x, " ")[[1]]
@@ -211,28 +207,6 @@ drops <- c("Lat", "Lon")
 svjoined <- left_join(x = sv, y = df, by = c("CaseNumber" = "CRNum")) %>%
     select(-one_of(drops)) %>%
     rename(Lat = Latitude, Lon = Longitude)
-
-loc <- CFSloc()
-exclude <- c("630 North Clinton Ave, Rochester, NY, 14605", 
-             "185 Exchange Blvd, Rochester, NY, 14614",
-             "1099 Jay St, Rochester, NY, 14611")
-cfs.df <- LERMS_CFS_query(begindate = begindate, 
-                          enddate = max(sevenDayGroupTable$Date[sevenDayGroupTable$Group == curr.week]))
-
-cfs.df <- cfs.df %>%
-    mutate(RPD_Priority = case_when(.$RPD_Priority == 1 ~ "Critical",
-                                    .$RPD_Priority == 2 ~ "Urgent", 
-                                    .$RPD_Priority == 3 ~ "Normal", 
-                                    TRUE ~ "Discretionary")) %>%
-    mutate(RPD_Priority = factor(RPD_Priority,
-                                 levels = c("Critical", "Urgent", "Normal", "Discretionary")),
-           eventdate = as.Date(eventdate, format = "%Y-%m-%d"),
-           eventDOY = format(eventdate, format = "%j") %>% as.numeric()) %>%
-    left_join(sevenDayGroupTable, by = c("eventDOY" = "DOY")) %>%
-    select(-Date) %>%
-    dplyr::rename("SevenDaysGroup" = Group)
-
-
 
 firearmSPC <- SPC(crimetype = "Firearm")
 svSPC <- SPC(dataf = svjoined, crimetype = "Shooting")
@@ -1412,270 +1386,6 @@ if(nrow(filter(df, Lat != -361 &
 ```
 
 
-Non-discretionary CFS {data-navmenu="Calls For Service"}
-======================================================================
-
-Column {data-width=500}
------------------------------------------------------------------------
-
-```{r fig.align='center', fig.height = 1}
-
-par(mar=c(0,0,0,0))
-plot(c(0, 1000), c(0, 20), type = 'n', xlab = '', ylab = '', xaxt = 'n', yaxt ='n', bty = 'n')
-rect(0, 0, 1000, 20, col = 'white', border = 'darkgrey', lwd = 1)
-text(x = 500, y = 10, labels = "Non-discretionary calls for service", cex = 2, col = 'black')
-
-```
-
-### Wait time (RPD arrival time) since `r begindate`
-
-```{r}
-waittime <- cfs.df %>% 
-    filter(discretionary == FALSE & 
-               RPD_Anscombe_Trans == 1) %>%
-    group_by(CallTypeCode, RPD_Priority) %>% 
-    summarise(AvgWaitTime = mean(RPD_Response_Time),
-              Count = n()) %>%
-    arrange(desc(Count)) %>%
-    mutate(Prop = Count / sum(Count)) %>%
-    filter(Prop > .01)
-    
-wait <- ggplot(waittime, 
-               aes(x = CallTypeCode, y = AvgWaitTime, size = Count, color = RPD_Priority)) +
-    geom_point() +
-    theme_bw() +
-    theme(axis.text.x = element_blank(),
-          axis.ticks.x = element_blank(),
-          plot.title = element_text(hjust = 1),
-          legend.position = "none") +
-    labs(title = paste0("CFS wait time distribution"),
-         subtitle = "Non-discretionary calls only, by reponse priority",
-         x = "Call type", 
-         y = "Average wait time") +
-    facet_grid(. ~ RPD_Priority)
-
-ggplotly(wait, tooltip = c("CallTypeCode", "Count", "AvgWaitTime"))
-```
-
-### Aoristic heatmap
-
-```{r}
-
-mat <- aoristicDayWeek(filter(cfs.df, discretionary == FALSE & RPD_Anscombe_Trans == 1))
-#hmap <- d3heatmap(mat, Rowv = FALSE, Colv = FALSE, colors = brewer.pal(name = "Reds", n = 9))
-plotlyhmap(mat)
-
-```
-
-Column {data-width=500 .tabset .tabset-fade}
------------------------------------------------------------------------
-
-### YTD Hotspot map
-
-```{r}
-
-map <- cfs.df %>% 
-    dplyr::filter(discretionary == FALSE & ! GEOCodedLocation %in% exclude) %>%
-    left_join(y = loc, by = "GEOCodedLocation") %>%
-    filter(! is.na(Lng)) %>%
-    cfsHotspotMap(markers = FALSE)
-
-map
-```
-
-### 28 day Hotspot map
-
-```{r}
-
-map <- cfs.df %>% 
-    dplyr::filter(discretionary == FALSE & ! GEOCodedLocation %in% exclude) %>%
-    filter(SevenDaysGroup >= curr.week - 3) %>%
-    left_join(y = loc, by = "GEOCodedLocation") %>%
-    filter(! is.na(Lng)) %>%
-    cfsHotspotMap()
-
-map
-```
-
-
-Column {data-width=250 .tabset .tabset-fade}
------------------------------------------------------------------------
-
-### Beats
-
-```{r}
-
-dat <- cfs.df %>%
-    rename(GEOBeat = IncidentBeat) %>%
-    filter(discretionary == FALSE)
-#kable(nestedbeattable(dat),
-#      col.names = c("Section", "Beat", "Count"))
-DT::datatable(nestedbeattable(dat) %>% mutate(Beat = factor(Beat)),
-              rownames = FALSE,
-              colnames = c("Section", "Beat", "Count"),
-              options = list(pageLength = 100,
-                             dom = 't',
-                             ordering = FALSE,
-                             columnDefs = list(list(className = 'dt-right', targets = 0:2))))
-
-```
-
-### Call Type Distribution
-
-```{r}
-#Histogram of call types - with grayed out error bars showing control limits for calltypes
-
-tab <- filter(cfs.df, discretionary == FALSE) %>%
-    count(CallTypeCode) %>%
-    arrange(desc(n)) %>%
-    mutate(Prop = n / sum(n)) %>%
-    filter(Prop > .01) %>%
-    rename(Count = n)
-
-hist <- ggplot(tab, aes(x = reorder(CallTypeCode, Count),
-                              y = Count)) +
-    geom_histogram(stat = "identity") +
-    theme_bw() +
-    theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
-    labs(title = paste0("CFS call types"),
-         x = "Call type", 
-         y = "Frequency") +
-    coord_flip()
-
-ggplotly(hist, tooltip = c("Count"))
-```
-
-Discretionary CFS {data-navmenu="Calls For Service"}
-=======================================================================
-
-Column {data-width=500}
------------------------------------------------------------------------
-
-```{r fig.align='center', fig.height = 1}
-
-par(mar=c(0,0,0,0))
-plot(c(0, 1000), c(0, 20), type = 'n', xlab = '', ylab = '', xaxt = 'n', yaxt ='n', bty = 'n')
-rect(0, 0, 1000, 20, col = 'white', border = 'darkgrey', lwd = 1)
-text(x = 500, y = 10, labels = "Discretionary calls for service", cex = 2, col = 'black')
-
-```
-
-### On scene time since `r begindate`
-
-```{r}
-onscenetime <- cfs.df %>% 
-    filter(discretionary == TRUE & 
-               #RPD_Anscombe_Trans == 1 &
-               ! CallTypeCode %in% c("FACIT", "TECH")) %>%
-    group_by(CallTypeCode) %>% 
-    summarise(AvgOnSceneTime = mean(DispatchToClearedTime),
-              Count = n()) %>%
-    arrange(desc(Count)) %>%
-    mutate(Prop = Count / sum(Count)) %>%
-    filter(Prop > .01)
-    
-time <- ggplot(onscenetime, aes(x = CallTypeCode, y = AvgOnSceneTime)) +
-    geom_point(aes(size = Count)) +
-    theme_bw() +
-    theme(axis.text.x = element_text(angle = 90, hjust = 1),
-          legend.position = "none",
-          plot.title = element_text(hjust = 1)) +
-    labs(title = paste0("CFS dispatch to cleared time distribution"),
-         subtitle = "Discretionary calls only",
-         x = "Call type", 
-         y = "Average time spent on call")
-ggplotly(time, tooltip = c("Count", "CallTypeCode", "AvgOnSceneTime"))
-```
-
-
-### Aoristic heatmap
-
-```{r}
-
-mat <- aoristicDayWeek(filter(cfs.df, discretionary == TRUE))
-#hmap <- d3heatmap(mat, Rowv = FALSE, Colv = FALSE, colors = brewer.pal(name = "Reds", n = 9))
-plotlyhmap(mat)
-
-```
-
-Column {data-width=500 .tabset .tabset-fade}
------------------------------------------------------------------------
-
-### YTD Hotspot map
-
-```{r}
-
-map <- cfs.df %>% 
-    filter(discretionary == TRUE & ! GEOCodedLocation %in% exclude) %>%
-    left_join(y = loc, by = "GEOCodedLocation") %>%
-    filter(! is.na(Lng)) %>%
-    cfsHotspotMap(markers = FALSE)
-
-map
-```
-
-### 28 day Hotspot map
-
-```{r}
-
-map <- cfs.df %>% 
-    filter(discretionary == TRUE & ! GEOCodedLocation %in% exclude) %>%
-    filter(SevenDaysGroup >= curr.week - 3) %>%
-    left_join(y = loc, by = "GEOCodedLocation") %>%
-    filter(! is.na(Lng)) %>%
-    cfsHotspotMap()
-
-map
-```
-
-
-Column {data-width=250 .tabset .tabset-fade}
------------------------------------------------------------------------
-
-### Beats
-
-```{r}
-
-dat <- cfs.df %>%
-    rename(GEOBeat = IncidentBeat) %>%
-    filter(discretionary == TRUE)
-#kable(nestedbeattable(dat),
-#      col.names = c("Section", "Beat", "Count"))
-DT::datatable(nestedbeattable(dat) %>% mutate(Beat = factor(Beat)),
-              rownames = FALSE,
-              colnames = c("Section", "Beat", "Count"),
-              options = list(pageLength = 100,
-                             dom = 't',
-                             ordering = FALSE,
-                             columnDefs = list(list(className = 'dt-right', targets = 0:2))))
-
-```
-
-### Call Type Distribution
-
-```{r}
-#Histogram of call types - with grayed out error bars showing control limits for calltypes
-
-tab <- filter(cfs.df, discretionary == TRUE) %>%
-    count(CallTypeCode) %>%
-    arrange(desc(n)) %>%
-    mutate(Prop = n / sum(n)) %>%
-    filter(Prop > .01) %>%
-    rename(Count = n)
-
-hist <- ggplot(tab, aes(x = reorder(CallTypeCode, Count),
-                              y = Count)) +
-    geom_histogram(stat = "identity") +
-    theme_bw() +
-    theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
-    labs(title = paste0("CFS call types"),
-         x = "Call type", 
-         y = "Frequency") +
-    coord_flip()
-
-ggplotly(hist, tooltip = c("Count"))
-```
-
 Reference {data-navmenu="Home"}
 ======================================================================
 
@@ -1733,35 +1443,9 @@ Most tabs have two different maps, each in their own tab. The first tab will sho
 
 The Larcenies page has two additional maps for car break-ins. These maps are also on their own tabs, and display Year-To-Date car break-ins and the last 28 days of car break-ins.
 
-The Calls for Service maps only display the individual markers on addresses for the past 28 days map. Displaying all calls for service for the Year-To-Date maps slowed the dashboard down due to the volume of data presented on the map. The Year-To-Date Calls for Service maps show hotspots only.
-
 If no map appears, likely there is no data to present (i.e. no events to map).
 
 ![](Y:/Projects/dashboard/RPDCrimeDashboard/Objects/ReferenceMapCity.png)
-
-
-
-### CFS - wait time
-
-The non-discretionary graph shows the average RPD response time for various call for service types. The graph is split up into Critical, Urgent and Normal call for service types. Only call for service types that total one percent or more of the total number of non-discretionary calls are displayed. This is still a large number of calls, and was too large to display the name of each call type at the bottom of the graph. Therefore to see the call type name displayed, simply hover your cursor over the relevant circle on the graph (in the real chart; not the reference chart).
-
-The circle size represents the call volume for that type of call. Large circles are for frequent call types, smaller circles are for infrequent call types (but that still represent more than 1% of total non-discretionary calls).
-
-![](Y:/Projects/dashboard/RPDCrimeDashboard/Objects/ReferenceNonDiscretionaryCFSPlot.png)
-
-
-
-### CFS - time spent
-
-The discretionary graph shows the average time spent on a call by officers at the most common discretionary calls in that section (or city-wide, in the city-wide dashboard). Only calls for service that account for more than one percent of the total number of discretionary calls are displayed. 
-
-The size of the circle corresponds with how frequently officers answer that call for service. There are far more TSTOB calls than OOPSB calls, therefore the TSTOB circle is far larger than the OOPSB circle.
-
-Calls are arranged alphabetically along the x axis, and the location of the corresponding circle on the y axis indicates the amount of time spent on the call on average. Only calls that we believe were coded correctly (for on scene time, clear time, etc.) are used to calculate the amount of time spent.
-
-
-![](Y:/Projects/dashboard/RPDCrimeDashboard/Objects/ReferenceDiscretionaryCFSPlot.png)
-
 
 ### Tables
 
