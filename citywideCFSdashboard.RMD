@@ -358,6 +358,20 @@ ggplotly(hist, tooltip = c("Count"))
 Reference
 ======================================================================
 
+
+Column{data-width=200}
+-------------------------------------------------------------------------------
+
+### Action limits explained
+
+The Rochester Police Department is shifting towards the use of "process control" and away from year to year comparison statistics. The goal is to be able to compare current crime counts against a benchline of "normal", rather than the benchline of the previous year (which may have been very high or very low compared to past years).
+
+The Office of Business Intelligence has calculated "action limits" which you can see represented as dashed lines on the projection plots. These limits (both upper and lower) are calculated by using weighted 3 year averages as centering values, and then calculating the standard deviations to find how much variation from that average to expect.
+
+If current counts for a section and crimetype break the upper action limit, it's a signal to investigate the causes of that rise in activity. If current counts break the lower action limit, it's a signal that there may be a beneficial intervention that can be studied and copied in other sections.
+
+Variation within the action limits is assumed to be normal "statistical noise" not requiring attention or resources above the section level.
+
 Column{.tabset}
 ----------------------------------------------------------------------
 

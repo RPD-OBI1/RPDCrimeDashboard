@@ -50,6 +50,9 @@ rmarkdown::render("SectionCFSDashboard.RMD",
                   params = list(sectionname = "Central"),
                   output_file = "CentralCFSDashboard.html")
 
+## Patrol section overview
+
+rmarkdown::render("PatrolSectionOverview.RMD")
 
 end <- Sys.time()
 took <- difftime(end, start)

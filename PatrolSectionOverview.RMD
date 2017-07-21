@@ -361,16 +361,6 @@ Row
 ### Section comparison
 
 ```{r firearmtable}
-#Check to make sure this year's firearm homicides are in the firearm data
-#MCUhoms$CaseNumber <- paste0("20", 
-#                              substr(MCUhoms$CaseNumber, 1, 3),
-#                              "00", 
-#                              substr(MCUhoms$CaseNumber, 4, 9))
-#firearmhoms <- MCUhoms %>% 
-#    filter(YearofEvent == curr.year, WeaponType == "Firearm")
-#if(any(! firearmhoms$CaseNumber %in% filter(df, Firearm == "Firearm"))){
-#    cat("There are firearm homicides that do not appear in the firearm data due to LERMS issues.")
-#}
 
 tab <- data.frame(Sections = sec,
                   Counts = c(firearmSPC.Lake[[4]],
@@ -490,7 +480,8 @@ minlim <- firearmcontrol %>%
     select(LowerLimit) %>%
     distinct() %>% 
     as.numeric()
-ymin <- min(minhist, minlim)
+#ymin <- min(minhist, minlim)
+ymin <- 0
 
 
 p <- ggplot(filter(histdata, CrimeType == "Firearm", Section == 1), aes(x = Yr, y = Counts)) +
@@ -709,7 +700,8 @@ minlim <- ShootingControlLimits %>%
     select(LowerLimit) %>%
     distinct() %>% 
     as.numeric()
-ymin <- min(minhist, minlim)
+#ymin <- min(minhist, minlim)
+ymin <- 0
 
 p <- ggplot(filter(histdata, CrimeType == "Shooting", Section == 1), aes(x = Yr, y = Counts)) +
     geom_line() +
@@ -913,7 +905,8 @@ minlim <- robcontrol %>%
     select(LowerLimit) %>%
     distinct() %>% 
     as.numeric()
-ymin <- min(minhist, minlim)
+#ymin <- min(minhist, minlim)
+ymin <- 0
 
 p <- ggplot(filter(histdata, CrimeType == "Robbery", Section == 1), aes(x = Yr, y = Counts)) +
     geom_line() +
@@ -1126,7 +1119,8 @@ minlim <- asltcontrol %>%
     select(LowerLimit) %>%
     distinct() %>% 
     as.numeric()
-ymin <- min(minhist, minlim)
+#ymin <- min(minhist, minlim)
+ymin <- 0
 
 
 p <- ggplot(filter(histdata, CrimeType == "Aggravated Assault", Section == 1), aes(x = Yr, y = Counts)) +
@@ -1341,7 +1335,8 @@ minlim <- homcontrol %>%
     select(LowerLimit) %>%
     distinct() %>% 
     as.numeric()
-ymin <- min(minhist, minlim)
+#ymin <- min(minhist, minlim)
+ymin <- 0
 
 p <- ggplot(filter(histdata, CrimeType == "Homicide", Section == 1), aes(x = Yr, y = Counts)) +
     geom_line() +
@@ -1554,7 +1549,8 @@ minlim <- rapecontrol %>%
     select(LowerLimit) %>%
     distinct() %>% 
     as.numeric()
-ymin <- min(minhist, minlim)
+#ymin <- min(minhist, minlim)
+ymin <- 0
 
 p <- ggplot(filter(histdata, CrimeType == "Rape", Section == 1), aes(x = Yr, y = Counts)) +
     geom_line() +
@@ -1768,7 +1764,8 @@ minlim <- burgcontrol %>%
     select(LowerLimit) %>%
     distinct() %>% 
     as.numeric()
-ymin <- min(minhist, minlim)
+#ymin <- min(minhist, minlim)
+ymin <- 0
 
 p <- ggplot(filter(histdata, CrimeType == "Burglary", Section == 1), aes(x = Yr, y = Counts)) +
     geom_line() +
@@ -1982,7 +1979,8 @@ minlim <- larccontrol %>%
     select(LowerLimit) %>%
     distinct() %>% 
     as.numeric()
-ymin <- min(minhist, minlim)
+#ymin <- min(minhist, minlim)
+ymin <- 0
 
 p <- ggplot(filter(histdata, CrimeType == "Larceny", Section == 1), aes(x = Yr, y = Counts)) +
     geom_line() +

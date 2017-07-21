@@ -1,5 +1,5 @@
 ---
-title: "Citywide Crime Dashboard, as of `r format(Sys.Date() - 2, '%d %B, %Y')`"
+title: "Citywide Crime Dashboard, as of `r format(Sys.Date() - 4, '%d %B, %Y')`"
 output: 
   flexdashboard::flex_dashboard:
     logo: Y:/Projects/dashboard/RPDCrimeDashboard/Objects/RPDLogoSMALL.png
