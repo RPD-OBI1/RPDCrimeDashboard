@@ -592,7 +592,6 @@ dat <- df %>%
 #      col.names = c("Section", "Beat", "Count"))
 x <- nestedbeattable(dat)
 DT::datatable(x[-1, -1] %>% mutate(Beat = factor(Beat)),
-              filter = 'top',
               rownames = FALSE,
               colnames = c('Beat', 'Count'),
               options = list(dom = 'tf', 
@@ -711,7 +710,7 @@ if(nrow(svjoined) > 0){
                   rownames = FALSE,
                   colnames = c("Beat", "Count"),
                   options = list(pageLength = 100, 
-                                dom = 't', 
+                                dom = 'tf', 
                                 columnDefs = list(list(className = 'dt-right', targets = 0:1)))
                   )
 }
