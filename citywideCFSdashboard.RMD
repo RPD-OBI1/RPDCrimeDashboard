@@ -44,49 +44,30 @@ curr.week <- sevenDayGroupTable$Group[match(as.numeric(format(Sys.Date(),
                                                              '%j')), 
                                            sevenDayGroupTable$DOY)] - 1
 
-#read in section JSON
-sectionJSON <- readLines("https://opendata.arcgis.com/datasets/772f3621fa354ec9abf3ba33f3ace59e_0.geojson") %>%
-    paste(collapse = "\n") %>%
-    fromJSON(simplifyVector = FALSE)
-
-#gather section names and set color palettes for sections and beats
-secNames <- sapply(sectionJSON$features, function(x) x$properties$Section)
-sectionpal <- colorFactor(palette = colorspace::sequential_hcl(5),
-                   domain = secNames)
-
-sectionJSON$features <- lapply(sectionJSON$features, function(x){
-    x$properties$style <- list(
-        fillColor = sectionpal(x$properties$Section)
-    )
-    x
-})
-
-#Create city base map
-
-citymap <- leaflet() %>% 
-    addProviderTiles("CartoDB.Positron") %>% 
-    fitBounds(lng1 = -77.55, lat1 = 43.11, lng2 = -77.668684, lat2 = 43.264020) %>%
-    addGeoJSON(sectionJSON, fillOpacity = .1)
+# Read in city map
+citymap <- readRDS(file = "Z:/Projects/dashboard/RPDCrimeDashboard/Objects/citymap.RDS")
 
 loc <- CFSloc()
 exclude <- c("630 North Clinton Ave, Rochester, NY, 14605", 
              "185 Exchange Blvd, Rochester, NY, 14614",
              "1099 Jay St, Rochester, NY, 14611")
-cfs.df <- LERMS_CFS_query(begindate = begindate, 
-                          enddate = max(sevenDayGroupTable$Date[sevenDayGroupTable$Group == curr.week]))
+# cfs.df <- LERMS_CFS_query(begindate = begindate, 
+#                           enddate = max(sevenDayGroupTable$Date[sevenDayGroupTable$Group == curr.week]))
+# 
+# cfs.df <- cfs.df %>%
+#     mutate(RPD_Priority = case_when(.$RPD_Priority == 1 ~ "Critical",
+#                                     .$RPD_Priority == 2 ~ "Urgent", 
+#                                     .$RPD_Priority == 3 ~ "Normal", 
+#                                     TRUE ~ "Discretionary")) %>%
+#     mutate(RPD_Priority = factor(RPD_Priority,
+#                                  levels = c("Critical", "Urgent", "Normal", "Discretionary")),
+#            eventdate = as.Date(eventdate, format = "%Y-%m-%d"),
+#            eventDOY = format(eventdate, format = "%j") %>% as.numeric()) %>%
+#     left_join(sevenDayGroupTable, by = c("eventDOY" = "DOY")) %>%
+#     select(-Date) %>%
+#     dplyr::rename("SevenDaysGroup" = Group)
 
-cfs.df <- cfs.df %>%
-    mutate(RPD_Priority = case_when(.$RPD_Priority == 1 ~ "Critical",
-                                    .$RPD_Priority == 2 ~ "Urgent", 
-                                    .$RPD_Priority == 3 ~ "Normal", 
-                                    TRUE ~ "Discretionary")) %>%
-    mutate(RPD_Priority = factor(RPD_Priority,
-                                 levels = c("Critical", "Urgent", "Normal", "Discretionary")),
-           eventdate = as.Date(eventdate, format = "%Y-%m-%d"),
-           eventDOY = format(eventdate, format = "%j") %>% as.numeric()) %>%
-    left_join(sevenDayGroupTable, by = c("eventDOY" = "DOY")) %>%
-    select(-Date) %>%
-    dplyr::rename("SevenDaysGroup" = Group)
+cfs.df <- readRDS(file = "Z:/Projects/dashboard/RPDCrimeDashboard/Objects/citywidecfs.RDS")
 
 ```
 

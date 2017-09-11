@@ -32,7 +32,6 @@ source("Y:/Projects/dashboard/RPDCrimeDashboard/Functions/SPC.R")
 source("Y:/Projects/dashboard/RPDCrimeDashboard/Functions/pullMCUdata.R")
 source("Y:/Projects/dashboard/RPDCrimeDashboard/Functions/loadshootingvictims.R")
 
-
 overviewmapfunc <- function(daddyJSON, 
                             lakeSPC, 
                             geneseeSPC, 
@@ -120,13 +119,10 @@ daddyJSON <- readLines("https://opendata.arcgis.com/datasets/772f3621fa354ec9abf
 #gather section names and set color palettes for sections and beats
 secNames <- sapply(daddyJSON$features, function(x) x$properties$Section)
 sectionpal <- colorFactor(palette = colorspace::sequential_hcl(5),
-                   domain = secNames)
+                          domain = secNames)
 
-citymap <- leaflet() %>% #Create city base map
-    addProviderTiles("CartoDB.Positron") %>% 
-    fitBounds(lng1 = -77.565017, lat1 = 43.127842, lng2 = -77.665216, lat2 = 43.211404)
+citymap <- readRDS(file = "Z:/Projects/dashboard/RPDCrimeDashboard/Objects/citymap.RDS")
 #old fitbounds: fitBounds(lng1 = -77.55, lat1 = 43.11, lng2 = -77.668684, lat2 = 43.264020)
-
 
 #sevenDayGroupTable is a lookup table to get the current week (Group) from the date
 #Because it uses length(Date) from seq.Date, it should work even in leap years
@@ -142,8 +138,6 @@ curr.week <- sevenDayGroupTable$Group[match(as.numeric(format(Sys.Date(),
                                                              '%j')), 
                                            sevenDayGroupTable$DOY)] - 1
 
-
-
 firearm.desc <- trimws(c('Prohibited Use of Weapon City Limits', 
                         'Use of Dangerous Weapon', 
                         'Criminal Use Firearm 1st: Commit Violent Class B Felony', 
@@ -157,48 +151,7 @@ firearmCrimeTypes <- c("Aggravated Assault", "Robbery", "Homicide", "Rape", "Sim
 
 #load in RPD's crime data
 
-df <- LERMS_incidents_query(years = curr.year) %>%
-    distinct(CaseNumber, FullAddress, ReportDate, Description, .keep_all = TRUE) %>%
-    filter(MostSerious == 1, CaseStatusValue != 'Unfounded') %>%
-    arrange(ReportDate) %>%
-    mutate(CRNum = paste0(substr(CaseNumber, start = 3, stop = 5),
-                          substr(CaseNumber, start = 8, stop = 13)),
-           Lat = as.numeric(Lat),
-           Lon = as.numeric(Lon),
-           OffenseDate = as.Date(OffenseDate, format = "%Y-%m-%d"),
-           ReportDate = as.Date(ReportDate, format = "%Y-%m-%d"),
-           OffenseDOW = factor(OffenseDOW, 
-                               levels = c("Sunday", "Monday", "Tuesday", "Wednesday",
-                                   "Thursday", "Friday", "Saturday"), 
-                               ordered = TRUE),
-           ReportDayOfYear = as.numeric(format(ReportDate, "%j")),
-           GEOBeat = factor(GEOBeat,
-                            levels = unique(GEOBeat[order(substr(GEOBeat, 3, 3), 
-                                                          substr(GEOBeat, 1, 2))])),
-           sec = case_when(.$Section == 1 ~ "Lake", 
-                           .$Section == 3 ~ "Genesee", 
-                           .$Section == 5 ~ "Goodman", 
-                           .$Section == 7 ~ "Clinton", 
-                           .$Section == 9 ~ "Central"),
-           WeaponGroup = case_when(.$WeaponIBRValue %in% c("01", "02", "03", "04", "05",
-                                                         "06", "07", "08", "09", "10") ~ "Firearm",
-                                   .$WeaponIBRValue == "11" ~ "Knife/Cutting Instrument",
-                                   .$WeaponIBRValue == "12" ~ "Blunt Object",
-                                   .$WeaponIBRValue %in% c("14", "15") ~ "Physical",
-                                   TRUE ~ "Other"),
-           FullAddress = unname(sapply(FullAddress, simpleCap)),
-           WeaponIBRValue = as.numeric(WeaponIBRValue),
-           Description = trimws(Description)) %>%
-           mutate(Firearm = case_when(.$WeaponIBRValue %in% 1:10 &
-                                   .$CrimeType %in% firearmCrimeTypes ~ "Firearm",
-                               .$CrimeType == "Dangerous Weapons" & 
-                                   .$Description %in% firearm.desc ~ "Firearm",
-                               TRUE ~ "Non-Firearm")) %>%
-    left_join(sevenDayGroupTable, by = c("ReportDayOfYear" = "DOY")) %>%
-    select(-Date) %>%
-    dplyr::rename("SevenDaysGroup" = Group) %>%
-    filter(SevenDaysGroup <= curr.week) %>%
-    mutate(Description = trimws(sub(x = Description, pattern = ":.*", replacement = "")))
+df <- readRDS(file = "Z:/Projects/dashboard/RPDCrimeDashboard/Objects/citywidedf.RDS")
 
 #use beatNames to make factor levels for beats
 beatNames <- df %>%
@@ -218,56 +171,54 @@ sec <- c('Lake', 'Genesee', 'Goodman', 'Clinton', 'Central')
 
 pal <- brewer.pal(name = "Reds", n = 9)
 
-
-PropVals <- read.csv("Y:/Projects/dashboard/RPDCrimeDashboard/Objects/ProportionsAndCounts.csv", 
+PropVals <- read.csv("Y:/Projects/dashboard/RPDCrimeDashboard/Objects/ProportionsAndCounts.csv",
                      header= T)
 ShootingControlLimits <- read.csv("Y:/Projects/dashboard/RPDCrimeDashboard/Objects/3YrWeightedControlLimitsShootings.csv")
-ShootingProps <- read.csv("Y:/Projects/dashboard/RPDCrimeDashboard/Objects/ProportionsAndCountsShootings.csv", 
+ShootingProps <- read.csv("Y:/Projects/dashboard/RPDCrimeDashboard/Objects/ProportionsAndCountsShootings.csv",
                           stringsAsFactors = FALSE)
 ShootingPropsFull <- ShootingProps
 
-histdata <- read.csv(file = "Y:/Projects/dashboard/RPDCrimeDashboard/Objects/historicaldata.csv", 
-                     stringsAsFactors = FALSE, 
+histdata <- read.csv(file = "Y:/Projects/dashboard/RPDCrimeDashboard/Objects/historicaldata.csv",
+                     stringsAsFactors = FALSE,
                      header = TRUE)
 
 controllimits <- read.csv(file = "Y:/Projects/dashboard/RPDCrimeDashboard/Objects/3YrWeightedControlLimits.csv", 
-                          header = TRUE)
+                       header = TRUE)
 
 controllimits <- rbind(data.frame(controllimits, Year = 2017),
-                       data.frame(controllimits, Year = 2018),
-                       data.frame(controllimits, Year = 2019))
-
-mculist <- pullMCUdata()
-MCUhoms <- mculist[[1]]
-person <- mculist[[2]]
-rm(mculist)
-MCUhoms <- MCUhoms %>%
-    mutate(CrimeType = "Homicide",
-           DateOfEvent = as.Date(DateOfEvent, format = "%Y-%m-%d"),
-           DOYofEvent = as.numeric(format(DateOfEvent, "%j")),
-           YearofEvent = as.numeric(format(DateOfEvent, "%Y")),
-           CaseStatus = unname(sapply(CaseStatus, simpleCap))) %>%
-    filter(YearofEvent == curr.year) %>%
-    dplyr::rename(sec = Section,
-                  Lat = Latitude,
-                  Lon = Longitude,
-                  FullAddress = Address) %>%
-    left_join(sevenDayGroupTable, by = c("DOYofEvent" = "DOY")) %>%
-    select(-Date) %>%
-    dplyr::rename("SevenDaysGroup" = Group)
-
-personincident <- left_join(MCUhoms, person, by = "CaseNumber")
-
-sv <- loadshootingvictims()
-drops <- c("Lat", "Lon")
-svjoined <- left_join(x = sv, y = df, by = c("CaseNumber" = "CRNum")) %>%
-    select(-one_of(drops)) %>%
-    rename(Lat = Latitude, Lon = Longitude)
-
+                    data.frame(controllimits, Year = 2018),
+                    data.frame(controllimits, Year = 2019))
+# 
+# mculist <- pullMCUdata()
+# MCUhoms <- mculist[[1]]
+# person <- mculist[[2]]
+# rm(mculist)
+# MCUhoms <- MCUhoms %>%
+#     mutate(CrimeType = "Homicide",
+#            DateOfEvent = as.Date(DateOfEvent, format = "%Y-%m-%d"),
+#            DOYofEvent = as.numeric(format(DateOfEvent, "%j")),
+#            YearofEvent = as.numeric(format(DateOfEvent, "%Y")),
+#            CaseStatus = unname(sapply(CaseStatus, simpleCap))) %>%
+#     filter(YearofEvent == curr.year) %>%
+#     dplyr::rename(sec = Section,
+#                   Lat = Latitude,
+#                   Lon = Longitude,
+#                   FullAddress = Address) %>%
+#     left_join(sevenDayGroupTable, by = c("DOYofEvent" = "DOY")) %>%
+#     select(-Date) %>%
+#     dplyr::rename("SevenDaysGroup" = Group)
+# 
+# personincident <- left_join(MCUhoms, person, by = "CaseNumber")
+# 
+# sv <- loadshootingvictims()
+# drops <- c("Lat", "Lon")
+# svjoined <- left_join(x = sv, y = df, by = c("CaseNumber" = "CRNum")) %>%
+#     select(-one_of(drops)) %>%
+#     rename(Lat = Latitude, Lon = Longitude)
 
 ```
 
-```{r SPC}
+```{r SPC, eval=FALSE}
 
 PropValsLake <- filter(PropVals, Section == "Lake")
 PropValsGenesee <- filter(PropVals, Section == "Genesee")
@@ -336,6 +287,12 @@ larcSPC.Central <- SPC(crimetype = "Larceny", Prop.Vals = PropValsCentral, dataf
 
 ```
 
+```{r loadSPC}
+
+sectionSPClist <- readRDS("Z:/Projects/dashboard/RPDCrimeDashboard/Objects/sectionSPClist.RDS")
+
+```
+
 ```{r ylims}
 
 mins <- histdata %>% 
@@ -363,21 +320,21 @@ Row
 ```{r firearmtable}
 
 tab <- data.frame(Sections = sec,
-                  Counts = c(firearmSPC.Lake[[4]],
-                             firearmSPC.Genesee[[4]],
-                             firearmSPC.Goodman[[4]],
-                             firearmSPC.Clinton[[4]],
-                             firearmSPC.Central[[4]]),
-                  RiskOfRed = c(firearmSPC.Lake[[2]],
-                               firearmSPC.Genesee[[2]],
-                               firearmSPC.Goodman[[2]],
-                               firearmSPC.Clinton[[2]],
-                               firearmSPC.Central[[2]]),
-                  ChanceOfGreen = c(firearmSPC.Lake[[3]],
-                                   firearmSPC.Genesee[[3]],
-                                   firearmSPC.Goodman[[3]],
-                                   firearmSPC.Clinton[[3]],
-                                   firearmSPC.Central[[3]]))
+                  Counts = c(sectionSPClist$Lake$Firearm[[4]],
+                             sectionSPClist$Genesee$Firearm[[4]],
+                             sectionSPClist$Goodman$Firearm[[4]],
+                             sectionSPClist$Clinton$Firearm[[4]],
+                             sectionSPClist$Central$Firearm[[4]]),
+                  RiskOfRed = c(sectionSPClist$Lake$Firearm[[2]],
+                                sectionSPClist$Genesee$Firearm[[2]],
+                                sectionSPClist$Goodman$Firearm[[2]],
+                                sectionSPClist$Clinton$Firearm[[2]],
+                                sectionSPClist$Central$Firearm[[2]]),
+                  ChanceOfGreen = c(sectionSPClist$Lake$Firearm[[3]],
+                                    sectionSPClist$Genesee$Firearm[[3]],
+                                    sectionSPClist$Goodman$Firearm[[3]],
+                                    sectionSPClist$Clinton$Firearm[[3]],
+                                    sectionSPClist$Central$Firearm[[3]]))
 
 datatable(tab,
           rownames = FALSE,
@@ -396,11 +353,11 @@ datatable(tab,
 firearmsJSON <- daddyJSON
 
 firearmdiff <- data_frame("Section" = sec,
-                          "Difference" = c(firearmSPC.Lake[[2]] - firearmSPC.Lake[[3]],
-                                           firearmSPC.Genesee[[2]] - firearmSPC.Genesee[[3]],
-                                           firearmSPC.Goodman[[2]] - firearmSPC.Goodman[[3]],
-                                           firearmSPC.Clinton[[2]] - firearmSPC.Clinton[[3]],
-                                           firearmSPC.Central[[2]] - firearmSPC.Central[[3]])) %>%
+                          "Difference" = c(sectionSPClist$Lake$Firearm[[2]] - sectionSPClist$Lake$Firearm[[3]],
+                                           sectionSPClist$Genesee$Firearm[[2]] - sectionSPClist$Genesee$Firearm[[3]],
+                                           sectionSPClist$Goodman$Firearm[[2]] - sectionSPClist$Goodman$Firearm[[3]],
+                                           sectionSPClist$Clinton$Firearm[[2]] - sectionSPClist$Clinton$Firearm[[3]],
+                                           sectionSPClist$Central$Firearm[[2]] - sectionSPClist$Central$Firearm[[3]])) %>%
     mutate(fillOpacity = abs(Difference / 100),
            fillColor = case_when(.$Difference > 0 ~ "Red",
                              .$Difference < 0 ~ "Green",
@@ -436,11 +393,11 @@ citymap %>%
         firearmsJSON
         ) %>%
     addGeoJSONv2(
-        firearmsJSON,
-        fillOpacity = 0,
-        popupProperty = "popup",
-        labelProperty = "Section",
-        highlightOptions = highlightOptions(color = "white", weight = 10, bringToFront = TRUE)
+        firearmsJSON
+        , fillOpacity = 0
+        , popupProperty = "popup"
+        , labelProperty = "Section"
+        , highlightOptions = highlightOptions(color = "white", weight = 10, bringToFront = TRUE)
         )
 
 ```
@@ -457,7 +414,7 @@ Row {data-height=250}
 
 ```{r}
 firearmcontrol <- filter(controllimits, Crime == "Firearm")
-SimsAvg <- mean(firearmSPC.Lake[[5]]$Value)
+SimsAvg <- mean(sectionSPClist$Lake$Firearm[[5]]$Value)
 
 #set y axis limits
 maxhist <- maxes %>% 
@@ -491,7 +448,7 @@ p <- ggplot(filter(histdata, CrimeType == "Firearm", Section == 1), aes(x = Yr, 
     geom_line(data = filter(firearmcontrol, Section == 'Lake'), aes(x = Year, y = UpperLimit), linetype = "dashed") +
     geom_line(data = filter(firearmcontrol, Section == 'Lake'), aes(x = Year, y = LowerLimit), linetype = "dashed") +
     #scale_x_continuous(breaks = 2009:2019) +
-    geom_point(data = firearmSPC.Lake[[5]], aes(x = curr.year, y = Value), alpha = .01) +
+    geom_point(data = sectionSPClist$Lake$Firearm[[5]], aes(x = curr.year, y = Value), alpha = .01) +
     geom_point(aes(x = curr.year, y = SimsAvg), shape = 16, size = 3, color = 'blue') +
     labs(x = "Year") +
     scale_y_continuous(limits = c(ymin, ymax)) +
@@ -509,7 +466,7 @@ ggplotly(p, tooltip = c("Yr", "Counts", "SimsAvg"))
 
 ```{r}
 firearmcontrol <- filter(controllimits, Crime == "Firearm")
-SimsAvg <- mean(firearmSPC.Genesee[[5]]$Value)
+SimsAvg <- mean(sectionSPClist$Genesee$Firearm[[5]]$Value)
 
 p <- ggplot(filter(histdata, CrimeType == "Firearm", Section == 3), aes(x = Yr, y = Counts)) +
     geom_line() +
@@ -518,7 +475,7 @@ p <- ggplot(filter(histdata, CrimeType == "Firearm", Section == 3), aes(x = Yr, 
     geom_line(data = filter(firearmcontrol, Section == 'Genesee'), aes(x = Year, y = UpperLimit), linetype = "dashed") +
     geom_line(data = filter(firearmcontrol, Section == 'Genesee'), aes(x = Year, y = LowerLimit), linetype = "dashed") +
     #scale_x_continuous(breaks = 2009:2019) +
-    geom_point(data = firearmSPC.Genesee[[5]], aes(x = curr.year, y = Value), alpha = .01) +
+    geom_point(data = sectionSPClist$Genesee$Firearm[[5]], aes(x = curr.year, y = Value), alpha = .01) +
     geom_point(aes(x = curr.year, y = SimsAvg), shape = 16, size = 3, color = 'blue') +
     labs(x = "Year") +
     scale_y_continuous(limits = c(ymin, ymax)) +
@@ -536,7 +493,7 @@ ggplotly(p, tooltip = c("Yr", "Counts", "SimsAvg"))
 
 ```{r}
 firearmcontrol <- filter(controllimits, Crime == "Firearm")
-SimsAvg <- mean(firearmSPC.Goodman[[5]]$Value)
+SimsAvg <- mean(sectionSPClist$Goodman$Firearm[[5]]$Value)
 p <- ggplot(filter(histdata, CrimeType == "Firearm", Section == 5), aes(x = Yr, y = Counts)) +
     geom_line() +
     #geom_point() +
@@ -544,7 +501,7 @@ p <- ggplot(filter(histdata, CrimeType == "Firearm", Section == 5), aes(x = Yr, 
     geom_line(data = filter(firearmcontrol, Section == 'Goodman'), aes(x = Year, y = UpperLimit), linetype = "dashed") +
     geom_line(data = filter(firearmcontrol, Section == 'Goodman'), aes(x = Year, y = LowerLimit), linetype = "dashed") +
     #scale_x_continuous(breaks = 2009:2019) +
-    geom_point(data = firearmSPC.Goodman[[5]], aes(x = curr.year, y = Value), alpha = .01) +
+    geom_point(data = sectionSPClist$Goodman$Firearm[[5]], aes(x = curr.year, y = Value), alpha = .01) +
     geom_point(aes(x = curr.year, y = SimsAvg), shape = 16, size = 3, color = 'blue') +
     labs(x = "Year") +
     scale_y_continuous(limits = c(ymin, ymax)) +
@@ -562,7 +519,7 @@ ggplotly(p, tooltip = c("Yr", "Counts", "SimsAvg"))
 
 ```{r}
 firearmcontrol <- filter(controllimits, Crime == "Firearm")
-SimsAvg <- mean(firearmSPC.Clinton[[5]]$Value)
+SimsAvg <- mean(sectionSPClist$Clinton$Firearm[[5]]$Value)
 p <- ggplot(filter(histdata, CrimeType == "Firearm", Section == 7), aes(x = Yr, y = Counts)) +
     geom_line() +
     #geom_point() +
@@ -570,7 +527,7 @@ p <- ggplot(filter(histdata, CrimeType == "Firearm", Section == 7), aes(x = Yr, 
     geom_line(data = filter(firearmcontrol, Section == 'Clinton'), aes(x = Year, y = UpperLimit), linetype = "dashed") +
     geom_line(data = filter(firearmcontrol, Section == 'Clinton'), aes(x = Year, y = LowerLimit), linetype = "dashed") +
     #scale_x_continuous(breaks = 2009:2019) +
-    geom_point(data = firearmSPC.Clinton[[5]], aes(x = curr.year, y = Value), alpha = .01) +
+    geom_point(data = sectionSPClist$Clinton$Firearm[[5]], aes(x = curr.year, y = Value), alpha = .01) +
     geom_point(aes(x = curr.year, y = SimsAvg), shape = 16, size = 3, color = 'blue') +
     labs(x = "Year") +
     scale_y_continuous(limits = c(ymin, ymax)) +
@@ -588,7 +545,7 @@ ggplotly(p, tooltip = c("Yr", "Counts", "SimsAvg"))
 
 ```{r}
 firearmcontrol <- filter(controllimits, Crime == "Firearm")
-SimsAvg <- mean(firearmSPC.Central[[5]]$Value)
+SimsAvg <- mean(sectionSPClist$Central$Firearm[[5]]$Value)
 p <- ggplot(filter(histdata, CrimeType == "Firearm", Section == 9), aes(x = Yr, y = Counts)) +
     geom_line() +
     #geom_point() +
@@ -596,7 +553,7 @@ p <- ggplot(filter(histdata, CrimeType == "Firearm", Section == 9), aes(x = Yr, 
     geom_line(data = filter(firearmcontrol, Section == 'Central'), aes(x = Year, y = UpperLimit), linetype = "dashed") +
     geom_line(data = filter(firearmcontrol, Section == 'Central'), aes(x = Year, y = LowerLimit), linetype = "dashed") +
     #scale_x_continuous(breaks = 2009:2019) +
-    geom_point(data = firearmSPC.Central[[5]], aes(x = curr.year, y = Value), alpha = .01) +
+    geom_point(data = sectionSPClist$Central$Firearm[[5]], aes(x = curr.year, y = Value), alpha = .01) +
     geom_point(aes(x = curr.year, y = SimsAvg), shape = 16, size = 3, color = 'blue') +
     labs(x = "Year") +
     scale_y_continuous(limits = c(ymin, ymax)) +
@@ -623,21 +580,21 @@ Row
 ```{r shootingvictimstables}
 
 tab <- data.frame(Sections = sec,
-                  Counts = c(svSPC.Lake[[4]],
-                             svSPC.Genesee[[4]],
-                             svSPC.Goodman[[4]],
-                             svSPC.Clinton[[4]],
-                             svSPC.Central[[4]]),
-                  RiskOfRed = c(svSPC.Lake[[2]],
-                               svSPC.Genesee[[2]],
-                               svSPC.Goodman[[2]],
-                               svSPC.Clinton[[2]],
-                               svSPC.Central[[2]]),
-                  ChanceOfGreen = c(svSPC.Lake[[3]],
-                                   svSPC.Genesee[[3]],
-                                   svSPC.Goodman[[3]],
-                                   svSPC.Clinton[[3]],
-                                   svSPC.Central[[3]]))
+                  Counts = c(sectionSPClist$Lake$SV[[4]],
+                             sectionSPClist$Genesee$SV[[4]],
+                             sectionSPClist$Goodman$SV[[4]],
+                             sectionSPClist$Clinton$SV[[4]],
+                             sectionSPClist$Central$SV[[4]]),
+                  RiskOfRed = c(sectionSPClist$Lake$SV[[2]],
+                                sectionSPClist$Genesee$SV[[2]],
+                                sectionSPClist$Goodman$SV[[2]],
+                                sectionSPClist$Clinton$SV[[2]],
+                                sectionSPClist$Central$SV[[2]]),
+                  ChanceOfGreen = c(sectionSPClist$Lake$SV[[3]],
+                                    sectionSPClist$Genesee$SV[[3]],
+                                    sectionSPClist$Goodman$SV[[3]],
+                                    sectionSPClist$Clinton$SV[[3]],
+                                    sectionSPClist$Central$SV[[3]]))
 
 datatable(tab,
           rownames = FALSE,
@@ -655,11 +612,11 @@ datatable(tab,
 ```{r svmap}
 
 overviewmapfunc(daddyJSON = daddyJSON,
-                lakeSPC = svSPC.Lake,
-                geneseeSPC = svSPC.Genesee,
-                goodmanSPC = svSPC.Goodman,
-                clintonSPC = svSPC.Clinton,
-                centralSPC = svSPC.Central,
+                lakeSPC = sectionSPClist$Lake$SV,
+                geneseeSPC = sectionSPClist$Genesee$SV,
+                goodmanSPC = sectionSPClist$Goodman$SV,
+                clintonSPC = sectionSPClist$Clinton$SV,
+                centralSPC = sectionSPClist$Central$SV,
                 linkhash = "#shooting-victims-1",
                 citymap = citymap,
                 sec = sec)
@@ -677,7 +634,7 @@ Row {data-height=250}
 ### Lake
 
 ```{r}
-SimsAvg <- mean(svSPC.Lake[[5]]$Value)
+SimsAvg <- mean(sectionSPClist$Lake$SV[[5]]$Value)
 
 #set y axis limits
 maxhist <- maxes %>% 
@@ -703,14 +660,15 @@ minlim <- ShootingControlLimits %>%
 #ymin <- min(minhist, minlim)
 ymin <- 0
 
-p <- ggplot(filter(histdata, CrimeType == "Shooting", Section == 1), aes(x = Yr, y = Counts)) +
+p <- ggplot(filter(histdata, CrimeType == "Shooting", Section == 1), 
+            aes(x = Yr, y = Counts)) +
     geom_line() +
-    #geom_point() +
     theme_bw() +
-    geom_line(data = filter(ShootingControlLimits, Section == 'Lake'), aes(x = Year, y = UpperLimit), linetype = "dashed") +
-    geom_line(data = filter(ShootingControlLimits, Section == 'Lake'), aes(x = Year, y = LowerLimit), linetype = "dashed") +
-    #scale_x_continuous(breaks = 2009:2019) +
-    geom_point(data = svSPC.Lake[[5]], aes(x = curr.year, y = Value), alpha = .01) +
+    geom_line(data = filter(ShootingControlLimits, Section == 'Lake'), 
+              aes(x = Year, y = UpperLimit), linetype = "dashed") +
+    geom_line(data = filter(ShootingControlLimits, Section == 'Lake'), 
+              aes(x = Year, y = LowerLimit), linetype = "dashed") +
+    geom_point(data = sectionSPClist$Lake$SV[[5]], aes(x = curr.year, y = Value), alpha = .01) +
     geom_point(aes(x = curr.year, y = SimsAvg), shape = 16, size = 3, color = 'blue') +
     scale_y_continuous(limits = c(ymin, ymax)) +
     theme(axis.title.x = element_blank(),
@@ -725,15 +683,18 @@ ggplotly(p, tooltip = c("Yr", "Counts", "SimsAvg"))
 ### Genesee
 
 ```{r}
-SimsAvg <- mean(svSPC.Genesee[[5]]$Value)
-p <- ggplot(filter(histdata, CrimeType == "Shooting", Section == 3), aes(x = Yr, y = Counts)) +
+SimsAvg <- mean(sectionSPClist$Genesee$SV[[5]]$Value)
+p <- ggplot(filter(histdata, CrimeType == "Shooting", Section == 3), 
+            aes(x = Yr, y = Counts)) +
     geom_line() +
     #geom_point() +
     theme_bw() +
-    geom_line(data = filter(ShootingControlLimits, Section == 'Genesee'), aes(x = Year, y = UpperLimit), linetype = "dashed") +
-    geom_line(data = filter(ShootingControlLimits, Section == 'Genesee'), aes(x = Year, y = LowerLimit), linetype = "dashed") +
+    geom_line(data = filter(ShootingControlLimits, Section == 'Genesee'), 
+              aes(x = Year, y = UpperLimit), linetype = "dashed") +
+    geom_line(data = filter(ShootingControlLimits, Section == 'Genesee'), 
+              aes(x = Year, y = LowerLimit), linetype = "dashed") +
     #scale_x_continuous(breaks = 2009:2019) +
-    geom_point(data = svSPC.Genesee[[5]], aes(x = curr.year, y = Value), alpha = .01) +
+    geom_point(data = sectionSPClist$Genesee$SV[[5]], aes(x = curr.year, y = Value), alpha = .01) +
     geom_point(aes(x = curr.year, y = SimsAvg), shape = 16, size = 3, color = 'blue') +
     scale_y_continuous(limits = c(ymin, ymax)) +
     theme(axis.title.x = element_blank(),
@@ -748,15 +709,18 @@ ggplotly(p, tooltip = c("Yr", "Counts", "SimsAvg"))
 ### Goodman
 
 ```{r}
-SimsAvg <- mean(svSPC.Goodman[[5]]$Value)
-p <- ggplot(filter(histdata, CrimeType == "Shooting", Section == 5), aes(x = Yr, y = Counts)) +
+SimsAvg <- mean(sectionSPClist$Goodman$SV[[5]]$Value)
+p <- ggplot(filter(histdata, CrimeType == "Shooting", Section == 5), 
+            aes(x = Yr, y = Counts)) +
     geom_line() +
     #geom_point() +
     theme_bw() +
-    geom_line(data = filter(ShootingControlLimits, Section == 'Goodman'), aes(x = Year, y = UpperLimit), linetype = "dashed") +
-    geom_line(data = filter(ShootingControlLimits, Section == 'Goodman'), aes(x = Year, y = LowerLimit), linetype = "dashed") +
+    geom_line(data = filter(ShootingControlLimits, Section == 'Goodman'), 
+              aes(x = Year, y = UpperLimit), linetype = "dashed") +
+    geom_line(data = filter(ShootingControlLimits, Section == 'Goodman'), 
+              aes(x = Year, y = LowerLimit), linetype = "dashed") +
     #scale_x_continuous(breaks = 2009:2019) +
-    geom_point(data = svSPC.Goodman[[5]], aes(x = curr.year, y = Value), alpha = .01) +
+    geom_point(data = sectionSPClist$Goodman$SV[[5]], aes(x = curr.year, y = Value), alpha = .01) +
     geom_point(aes(x = curr.year, y = SimsAvg), shape = 16, size = 3, color = 'blue') +
     scale_y_continuous(limits = c(ymin, ymax)) +
     theme(axis.title.x = element_blank(),
@@ -771,15 +735,18 @@ ggplotly(p, tooltip = c("Yr", "Counts", "SimsAvg"))
 ### Clinton
 
 ```{r}
-SimsAvg <- mean(svSPC.Clinton[[5]]$Value)
-p <- ggplot(filter(histdata, CrimeType == "Shooting", Section == 7), aes(x = Yr, y = Counts)) +
+SimsAvg <- mean(sectionSPClist$Clinton$SV[[5]]$Value)
+p <- ggplot(filter(histdata, CrimeType == "Shooting", Section == 7), 
+            aes(x = Yr, y = Counts)) +
     geom_line() +
     #geom_point() +
     theme_bw() +
-    geom_line(data = filter(ShootingControlLimits, Section == 'Clinton'), aes(x = Year, y = UpperLimit), linetype = "dashed") +
-    geom_line(data = filter(ShootingControlLimits, Section == 'Clinton'), aes(x = Year, y = LowerLimit), linetype = "dashed") +
+    geom_line(data = filter(ShootingControlLimits, Section == 'Clinton'), 
+              aes(x = Year, y = UpperLimit), linetype = "dashed") +
+    geom_line(data = filter(ShootingControlLimits, Section == 'Clinton'), 
+              aes(x = Year, y = LowerLimit), linetype = "dashed") +
     #scale_x_continuous(breaks = 2009:2019) +
-    geom_point(data = svSPC.Clinton[[5]], aes(x = curr.year, y = Value), alpha = .01) +
+    geom_point(data = sectionSPClist$Clinton$SV[[5]], aes(x = curr.year, y = Value), alpha = .01) +
     geom_point(aes(x = curr.year, y = SimsAvg), shape = 16, size = 3, color = 'blue') +
     scale_y_continuous(limits = c(ymin, ymax)) +
     theme(axis.title.x = element_blank(),
@@ -794,15 +761,18 @@ ggplotly(p, tooltip = c("Yr", "Counts", "SimsAvg"))
 ### Central
 
 ```{r}
-SimsAvg <- mean(svSPC.Central[[5]]$Value)
-p <- ggplot(filter(histdata, CrimeType == "Shooting", Section == 9), aes(x = Yr, y = Counts)) +
+SimsAvg <- mean(sectionSPClist$Central$SV[[5]]$Value)
+p <- ggplot(filter(histdata, CrimeType == "Shooting", Section == 9), 
+            aes(x = Yr, y = Counts)) +
     geom_line() +
     #geom_point() +
     theme_bw() +
-    geom_line(data = filter(ShootingControlLimits, Section == 'Central'), aes(x = Year, y = UpperLimit), linetype = "dashed") +
-    geom_line(data = filter(ShootingControlLimits, Section == 'Central'), aes(x = Year, y = LowerLimit), linetype = "dashed") +
+    geom_line(data = filter(ShootingControlLimits, Section == 'Central'), 
+              aes(x = Year, y = UpperLimit), linetype = "dashed") +
+    geom_line(data = filter(ShootingControlLimits, Section == 'Central'), 
+              aes(x = Year, y = LowerLimit), linetype = "dashed") +
     #scale_x_continuous(breaks = 2009:2019) +
-    geom_point(data = svSPC.Central[[5]], aes(x = curr.year, y = Value), alpha = .01) +
+    geom_point(data = sectionSPClist$Central$SV[[5]], aes(x = curr.year, y = Value), alpha = .01) +
     geom_point(aes(x = curr.year, y = SimsAvg), shape = 16, size = 3, color = 'blue') +
     scale_y_continuous(limits = c(ymin, ymax)) +
     theme(axis.title.x = element_blank(),
@@ -827,21 +797,21 @@ Row
 ```{r robberytable}
 
 tab <- data.frame(Sections = sec,
-                  Counts = c(robSPC.Lake[[4]],
-                             robSPC.Genesee[[4]],
-                             robSPC.Goodman[[4]],
-                             robSPC.Clinton[[4]],
-                             robSPC.Central[[4]]),
-                  RiskOfRed = c(robSPC.Lake[[2]],
-                               robSPC.Genesee[[2]],
-                               robSPC.Goodman[[2]],
-                               robSPC.Clinton[[2]],
-                               robSPC.Central[[2]]),
-                  ChanceOfGreen = c(robSPC.Lake[[3]],
-                                   robSPC.Genesee[[3]],
-                                   robSPC.Goodman[[3]],
-                                   robSPC.Clinton[[3]],
-                                   robSPC.Central[[3]]))
+                  Counts = c(sectionSPClist$Lake$Rob[[4]],
+                             sectionSPClist$Genesee$Rob[[4]],
+                             sectionSPClist$Goodman$Rob[[4]],
+                             sectionSPClist$Clinton$Rob[[4]],
+                             sectionSPClist$Central$Rob[[4]]),
+                  RiskOfRed = c(sectionSPClist$Lake$Rob[[2]],
+                                sectionSPClist$Genesee$Rob[[2]], 
+                                sectionSPClist$Goodman$Rob[[2]], 
+                                sectionSPClist$Clinton$Rob[[2]], 
+                                sectionSPClist$Central$Rob[[2]]),
+                  ChanceOfGreen = c(sectionSPClist$Lake$Rob[[3]],
+                                    sectionSPClist$Genesee$Rob[[3]],
+                                    sectionSPClist$Goodman$Rob[[3]],
+                                    sectionSPClist$Clinton$Rob[[3]],
+                                    sectionSPClist$Central$Rob[[3]]))
 
 datatable(tab,
           rownames = FALSE,
@@ -859,11 +829,11 @@ datatable(tab,
 ```{r robmap}
 
 overviewmapfunc(daddyJSON = daddyJSON,
-                lakeSPC = robSPC.Lake,
-                geneseeSPC = robSPC.Genesee,
-                goodmanSPC = robSPC.Goodman,
-                clintonSPC = robSPC.Clinton,
-                centralSPC = robSPC.Central,
+                lakeSPC = sectionSPClist$Lake$Rob,
+                geneseeSPC = sectionSPClist$Genesee$Rob,
+                goodmanSPC = sectionSPClist$Goodman$Rob,
+                clintonSPC = sectionSPClist$Clinton$Rob,
+                centralSPC = sectionSPClist$Central$Rob,
                 linkhash = "#robbery-1",
                 citymap = citymap,
                 sec = sec)
@@ -882,7 +852,7 @@ Row {data-height=250}
 
 ```{r}
 robcontrol <- filter(controllimits, Crime == "Robbery")
-SimsAvg <- mean(robSPC.Lake[[5]]$Value)
+SimsAvg <- mean(sectionSPClist$Lake$Rob[[5]]$Value)
 
 #set y axis limits
 maxhist <- maxes %>% 
@@ -915,7 +885,7 @@ p <- ggplot(filter(histdata, CrimeType == "Robbery", Section == 1), aes(x = Yr, 
     geom_line(data = filter(robcontrol, Section == 'Lake'), aes(x = Year, y = UpperLimit), linetype = "dashed") +
     geom_line(data = filter(robcontrol, Section == 'Lake'), aes(x = Year, y = LowerLimit), linetype = "dashed") +
     #scale_x_continuous(breaks = 2009:2019) +
-    geom_point(data = robSPC.Lake[[5]], aes(x = curr.year, y = Value), alpha = .01) +
+    geom_point(data = sectionSPClist$Lake$Rob[[5]], aes(x = curr.year, y = Value), alpha = .01) +
     geom_point(aes(x = curr.year, y = SimsAvg), shape = 16, size = 3, color = 'blue') +
     labs(x = "Year") +
     scale_y_continuous(limits = c(ymin, ymax)) +
@@ -932,7 +902,7 @@ ggplotly(p, tooltip = c("Yr", "Counts", "SimsAvg"))
 
 ```{r}
 robcontrol <- filter(controllimits, Crime == "Robbery")
-SimsAvg <- mean(robSPC.Genesee[[5]]$Value)
+SimsAvg <- mean(sectionSPClist$Genesee$Rob[[5]]$Value)
 p <- ggplot(filter(histdata, CrimeType == "Robbery", Section == 3), aes(x = Yr, y = Counts)) +
     geom_line() +
     #geom_point() +
@@ -940,7 +910,7 @@ p <- ggplot(filter(histdata, CrimeType == "Robbery", Section == 3), aes(x = Yr, 
     geom_line(data = filter(robcontrol, Section == 'Genesee'), aes(x = Year, y = UpperLimit), linetype = "dashed") +
     geom_line(data = filter(robcontrol, Section == 'Genesee'), aes(x = Year, y = LowerLimit), linetype = "dashed") +
     #scale_x_continuous(breaks = 2009:2019) +
-    geom_point(data = robSPC.Genesee[[5]], aes(x = curr.year, y = Value), alpha = .01) +
+    geom_point(data = sectionSPClist$Genesee$Rob[[5]], aes(x = curr.year, y = Value), alpha = .01) +
     geom_point(aes(x = curr.year, y = SimsAvg), shape = 16, size = 3, color = 'blue') +
     labs(x = "Year") +
     scale_y_continuous(limits = c(ymin, ymax)) +
@@ -957,7 +927,7 @@ ggplotly(p, tooltip = c("Yr", "Counts", "SimsAvg"))
 
 ```{r}
 robcontrol <- filter(controllimits, Crime == "Robbery")
-SimsAvg <- mean(robSPC.Goodman[[5]]$Value)
+SimsAvg <- mean(sectionSPClist$Goodman$Rob[[5]]$Value)
 p <- ggplot(filter(histdata, CrimeType == "Robbery", Section == 5), aes(x = Yr, y = Counts)) +
     geom_line() +
     #geom_point() +
@@ -965,7 +935,7 @@ p <- ggplot(filter(histdata, CrimeType == "Robbery", Section == 5), aes(x = Yr, 
     geom_line(data = filter(robcontrol, Section == 'Goodman'), aes(x = Year, y = UpperLimit), linetype = "dashed") +
     geom_line(data = filter(robcontrol, Section == 'Goodman'), aes(x = Year, y = LowerLimit), linetype = "dashed") +
     #scale_x_continuous(breaks = 2009:2019) +
-    geom_point(data = robSPC.Goodman[[5]], aes(x = curr.year, y = Value), alpha = .01) +
+    geom_point(data = sectionSPClist$Goodman$Rob[[5]], aes(x = curr.year, y = Value), alpha = .01) +
     geom_point(aes(x = curr.year, y = SimsAvg), shape = 16, size = 3, color = 'blue') +
     labs(x = "Year") +
     scale_y_continuous(limits = c(ymin, ymax)) +
@@ -982,7 +952,7 @@ ggplotly(p, tooltip = c("Yr", "Counts", "SimsAvg"))
 
 ```{r}
 robcontrol <- filter(controllimits, Crime == "Robbery")
-SimsAvg <- mean(robSPC.Clinton[[5]]$Value)
+SimsAvg <- mean(sectionSPClist$Clinton$Rob[[5]]$Value)
 p <- ggplot(filter(histdata, CrimeType == "Robbery", Section == 7), aes(x = Yr, y = Counts)) +
     geom_line() +
     #geom_point() +
@@ -990,7 +960,7 @@ p <- ggplot(filter(histdata, CrimeType == "Robbery", Section == 7), aes(x = Yr, 
     geom_line(data = filter(robcontrol, Section == 'Clinton'), aes(x = Year, y = UpperLimit), linetype = "dashed") +
     geom_line(data = filter(robcontrol, Section == 'Clinton'), aes(x = Year, y = LowerLimit), linetype = "dashed") +
     #scale_x_continuous(breaks = 2009:2019) +
-    geom_point(data = robSPC.Clinton[[5]], aes(x = curr.year, y = Value), alpha = .01) +
+    geom_point(data = sectionSPClist$Clinton$Rob[[5]], aes(x = curr.year, y = Value), alpha = .01) +
     geom_point(aes(x = curr.year, y = SimsAvg), shape = 16, size = 3, color = 'blue') +
     labs(x = "Year") +
     scale_y_continuous(limits = c(ymin, ymax)) +
@@ -1007,7 +977,7 @@ ggplotly(p, tooltip = c("Yr", "Counts", "SimsAvg"))
 
 ```{r}
 robcontrol <- filter(controllimits, Crime == "Robbery")
-SimsAvg <- mean(robSPC.Central[[5]]$Value)
+SimsAvg <- mean(sectionSPClist$Central$Rob[[5]]$Value)
 p <- ggplot(filter(histdata, CrimeType == "Robbery", Section == 9), aes(x = Yr, y = Counts)) +
     geom_line() +
     #geom_point() +
@@ -1015,7 +985,7 @@ p <- ggplot(filter(histdata, CrimeType == "Robbery", Section == 9), aes(x = Yr, 
     geom_line(data = filter(robcontrol, Section == 'Central'), aes(x = Year, y = UpperLimit), linetype = "dashed") +
     geom_line(data = filter(robcontrol, Section == 'Central'), aes(x = Year, y = LowerLimit), linetype = "dashed") +
     #scale_x_continuous(breaks = 2009:2019) +
-    geom_point(data = robSPC.Central[[5]], aes(x = curr.year, y = Value), alpha = .01) +
+    geom_point(data = sectionSPClist$Central$Rob[[5]], aes(x = curr.year, y = Value), alpha = .01) +
     geom_point(aes(x = curr.year, y = SimsAvg), shape = 16, size = 3, color = 'blue') +
     labs(x = "Year") +
     scale_y_continuous(limits = c(ymin, ymax)) +
@@ -1041,21 +1011,21 @@ Row
 ```{r aggassaulttable}
 
 tab <- data.frame(Sections = sec,
-                  Counts = c(asltSPC.Lake[[4]],
-                             asltSPC.Genesee[[4]],
-                             asltSPC.Goodman[[4]],
-                             asltSPC.Clinton[[4]],
-                             asltSPC.Central[[4]]),
-                  RiskOfRed = c(asltSPC.Lake[[2]],
-                               asltSPC.Genesee[[2]],
-                               asltSPC.Goodman[[2]],
-                               asltSPC.Clinton[[2]],
-                               asltSPC.Central[[2]]),
-                  ChanceOfGreen = c(asltSPC.Lake[[3]],
-                                   asltSPC.Genesee[[3]],
-                                   asltSPC.Goodman[[3]],
-                                   asltSPC.Clinton[[3]],
-                                   asltSPC.Central[[3]]))
+                  Counts = c(sectionSPClist$Lake$Aslt[[4]],
+                             sectionSPClist$Genesee$Aslt[[4]],
+                             sectionSPClist$Goodman$Aslt[[4]],
+                             sectionSPClist$Clinton$Aslt[[4]],
+                             sectionSPClist$Central$Aslt[[4]]),
+                  RiskOfRed = c(sectionSPClist$Lake$Aslt[[2]],
+                                sectionSPClist$Genesee$Aslt[[2]],
+                                sectionSPClist$Goodman$Aslt[[2]],
+                                sectionSPClist$Clinton$Aslt[[2]],
+                                sectionSPClist$Central$Aslt[[2]]),
+                  ChanceOfGreen = c(sectionSPClist$Lake$Aslt[[3]],
+                                    sectionSPClist$Genesee$Aslt[[3]],
+                                    sectionSPClist$Goodman$Aslt[[3]],
+                                    sectionSPClist$Clinton$Aslt[[3]],
+                                    sectionSPClist$Central$Aslt[[3]]))
 
 datatable(tab,
           rownames = FALSE,
@@ -1073,11 +1043,11 @@ datatable(tab,
 ```{r asltmap}
 
 overviewmapfunc(daddyJSON = daddyJSON,
-                lakeSPC = asltSPC.Lake,
-                geneseeSPC = asltSPC.Genesee,
-                goodmanSPC = asltSPC.Goodman,
-                clintonSPC = asltSPC.Clinton,
-                centralSPC = asltSPC.Central,
+                lakeSPC = sectionSPClist$Lake$Aslt,
+                geneseeSPC = sectionSPClist$Genesee$Aslt,
+                goodmanSPC = sectionSPClist$Goodman$Aslt,
+                clintonSPC = sectionSPClist$Clinton$Aslt,
+                centralSPC = sectionSPClist$Central$Aslt,
                 linkhash = "#aggravated-assault-1",
                 citymap = citymap,
                 sec = sec)
@@ -1096,7 +1066,7 @@ Row {data-height=250}
 
 ```{r}
 asltcontrol <- filter(controllimits, Crime == "Aggravated Assault")
-SimsAvg <- mean(asltSPC.Lake[[5]]$Value)
+SimsAvg <- mean(sectionSPClist$Lake$Aslt[[5]]$Value)
 
 #set y axis limits
 maxhist <- maxes %>% 
@@ -1123,14 +1093,16 @@ minlim <- asltcontrol %>%
 ymin <- 0
 
 
-p <- ggplot(filter(histdata, CrimeType == "Aggravated Assault", Section == 1), aes(x = Yr, y = Counts)) +
+p <- ggplot(filter(histdata, CrimeType == "Aggravated Assault", Section == 1), 
+            aes(x = Yr, y = Counts)) +
     geom_line() +
-    #geom_point() +
     theme_bw() +
-    geom_line(data = filter(asltcontrol, Section == 'Lake'), aes(x = Year, y = UpperLimit), linetype = "dashed") +
-    geom_line(data = filter(asltcontrol, Section == 'Lake'), aes(x = Year, y = LowerLimit), linetype = "dashed") +
-    #scale_x_continuous(breaks = 2009:2019) +
-    geom_point(data = asltSPC.Lake[[5]], aes(x = curr.year, y = Value), alpha = .01) +
+    geom_line(data = filter(asltcontrol, Section == 'Lake'), 
+              aes(x = Year, y = UpperLimit), linetype = "dashed") +
+    geom_line(data = filter(asltcontrol, Section == 'Lake'), 
+              aes(x = Year, y = LowerLimit), linetype = "dashed") +
+    geom_point(data = sectionSPClist$Lake$Aslt[[5]], 
+               aes(x = curr.year, y = Value), alpha = .01) +
     geom_point(aes(x = curr.year, y = SimsAvg), shape = 16, size = 3, color = 'blue') +
     labs(x = "Year") +
     scale_y_continuous(limits = c(ymin, ymax)) +
@@ -1147,15 +1119,13 @@ ggplotly(p, tooltip = c("Yr", "Counts", "SimsAvg"))
 
 ```{r}
 asltcontrol <- filter(controllimits, Crime == "Aggravated Assault")
-SimsAvg <- mean(asltSPC.Genesee[[5]]$Value)
+SimsAvg <- mean(sectionSPClist$Genesee$Aslt[[5]]$Value)
 p <- ggplot(filter(histdata, CrimeType == "Aggravated Assault", Section == 3), aes(x = Yr, y = Counts)) +
     geom_line() +
-    #geom_point() +
     theme_bw() +
     geom_line(data = filter(asltcontrol, Section == 'Genesee'), aes(x = Year, y = UpperLimit), linetype = "dashed") +
     geom_line(data = filter(asltcontrol, Section == 'Genesee'), aes(x = Year, y = LowerLimit), linetype = "dashed") +
-    #scale_x_continuous(breaks = 2009:2019) +
-    geom_point(data = asltSPC.Genesee[[5]], aes(x = curr.year, y = Value), alpha = .01) +
+    geom_point(data = sectionSPClist$Genesee$Aslt[[5]], aes(x = curr.year, y = Value), alpha = .01) +
     geom_point(aes(x = curr.year, y = SimsAvg), shape = 16, size = 3, color = 'blue') +
     labs(x = "Year") +
     scale_y_continuous(limits = c(ymin, ymax)) +
@@ -1172,15 +1142,18 @@ ggplotly(p, tooltip = c("Yr", "Counts", "SimsAvg"))
 
 ```{r}
 asltcontrol <- filter(controllimits, Crime == "Aggravated Assault")
-SimsAvg <- mean(asltSPC.Goodman[[5]]$Value)
-p <- ggplot(filter(histdata, CrimeType == "Aggravated Assault", Section == 5), aes(x = Yr, y = Counts)) +
+SimsAvg <- mean(sectionSPClist$Goodman$Aslt[[5]]$Value)
+p <- ggplot(filter(histdata, CrimeType == "Aggravated Assault", Section == 5), 
+            aes(x = Yr, y = Counts)) +
     geom_line() +
     #geom_point() +
     theme_bw() +
-    geom_line(data = filter(asltcontrol, Section == 'Goodman'), aes(x = Year, y = UpperLimit), linetype = "dashed") +
-    geom_line(data = filter(asltcontrol, Section == 'Goodman'), aes(x = Year, y = LowerLimit), linetype = "dashed") +
+    geom_line(data = filter(asltcontrol, Section == 'Goodman'), 
+              aes(x = Year, y = UpperLimit), linetype = "dashed") +
+    geom_line(data = filter(asltcontrol, Section == 'Goodman'), 
+              aes(x = Year, y = LowerLimit), linetype = "dashed") +
     #scale_x_continuous(breaks = 2009:2019) +
-    geom_point(data = asltSPC.Goodman[[5]], aes(x = curr.year, y = Value), alpha = .01) +
+    geom_point(data = sectionSPClist$Goodman$Aslt[[5]], aes(x = curr.year, y = Value), alpha = .01) +
     geom_point(aes(x = curr.year, y = SimsAvg), shape = 16, size = 3, color = 'blue') +
     labs(x = "Year") +
     scale_y_continuous(limits = c(ymin, ymax)) +
@@ -1197,15 +1170,19 @@ ggplotly(p, tooltip = c("Yr", "Counts", "SimsAvg"))
 
 ```{r}
 asltcontrol <- filter(controllimits, Crime == "Aggravated Assault")
-SimsAvg <- mean(asltSPC.Clinton[[5]]$Value)
-p <- ggplot(filter(histdata, CrimeType == "Aggravated Assault", Section == 7), aes(x = Yr, y = Counts)) +
+SimsAvg <- mean(sectionSPClist$Clinton$Aslt[[5]]$Value)
+p <- ggplot(filter(histdata, CrimeType == "Aggravated Assault", Section == 7), 
+            aes(x = Yr, y = Counts)) +
     geom_line() +
     #geom_point() +
     theme_bw() +
-    geom_line(data = filter(asltcontrol, Section == 'Clinton'), aes(x = Year, y = UpperLimit), linetype = "dashed") +
-    geom_line(data = filter(asltcontrol, Section == 'Clinton'), aes(x = Year, y = LowerLimit), linetype = "dashed") +
+    geom_line(data = filter(asltcontrol, Section == 'Clinton'), 
+              aes(x = Year, y = UpperLimit), linetype = "dashed") +
+    geom_line(data = filter(asltcontrol, Section == 'Clinton'), 
+              aes(x = Year, y = LowerLimit), linetype = "dashed") +
     #scale_x_continuous(breaks = 2009:2019) +
-    geom_point(data = asltSPC.Clinton[[5]], aes(x = curr.year, y = Value), alpha = .01) +
+    geom_point(data = sectionSPClist$Clinton$Aslt[[5]], 
+               aes(x = curr.year, y = Value), alpha = .01) +
     geom_point(aes(x = curr.year, y = SimsAvg), shape = 16, size = 3, color = 'blue') +
     labs(x = "Year") +
     scale_y_continuous(limits = c(ymin, ymax)) +
@@ -1222,15 +1199,18 @@ ggplotly(p, tooltip = c("Yr", "Counts", "SimsAvg"))
 
 ```{r}
 asltcontrol <- filter(controllimits, Crime == "Aggravated Assault")
-SimsAvg <- mean(asltSPC.Central[[5]]$Value)
-p <- ggplot(filter(histdata, CrimeType == "Aggravated Assault", Section == 9), aes(x = Yr, y = Counts)) +
+SimsAvg <- mean(sectionSPClist$Central$Aslt[[5]]$Value)
+p <- ggplot(filter(histdata, CrimeType == "Aggravated Assault", Section == 9), 
+            aes(x = Yr, y = Counts)) +
     geom_line() +
     #geom_point() +
     theme_bw() +
-    geom_line(data = filter(asltcontrol, Section == 'Central'), aes(x = Year, y = UpperLimit), linetype = "dashed") +
-    geom_line(data = filter(asltcontrol, Section == 'Central'), aes(x = Year, y = LowerLimit), linetype = "dashed") +
+    geom_line(data = filter(asltcontrol, Section == 'Central'), 
+              aes(x = Year, y = UpperLimit), linetype = "dashed") +
+    geom_line(data = filter(asltcontrol, Section == 'Central'), 
+              aes(x = Year, y = LowerLimit), linetype = "dashed") +
     #scale_x_continuous(breaks = 2009:2019) +
-    geom_point(data = asltSPC.Central[[5]], aes(x = curr.year, y = Value), alpha = .01) +
+    geom_point(data = sectionSPClist$Central$Aslt[[5]], aes(x = curr.year, y = Value), alpha = .01) +
     geom_point(aes(x = curr.year, y = SimsAvg), shape = 16, size = 3, color = 'blue') +
     labs(x = "Year") +
     scale_y_continuous(limits = c(ymin, ymax)) +
@@ -1257,21 +1237,21 @@ Row
 ```{r homicidetable}
 
 tab <- data.frame(Sections = sec,
-                  Counts = c(homicideSPC.Lake[[4]],
-                             homicideSPC.Genesee[[4]],
-                             homicideSPC.Goodman[[4]],
-                             homicideSPC.Clinton[[4]],
-                             homicideSPC.Central[[4]]),
-                  RiskOfRed = c(homicideSPC.Lake[[2]],
-                               homicideSPC.Genesee[[2]],
-                               homicideSPC.Goodman[[2]],
-                               homicideSPC.Clinton[[2]],
-                               homicideSPC.Central[[2]]),
-                  ChanceOfGreen = c(homicideSPC.Lake[[3]],
-                                   homicideSPC.Genesee[[3]],
-                                   homicideSPC.Goodman[[3]],
-                                   homicideSPC.Clinton[[3]],
-                                   homicideSPC.Central[[3]]))
+                  Counts = c(sectionSPClist$Lake$Homicide[[4]],
+                             sectionSPClist$Genesee$Homicide[[4]],
+                             sectionSPClist$Goodman$Homicide[[4]],
+                             sectionSPClist$Clinton$Homicide[[4]],
+                             sectionSPClist$Central$Homicide[[4]]),
+                  RiskOfRed = c(sectionSPClist$Lake$Homicide[[2]],
+                                sectionSPClist$Genesee$Homicide[[2]],
+                                sectionSPClist$Goodman$Homicide[[2]],
+                                sectionSPClist$Clinton$Homicide[[2]],
+                                sectionSPClist$Central$Homicide[[2]]),
+                  ChanceOfGreen = c(sectionSPClist$Lake$Homicide[[3]],
+                                    sectionSPClist$Genesee$Homicide[[3]],
+                                    sectionSPClist$Goodman$Homicide[[3]],
+                                    sectionSPClist$Clinton$Homicide[[3]],
+                                    sectionSPClist$Central$Homicide[[3]]))
 
 datatable(tab,
           rownames = FALSE,
@@ -1289,11 +1269,11 @@ datatable(tab,
 ```{r hommap}
 
 overviewmapfunc(daddyJSON = daddyJSON,
-                lakeSPC = homicideSPC.Lake,
-                geneseeSPC = homicideSPC.Genesee,
-                goodmanSPC = homicideSPC.Goodman,
-                clintonSPC = homicideSPC.Clinton,
-                centralSPC = homicideSPC.Central,
+                lakeSPC = sectionSPClist$Lake$Homicide,
+                geneseeSPC = sectionSPClist$Genesee$Homicide,
+                goodmanSPC = sectionSPClist$Goodman$Homicide,
+                clintonSPC = sectionSPClist$Clinton$Homicide,
+                centralSPC = sectionSPClist$Central$Homicide,
                 linkhash = "#homicide-1",
                 citymap = citymap,
                 sec = sec)
@@ -1312,7 +1292,7 @@ Row {data-height=250}
 
 ```{r}
 homcontrol <- filter(controllimits, Crime == "Homicide")
-SimsAvg <- mean(homicideSPC.Lake[[5]]$Value)
+SimsAvg <- mean(sectionSPClist$Lake$Homicide[[5]]$Value)
 
 #set y axis limits
 maxhist <- maxes %>% 
@@ -1338,14 +1318,18 @@ minlim <- homcontrol %>%
 #ymin <- min(minhist, minlim)
 ymin <- 0
 
-p <- ggplot(filter(histdata, CrimeType == "Homicide", Section == 1), aes(x = Yr, y = Counts)) +
+p <- ggplot(filter(histdata, CrimeType == "Homicide", Section == 1), 
+            aes(x = Yr, y = Counts)) +
     geom_line() +
     #geom_point() +
     theme_bw() +
-    geom_line(data = filter(homcontrol, Section == 'Lake'), aes(x = Year, y = UpperLimit), linetype = "dashed") +
-    geom_line(data = filter(homcontrol, Section == 'Lake'), aes(x = Year, y = LowerLimit), linetype = "dashed") +
+    geom_line(data = filter(homcontrol, Section == 'Lake'), 
+              aes(x = Year, y = UpperLimit), linetype = "dashed") +
+    geom_line(data = filter(homcontrol, Section == 'Lake'), 
+              aes(x = Year, y = LowerLimit), linetype = "dashed") +
     #scale_x_continuous(breaks = 2009:2019) +
-    geom_point(data = homicideSPC.Lake[[5]], aes(x = curr.year, y = Value), alpha = .01) +
+    geom_point(data = sectionSPClist$Lake$Homicide[[5]], 
+               aes(x = curr.year, y = Value), alpha = .01) +
     geom_point(aes(x = curr.year, y = SimsAvg), shape = 16, size = 3, color = 'blue') +
     labs(x = "Year") +
     scale_y_continuous(limits = c(ymin, ymax)) +
@@ -1362,15 +1346,18 @@ ggplotly(p, tooltip = c("Yr", "Counts", "SimsAvg"))
 
 ```{r}
 homcontrol <- filter(controllimits, Crime == "Homicide")
-SimsAvg <- mean(homicideSPC.Genesee[[5]]$Value)
-p <- ggplot(filter(histdata, CrimeType == "Homicide", Section == 3), aes(x = Yr, y = Counts)) +
+SimsAvg <- mean(sectionSPClist$Genesee$Homicide[[5]]$Value)
+p <- ggplot(filter(histdata, CrimeType == "Homicide", Section == 3), 
+            aes(x = Yr, y = Counts)) +
     geom_line() +
     #geom_point() +
     theme_bw() +
-    geom_line(data = filter(homcontrol, Section == 'Genesee'), aes(x = Year, y = UpperLimit), linetype = "dashed") +
-    geom_line(data = filter(homcontrol, Section == 'Genesee'), aes(x = Year, y = LowerLimit), linetype = "dashed") +
+    geom_line(data = filter(homcontrol, Section == 'Genesee'), 
+              aes(x = Year, y = UpperLimit), linetype = "dashed") +
+    geom_line(data = filter(homcontrol, Section == 'Genesee'), 
+              aes(x = Year, y = LowerLimit), linetype = "dashed") +
     #scale_x_continuous(breaks = 2009:2019) +
-    geom_point(data = homicideSPC.Genesee[[5]], aes(x = curr.year, y = Value), alpha = .01) +
+    geom_point(data = sectionSPClist$Genesee$Homicide[[5]], aes(x = curr.year, y = Value), alpha = .01) +
     geom_point(aes(x = curr.year, y = SimsAvg), shape = 16, size = 3, color = 'blue') +
     labs(x = "Year") +
     scale_y_continuous(limits = c(ymin, ymax)) +
@@ -1387,15 +1374,18 @@ ggplotly(p, tooltip = c("Yr", "Counts", "SimsAvg"))
 
 ```{r}
 homcontrol <- filter(controllimits, Crime == "Homicide")
-SimsAvg <- mean(homicideSPC.Goodman[[5]]$Value)
-p <- ggplot(filter(histdata, CrimeType == "Homicide", Section == 5), aes(x = Yr, y = Counts)) +
+SimsAvg <- mean(sectionSPClist$Goodman$Homicide[[5]]$Value)
+p <- ggplot(filter(histdata, CrimeType == "Homicide", Section == 5), 
+            aes(x = Yr, y = Counts)) +
     geom_line() +
     #geom_point() +
     theme_bw() +
-    geom_line(data = filter(homcontrol, Section == 'Goodman'), aes(x = Year, y = UpperLimit), linetype = "dashed") +
-    geom_line(data = filter(homcontrol, Section == 'Goodman'), aes(x = Year, y = LowerLimit), linetype = "dashed") +
+    geom_line(data = filter(homcontrol, Section == 'Goodman'), 
+              aes(x = Year, y = UpperLimit), linetype = "dashed") +
+    geom_line(data = filter(homcontrol, Section == 'Goodman'), 
+              aes(x = Year, y = LowerLimit), linetype = "dashed") +
     #scale_x_continuous(breaks = 2009:2019) +
-    geom_point(data = homicideSPC.Goodman[[5]], aes(x = curr.year, y = Value), alpha = .01) +
+    geom_point(data = sectionSPClist$Goodman$Homicide[[5]], aes(x = curr.year, y = Value), alpha = .01) +
     geom_point(aes(x = curr.year, y = SimsAvg), shape = 16, size = 3, color = 'blue') +
     labs(x = "Year") +
     scale_y_continuous(limits = c(ymin, ymax)) +
@@ -1412,15 +1402,19 @@ ggplotly(p, tooltip = c("Yr", "Counts", "SimsAvg"))
 
 ```{r}
 homcontrol <- filter(controllimits, Crime == "Homicide")
-SimsAvg <- mean(homicideSPC.Clinton[[5]]$Value)
-p <- ggplot(filter(histdata, CrimeType == "Homicide", Section == 7), aes(x = Yr, y = Counts)) +
+SimsAvg <- mean(sectionSPClist$Clinton$Homicide[[5]]$Value)
+p <- ggplot(filter(histdata, CrimeType == "Homicide", Section == 7), 
+            aes(x = Yr, y = Counts)) +
     geom_line() +
     #geom_point() +
     theme_bw() +
-    geom_line(data = filter(homcontrol, Section == 'Clinton'), aes(x = Year, y = UpperLimit), linetype = "dashed") +
-    geom_line(data = filter(homcontrol, Section == 'Clinton'), aes(x = Year, y = LowerLimit), linetype = "dashed") +
+    geom_line(data = filter(homcontrol, Section == 'Clinton'), 
+              aes(x = Year, y = UpperLimit), linetype = "dashed") +
+    geom_line(data = filter(homcontrol, Section == 'Clinton'), 
+              aes(x = Year, y = LowerLimit), linetype = "dashed") +
     #scale_x_continuous(breaks = 2009:2019) +
-    geom_point(data = homicideSPC.Clinton[[5]], aes(x = curr.year, y = Value), alpha = .01) +
+    geom_point(data = sectionSPClist$Clinton$Homicide[[5]], 
+               aes(x = curr.year, y = Value), alpha = .01) +
     geom_point(aes(x = curr.year, y = SimsAvg), shape = 16, size = 3, color = 'blue') +
     labs(x = "Year") +
     scale_y_continuous(limits = c(ymin, ymax)) +
@@ -1437,15 +1431,19 @@ ggplotly(p, tooltip = c("Yr", "Counts", "SimsAvg"))
 
 ```{r}
 homcontrol <- filter(controllimits, Crime == "Homicide")
-SimsAvg <- mean(homicideSPC.Central[[5]]$Value)
-p <- ggplot(filter(histdata, CrimeType == "Homicide", Section == 9), aes(x = Yr, y = Counts)) +
+SimsAvg <- mean(sectionSPClist$Central$Homicide[[5]]$Value)
+p <- ggplot(filter(histdata, CrimeType == "Homicide", Section == 9), 
+            aes(x = Yr, y = Counts)) +
     geom_line() +
     #geom_point() +
     theme_bw() +
-    geom_line(data = filter(homcontrol, Section == 'Central'), aes(x = Year, y = UpperLimit), linetype = "dashed") +
-    geom_line(data = filter(homcontrol, Section == 'Central'), aes(x = Year, y = LowerLimit), linetype = "dashed") +
+    geom_line(data = filter(homcontrol, Section == 'Central'), 
+              aes(x = Year, y = UpperLimit), linetype = "dashed") +
+    geom_line(data = filter(homcontrol, Section == 'Central'), 
+              aes(x = Year, y = LowerLimit), linetype = "dashed") +
     #scale_x_continuous(breaks = 2009:2019) +
-    geom_point(data = homicideSPC.Central[[5]], aes(x = curr.year, y = Value), alpha = .01) +
+    geom_point(data = sectionSPClist$Central$Homicide[[5]], 
+               aes(x = curr.year, y = Value), alpha = .01) +
     geom_point(aes(x = curr.year, y = SimsAvg), shape = 16, size = 3, color = 'blue') +
     labs(x = "Year") +
     scale_y_continuous(limits = c(ymin, ymax)) +
@@ -1471,21 +1469,22 @@ Row
 ```{r rapetable}
 
 tab <- data.frame(Sections = sec,
-                  Counts = c(rapeSPC.Lake[[4]],
-                             rapeSPC.Genesee[[4]],
-                             rapeSPC.Goodman[[4]],
-                             rapeSPC.Clinton[[4]],
-                             rapeSPC.Central[[4]]),
-                  RiskOfRed = c(rapeSPC.Lake[[2]],
-                               rapeSPC.Genesee[[2]],
-                               rapeSPC.Goodman[[2]],
-                               rapeSPC.Clinton[[2]],
-                               rapeSPC.Central[[2]]),
-                  ChanceOfGreen = c(rapeSPC.Lake[[3]],
-                                   rapeSPC.Genesee[[3]],
-                                   rapeSPC.Goodman[[3]],
-                                   rapeSPC.Clinton[[3]],
-                                   rapeSPC.Central[[3]]))
+                  Counts = c(sectionSPClist$Lake$Rape[[4]],
+                             sectionSPClist$Genesee$Rape[[4]],
+                             sectionSPClist$Goodman$Rape[[4]],
+                             sectionSPClist$Clinton$Rape[[4]],
+                             sectionSPClist$Central$Rape[[4]]),
+                  RiskOfRed = c(sectionSPClist$Lake$Rape[[2]],
+                                sectionSPClist$Genesee$Rape[[2]],
+                                sectionSPClist$Goodman$Rape[[2]],
+                                sectionSPClist$Clinton$Rape[[2]],
+                                sectionSPClist$Central$Rape[[2]]),
+                  ChanceOfGreen = c(sectionSPClist$Lake$Rape[[3]],
+                                    sectionSPClist$Genesee$Rape[[3]],
+                                    sectionSPClist$Goodman$Rape[[3]],
+                                    sectionSPClist$Clinton$Rape[[3]],
+                                    sectionSPClist$Central$Rape[[3]]))
+
 
 datatable(tab,
           rownames = FALSE,
@@ -1503,11 +1502,11 @@ datatable(tab,
 ```{r rapemap}
 
 overviewmapfunc(daddyJSON = daddyJSON,
-                lakeSPC = rapeSPC.Lake,
-                geneseeSPC = rapeSPC.Genesee,
-                goodmanSPC = rapeSPC.Goodman,
-                clintonSPC = rapeSPC.Clinton,
-                centralSPC = rapeSPC.Central,
+                lakeSPC = sectionSPClist$Lake$Rape,
+                geneseeSPC = sectionSPClist$Genesee$Rape,
+                goodmanSPC = sectionSPClist$Goodman$Rape,
+                clintonSPC = sectionSPClist$Clinton$Rape,
+                centralSPC = sectionSPClist$Central$Rape,
                 linkhash = "#rape-1",
                 citymap = citymap,
                 sec = sec)
@@ -1526,7 +1525,7 @@ Row {data-height=250}
 
 ```{r}
 rapecontrol <- filter(controllimits, Crime == "Rape")
-SimsAvg <- mean(rapeSPC.Lake[[5]]$Value)
+SimsAvg <- mean(sectionSPClist$Lake$Rape[[5]]$Value)
 
 #set y axis limits
 maxhist <- maxes %>% 
@@ -1552,14 +1551,17 @@ minlim <- rapecontrol %>%
 #ymin <- min(minhist, minlim)
 ymin <- 0
 
-p <- ggplot(filter(histdata, CrimeType == "Rape", Section == 1), aes(x = Yr, y = Counts)) +
+p <- ggplot(filter(histdata, CrimeType == "Rape", Section == 1), 
+            aes(x = Yr, y = Counts)) +
     geom_line() +
     #geom_point() +
     theme_bw() +
-    geom_line(data = filter(rapecontrol, Section == 'Lake'), aes(x = Year, y = UpperLimit), linetype = "dashed") +
-    geom_line(data = filter(rapecontrol, Section == 'Lake'), aes(x = Year, y = LowerLimit), linetype = "dashed") +
+    geom_line(data = filter(rapecontrol, Section == 'Lake'), 
+              aes(x = Year, y = UpperLimit), linetype = "dashed") +
+    geom_line(data = filter(rapecontrol, Section == 'Lake'), 
+              aes(x = Year, y = LowerLimit), linetype = "dashed") +
     #scale_x_continuous(breaks = 2009:2019) +
-    geom_point(data = rapeSPC.Lake[[5]], aes(x = curr.year, y = Value), alpha = .01) +
+    geom_point(data = sectionSPClist$Lake$Rape[[5]], aes(x = curr.year, y = Value), alpha = .01) +
     geom_point(aes(x = curr.year, y = SimsAvg), shape = 16, size = 3, color = 'blue') +
     labs(x = "Year") +
     scale_y_continuous(limits = c(ymin, ymax)) +
@@ -1576,15 +1578,18 @@ ggplotly(p, tooltip = c("Yr", "Counts", "SimsAvg"))
 
 ```{r}
 rapecontrol <- filter(controllimits, Crime == "Rape")
-SimsAvg <- mean(rapeSPC.Genesee[[5]]$Value)
-p <- ggplot(filter(histdata, CrimeType == "Rape", Section == 3), aes(x = Yr, y = Counts)) +
+SimsAvg <- mean(sectionSPClist$Genesee$Rape[[5]]$Value)
+p <- ggplot(filter(histdata, CrimeType == "Rape", Section == 3), 
+            aes(x = Yr, y = Counts)) +
     geom_line() +
     #geom_point() +
     theme_bw() +
-    geom_line(data = filter(rapecontrol, Section == 'Genesee'), aes(x = Year, y = UpperLimit), linetype = "dashed") +
-    geom_line(data = filter(rapecontrol, Section == 'Genesee'), aes(x = Year, y = LowerLimit), linetype = "dashed") +
+    geom_line(data = filter(rapecontrol, Section == 'Genesee'), 
+              aes(x = Year, y = UpperLimit), linetype = "dashed") +
+    geom_line(data = filter(rapecontrol, Section == 'Genesee'), 
+              aes(x = Year, y = LowerLimit), linetype = "dashed") +
     #scale_x_continuous(breaks = 2009:2019) +
-    geom_point(data = rapeSPC.Genesee[[5]], aes(x = curr.year, y = Value), alpha = .01) +
+    geom_point(data = sectionSPClist$Genesee$Rape[[5]], aes(x = curr.year, y = Value), alpha = .01) +
     geom_point(aes(x = curr.year, y = SimsAvg), shape = 16, size = 3, color = 'blue') +
     labs(x = "Year") +
     scale_y_continuous(limits = c(ymin, ymax)) +
@@ -1601,15 +1606,18 @@ ggplotly(p, tooltip = c("Yr", "Counts", "SimsAvg"))
 
 ```{r}
 rapecontrol <- filter(controllimits, Crime == "Rape")
-SimsAvg <- mean(rapeSPC.Goodman[[5]]$Value)
-p <- ggplot(filter(histdata, CrimeType == "Rape", Section == 5), aes(x = Yr, y = Counts)) +
+SimsAvg <- mean(sectionSPClist$Goodman$Rape[[5]]$Value)
+p <- ggplot(filter(histdata, CrimeType == "Rape", Section == 5), 
+            aes(x = Yr, y = Counts)) +
     geom_line() +
     #geom_point() +
     theme_bw() +
-    geom_line(data = filter(rapecontrol, Section == 'Goodman'), aes(x = Year, y = UpperLimit), linetype = "dashed") +
-    geom_line(data = filter(rapecontrol, Section == 'Goodman'), aes(x = Year, y = LowerLimit), linetype = "dashed") +
+    geom_line(data = filter(rapecontrol, Section == 'Goodman'), 
+              aes(x = Year, y = UpperLimit), linetype = "dashed") +
+    geom_line(data = filter(rapecontrol, Section == 'Goodman'), 
+              aes(x = Year, y = LowerLimit), linetype = "dashed") +
     #scale_x_continuous(breaks = 2009:2019) +
-    geom_point(data = rapeSPC.Goodman[[5]], aes(x = curr.year, y = Value), alpha = .01) +
+    geom_point(data = sectionSPClist$Goodman$Rape[[5]], aes(x = curr.year, y = Value), alpha = .01) +
     geom_point(aes(x = curr.year, y = SimsAvg), shape = 16, size = 3, color = 'blue') +
     labs(x = "Year") +
     scale_y_continuous(limits = c(ymin, ymax)) +
@@ -1626,15 +1634,18 @@ ggplotly(p, tooltip = c("Yr", "Counts", "SimsAvg"))
 
 ```{r}
 rapecontrol <- filter(controllimits, Crime == "Rape")
-SimsAvg <- mean(rapeSPC.Clinton[[5]]$Value)
-p <- ggplot(filter(histdata, CrimeType == "Rape", Section == 7), aes(x = Yr, y = Counts)) +
+SimsAvg <- mean(sectionSPClist$Clinton$Rape[[5]]$Value)
+p <- ggplot(filter(histdata, CrimeType == "Rape", Section == 7), 
+            aes(x = Yr, y = Counts)) +
     geom_line() +
     #geom_point() +
     theme_bw() +
-    geom_line(data = filter(rapecontrol, Section == 'Clinton'), aes(x = Year, y = UpperLimit), linetype = "dashed") +
-    geom_line(data = filter(rapecontrol, Section == 'Clinton'), aes(x = Year, y = LowerLimit), linetype = "dashed") +
+    geom_line(data = filter(rapecontrol, Section == 'Clinton'), 
+              aes(x = Year, y = UpperLimit), linetype = "dashed") +
+    geom_line(data = filter(rapecontrol, Section == 'Clinton'), 
+              aes(x = Year, y = LowerLimit), linetype = "dashed") +
     #scale_x_continuous(breaks = 2009:2019) +
-    geom_point(data = rapeSPC.Clinton[[5]], aes(x = curr.year, y = Value), alpha = .01) +
+    geom_point(data = sectionSPClist$Clinton$Rape[[5]], aes(x = curr.year, y = Value), alpha = .01) +
     geom_point(aes(x = curr.year, y = SimsAvg), shape = 16, size = 3, color = 'blue') +
     labs(x = "Year") +
     scale_y_continuous(limits = c(ymin, ymax)) +
@@ -1651,15 +1662,18 @@ ggplotly(p, tooltip = c("Yr", "Counts", "SimsAvg"))
 
 ```{r}
 rapecontrol <- filter(controllimits, Crime == "Rape")
-SimsAvg <- mean(rapeSPC.Central[[5]]$Value)
-p <- ggplot(filter(histdata, CrimeType == "Rape", Section == 9), aes(x = Yr, y = Counts)) +
+SimsAvg <- mean(sectionSPClist$Central$Rape[[5]]$Value)
+p <- ggplot(filter(histdata, CrimeType == "Rape", Section == 9), 
+            aes(x = Yr, y = Counts)) +
     geom_line() +
     #geom_point() +
     theme_bw() +
-    geom_line(data = filter(rapecontrol, Section == 'Central'), aes(x = Year, y = UpperLimit), linetype = "dashed") +
-    geom_line(data = filter(rapecontrol, Section == 'Central'), aes(x = Year, y = LowerLimit), linetype = "dashed") +
+    geom_line(data = filter(rapecontrol, Section == 'Central'), 
+              aes(x = Year, y = UpperLimit), linetype = "dashed") +
+    geom_line(data = filter(rapecontrol, Section == 'Central'), 
+              aes(x = Year, y = LowerLimit), linetype = "dashed") +
     #scale_x_continuous(breaks = 2009:2019) +
-    geom_point(data = rapeSPC.Central[[5]], aes(x = curr.year, y = Value), alpha = .01) +
+    geom_point(data = sectionSPClist$Central$Rape[[5]], aes(x = curr.year, y = Value), alpha = .01) +
     geom_point(aes(x = curr.year, y = SimsAvg), shape = 16, size = 3, color = 'blue') +
     labs(x = "Year") +
     scale_y_continuous(limits = c(ymin, ymax)) +
@@ -1686,21 +1700,21 @@ Row
 ```{r burgtable}
 
 tab <- data.frame(Sections = sec,
-                  Counts = c(burgSPC.Lake[[4]],
-                             burgSPC.Genesee[[4]],
-                             burgSPC.Goodman[[4]],
-                             burgSPC.Clinton[[4]],
-                             burgSPC.Central[[4]]),
-                  RiskOfRed = c(burgSPC.Lake[[2]],
-                               burgSPC.Genesee[[2]],
-                               burgSPC.Goodman[[2]],
-                               burgSPC.Clinton[[2]],
-                               burgSPC.Central[[2]]),
-                  ChanceOfGreen = c(burgSPC.Lake[[3]],
-                                   burgSPC.Genesee[[3]],
-                                   burgSPC.Goodman[[3]],
-                                   burgSPC.Clinton[[3]],
-                                   burgSPC.Central[[3]]))
+                  Counts = c(sectionSPClist$Lake$Burg[[4]],
+                             sectionSPClist$Genesee$Burg[[4]],
+                             sectionSPClist$Goodman$Burg[[4]],
+                             sectionSPClist$Clinton$Burg[[4]],
+                             sectionSPClist$Central$Burg[[4]]),
+                  RiskOfRed = c(sectionSPClist$Lake$Burg[[2]],
+                                sectionSPClist$Genesee$Burg[[2]],
+                                sectionSPClist$Goodman$Burg[[2]],
+                                sectionSPClist$Clinton$Burg[[2]],
+                                sectionSPClist$Central$Burg[[2]]),
+                  ChanceOfGreen = c(sectionSPClist$Lake$Burg[[3]],
+                                    sectionSPClist$Genesee$Burg[[3]],
+                                    sectionSPClist$Goodman$Burg[[3]],
+                                    sectionSPClist$Clinton$Burg[[3]],
+                                    sectionSPClist$Central$Burg[[3]]))
 
 datatable(tab,
           rownames = FALSE,
@@ -1718,11 +1732,11 @@ datatable(tab,
 ```{r burgmap}
 
 overviewmapfunc(daddyJSON = daddyJSON,
-                lakeSPC = burgSPC.Lake,
-                geneseeSPC = burgSPC.Genesee,
-                goodmanSPC = burgSPC.Goodman,
-                clintonSPC = burgSPC.Clinton,
-                centralSPC = burgSPC.Central,
+                lakeSPC = sectionSPClist$Lake$Burg,
+                geneseeSPC = sectionSPClist$Genesee$Burg,
+                goodmanSPC = sectionSPClist$Goodman$Burg,
+                clintonSPC = sectionSPClist$Clinton$Burg,
+                centralSPC = sectionSPClist$Central$Burg,
                 linkhash = "#burglary-1",
                 citymap = citymap,
                 sec = sec)
@@ -1741,7 +1755,7 @@ Row {data-height=250}
 
 ```{r}
 burgcontrol <- filter(controllimits, Crime == "Burglary")
-SimsAvg <- mean(burgSPC.Lake[[5]]$Value)
+SimsAvg <- mean(sectionSPClist$Lake$Burg[[5]]$Value)
 
 #set y axis limits
 maxhist <- maxes %>% 
@@ -1767,14 +1781,17 @@ minlim <- burgcontrol %>%
 #ymin <- min(minhist, minlim)
 ymin <- 0
 
-p <- ggplot(filter(histdata, CrimeType == "Burglary", Section == 1), aes(x = Yr, y = Counts)) +
+p <- ggplot(filter(histdata, CrimeType == "Burglary", Section == 1), 
+            aes(x = Yr, y = Counts)) +
     geom_line() +
     #geom_point() +
     theme_bw() +
-    geom_line(data = filter(burgcontrol, Section == 'Lake'), aes(x = Year, y = UpperLimit), linetype = "dashed") +
-    geom_line(data = filter(burgcontrol, Section == 'Lake'), aes(x = Year, y = LowerLimit), linetype = "dashed") +
+    geom_line(data = filter(burgcontrol, Section == 'Lake'), 
+              aes(x = Year, y = UpperLimit), linetype = "dashed") +
+    geom_line(data = filter(burgcontrol, Section == 'Lake'), 
+              aes(x = Year, y = LowerLimit), linetype = "dashed") +
     #scale_x_continuous(breaks = 2009:2019) +
-    geom_point(data = burgSPC.Lake[[5]], aes(x = curr.year, y = Value), alpha = .01) +
+    geom_point(data = sectionSPClist$Lake$Burg[[5]], aes(x = curr.year, y = Value), alpha = .01) +
     geom_point(aes(x = curr.year, y = SimsAvg), shape = 16, size = 3, color = 'blue') +
     labs(x = "Year") +
     scale_y_continuous(limits = c(ymin, ymax)) +
@@ -1791,15 +1808,18 @@ ggplotly(p, tooltip = c("Yr", "Counts", "SimsAvg"))
 
 ```{r}
 burgcontrol <- filter(controllimits, Crime == "Burglary")
-SimsAvg <- mean(burgSPC.Genesee[[5]]$Value)
-p <- ggplot(filter(histdata, CrimeType == "Burglary", Section == 3), aes(x = Yr, y = Counts)) +
+SimsAvg <- mean(sectionSPClist$Genesee$Burg[[5]]$Value)
+p <- ggplot(filter(histdata, CrimeType == "Burglary", Section == 3), 
+            aes(x = Yr, y = Counts)) +
     geom_line() +
     #geom_point() +
     theme_bw() +
-    geom_line(data = filter(burgcontrol, Section == 'Genesee'), aes(x = Year, y = UpperLimit), linetype = "dashed") +
-    geom_line(data = filter(burgcontrol, Section == 'Genesee'), aes(x = Year, y = LowerLimit), linetype = "dashed") +
+    geom_line(data = filter(burgcontrol, Section == 'Genesee'), 
+              aes(x = Year, y = UpperLimit), linetype = "dashed") +
+    geom_line(data = filter(burgcontrol, Section == 'Genesee'), 
+              aes(x = Year, y = LowerLimit), linetype = "dashed") +
     #scale_x_continuous(breaks = 2009:2019) +
-    geom_point(data = burgSPC.Genesee[[5]], aes(x = curr.year, y = Value), alpha = .01) +
+    geom_point(data = sectionSPClist$Genesee$Burg[[5]], aes(x = curr.year, y = Value), alpha = .01) +
     geom_point(aes(x = curr.year, y = SimsAvg), shape = 16, size = 3, color = 'blue') +
     labs(x = "Year") +
     scale_y_continuous(limits = c(ymin, ymax)) +
@@ -1816,15 +1836,18 @@ ggplotly(p, tooltip = c("Yr", "Counts", "SimsAvg"))
 
 ```{r}
 burgcontrol <- filter(controllimits, Crime == "Burglary")
-SimsAvg <- mean(burgSPC.Goodman[[5]]$Value)
-p <- ggplot(filter(histdata, CrimeType == "Burglary", Section == 5), aes(x = Yr, y = Counts)) +
+SimsAvg <- mean(sectionSPClist$Goodman$Burg[[5]]$Value)
+p <- ggplot(filter(histdata, CrimeType == "Burglary", Section == 5), 
+            aes(x = Yr, y = Counts)) +
     geom_line() +
     #geom_point() +
     theme_bw() +
-    geom_line(data = filter(burgcontrol, Section == 'Goodman'), aes(x = Year, y = UpperLimit), linetype = "dashed") +
-    geom_line(data = filter(burgcontrol, Section == 'Goodman'), aes(x = Year, y = LowerLimit), linetype = "dashed") +
+    geom_line(data = filter(burgcontrol, Section == 'Goodman'), 
+              aes(x = Year, y = UpperLimit), linetype = "dashed") +
+    geom_line(data = filter(burgcontrol, Section == 'Goodman'), 
+              aes(x = Year, y = LowerLimit), linetype = "dashed") +
     #scale_x_continuous(breaks = 2009:2019) +
-    geom_point(data = burgSPC.Goodman[[5]], aes(x = curr.year, y = Value), alpha = .01) +
+    geom_point(data = sectionSPClist$Goodman$Burg[[5]], aes(x = curr.year, y = Value), alpha = .01) +
     geom_point(aes(x = curr.year, y = SimsAvg), shape = 16, size = 3, color = 'blue') +
     labs(x = "Year") +
     scale_y_continuous(limits = c(ymin, ymax)) +
@@ -1841,15 +1864,18 @@ ggplotly(p, tooltip = c("Yr", "Counts", "SimsAvg"))
 
 ```{r}
 burgcontrol <- filter(controllimits, Crime == "Burglary")
-SimsAvg <- mean(burgSPC.Clinton[[5]]$Value)
-p <- ggplot(filter(histdata, CrimeType == "Burglary", Section == 7), aes(x = Yr, y = Counts)) +
+SimsAvg <- mean(sectionSPClist$Clinton$Burg[[5]]$Value)
+p <- ggplot(filter(histdata, CrimeType == "Burglary", Section == 7), 
+            aes(x = Yr, y = Counts)) +
     geom_line() +
     #geom_point() +
     theme_bw() +
-    geom_line(data = filter(burgcontrol, Section == 'Clinton'), aes(x = Year, y = UpperLimit), linetype = "dashed") +
-    geom_line(data = filter(burgcontrol, Section == 'Clinton'), aes(x = Year, y = LowerLimit), linetype = "dashed") +
+    geom_line(data = filter(burgcontrol, Section == 'Clinton'), 
+              aes(x = Year, y = UpperLimit), linetype = "dashed") +
+    geom_line(data = filter(burgcontrol, Section == 'Clinton'), 
+              aes(x = Year, y = LowerLimit), linetype = "dashed") +
     #scale_x_continuous(breaks = 2009:2019) +
-    geom_point(data = burgSPC.Clinton[[5]], aes(x = curr.year, y = Value), alpha = .01) +
+    geom_point(data = sectionSPClist$Clinton$Burg[[5]], aes(x = curr.year, y = Value), alpha = .01) +
     geom_point(aes(x = curr.year, y = SimsAvg), shape = 16, size = 3, color = 'blue') +
     labs(x = "Year") +
     scale_y_continuous(limits = c(ymin, ymax)) +
@@ -1866,15 +1892,18 @@ ggplotly(p, tooltip = c("Yr", "Counts", "SimsAvg"))
 
 ```{r}
 burgcontrol <- filter(controllimits, Crime == "Burglary")
-SimsAvg <- mean(burgSPC.Central[[5]]$Value)
-p <- ggplot(filter(histdata, CrimeType == "Burglary", Section == 9), aes(x = Yr, y = Counts)) +
+SimsAvg <- mean(sectionSPClist$Central$Burg[[5]]$Value)
+p <- ggplot(filter(histdata, CrimeType == "Burglary", Section == 9), 
+            aes(x = Yr, y = Counts)) +
     geom_line() +
     #geom_point() +
     theme_bw() +
-    geom_line(data = filter(burgcontrol, Section == 'Central'), aes(x = Year, y = UpperLimit), linetype = "dashed") +
-    geom_line(data = filter(burgcontrol, Section == 'Central'), aes(x = Year, y = LowerLimit), linetype = "dashed") +
+    geom_line(data = filter(burgcontrol, Section == 'Central'), 
+              aes(x = Year, y = UpperLimit), linetype = "dashed") +
+    geom_line(data = filter(burgcontrol, Section == 'Central'), 
+              aes(x = Year, y = LowerLimit), linetype = "dashed") +
     #scale_x_continuous(breaks = 2009:2019) +
-    geom_point(data = burgSPC.Central[[5]], aes(x = curr.year, y = Value), alpha = .01) +
+    geom_point(data = sectionSPClist$Central$Burg[[5]], aes(x = curr.year, y = Value), alpha = .01) +
     geom_point(aes(x = curr.year, y = SimsAvg), shape = 16, size = 3, color = 'blue') +
     labs(x = "Year") +
     scale_y_continuous(limits = c(ymin, ymax)) +
@@ -1901,21 +1930,21 @@ Row
 ```{r larcenytable}
 
 tab <- data.frame(Sections = sec,
-                  Counts = c(larcSPC.Lake[[4]],
-                             larcSPC.Genesee[[4]],
-                             larcSPC.Goodman[[4]],
-                             larcSPC.Clinton[[4]],
-                             larcSPC.Central[[4]]),
-                  RiskOfRed = c(larcSPC.Lake[[2]],
-                               larcSPC.Genesee[[2]],
-                               larcSPC.Goodman[[2]],
-                               larcSPC.Clinton[[2]],
-                               larcSPC.Central[[2]]),
-                  ChanceOfGreen = c(larcSPC.Lake[[3]],
-                                   larcSPC.Genesee[[3]],
-                                   larcSPC.Goodman[[3]],
-                                   larcSPC.Clinton[[3]],
-                                   larcSPC.Central[[3]]))
+                  Counts = c(sectionSPClist$Lake$Larc[[4]],
+                             sectionSPClist$Genesee$Larc[[4]],
+                             sectionSPClist$Goodman$Larc[[4]],
+                             sectionSPClist$Clinton$Larc[[4]],
+                             sectionSPClist$Central$Larc[[4]]),
+                  RiskOfRed = c(sectionSPClist$Lake$Larc[[2]],
+                                sectionSPClist$Genesee$Larc[[2]],
+                                sectionSPClist$Goodman$Larc[[2]],
+                                sectionSPClist$Clinton$Larc[[2]],
+                                sectionSPClist$Central$Larc[[2]]),
+                  ChanceOfGreen = c(sectionSPClist$Lake$Larc[[3]],
+                                    sectionSPClist$Genesee$Larc[[3]],
+                                    sectionSPClist$Goodman$Larc[[3]],
+                                    sectionSPClist$Clinton$Larc[[3]],
+                                    sectionSPClist$Central$Larc[[3]]))
 
 datatable(tab,
           rownames = FALSE,
@@ -1933,11 +1962,11 @@ datatable(tab,
 ```{r larcmap}
 
 overviewmapfunc(daddyJSON = daddyJSON,
-                lakeSPC = larcSPC.Lake,
-                geneseeSPC = larcSPC.Genesee,
-                goodmanSPC = larcSPC.Goodman,
-                clintonSPC = larcSPC.Clinton,
-                centralSPC = larcSPC.Central,
+                lakeSPC = sectionSPClist$Lake$Larc,
+                geneseeSPC = sectionSPClist$Genesee$Larc,
+                goodmanSPC = sectionSPClist$Goodman$Larc,
+                clintonSPC = sectionSPClist$Clinton$Larc,
+                centralSPC = sectionSPClist$Central$Larc,
                 linkhash = "#larceny-1",
                 citymap = citymap,
                 sec = sec)
@@ -1956,7 +1985,7 @@ Row {data-height=250}
 
 ```{r}
 larccontrol <- filter(controllimits, Crime == "Larceny")
-SimsAvg <- mean(larcSPC.Lake[[5]]$Value)
+SimsAvg <- mean(sectionSPClist$Lake$Larc[[5]]$Value)
 
 #set y axis limits
 maxhist <- maxes %>% 
@@ -1989,7 +2018,7 @@ p <- ggplot(filter(histdata, CrimeType == "Larceny", Section == 1), aes(x = Yr, 
     geom_line(data = filter(larccontrol, Section == 'Lake'), aes(x = Year, y = UpperLimit), linetype = "dashed") +
     geom_line(data = filter(larccontrol, Section == 'Lake'), aes(x = Year, y = LowerLimit), linetype = "dashed") +
     #scale_x_continuous(breaks = 2009:2019) +
-    geom_point(data = larcSPC.Lake[[5]], aes(x = curr.year, y = Value), alpha = .01) +
+    geom_point(data = sectionSPClist$Lake$Larc[[5]], aes(x = curr.year, y = Value), alpha = .01) +
     geom_point(aes(x = curr.year, y = SimsAvg), shape = 16, size = 3, color = 'blue') +
     labs(x = "Year") +
     scale_y_continuous(limits = c(ymin, ymax)) +
@@ -2007,15 +2036,18 @@ ggplotly(p, tooltip = c("Yr", "Counts", "SimsAvg"))
 
 ```{r}
 larccontrol <- filter(controllimits, Crime == "Larceny")
-SimsAvg <- mean(larcSPC.Genesee[[5]]$Value)
-p <- ggplot(filter(histdata, CrimeType == "Larceny", Section == 3), aes(x = Yr, y = Counts)) +
+SimsAvg <- mean(sectionSPClist$Genesee$Larc[[5]]$Value)
+p <- ggplot(filter(histdata, CrimeType == "Larceny", Section == 3), 
+            aes(x = Yr, y = Counts)) +
     geom_line() +
     #geom_point() +
     theme_bw() +
-    geom_line(data = filter(larccontrol, Section == 'Genesee'), aes(x = Year, y = UpperLimit), linetype = "dashed") +
-    geom_line(data = filter(larccontrol, Section == 'Genesee'), aes(x = Year, y = LowerLimit), linetype = "dashed") +
+    geom_line(data = filter(larccontrol, Section == 'Genesee'), 
+              aes(x = Year, y = UpperLimit), linetype = "dashed") +
+    geom_line(data = filter(larccontrol, Section == 'Genesee'), 
+              aes(x = Year, y = LowerLimit), linetype = "dashed") +
     #scale_x_continuous(breaks = 2009:2019) +
-    geom_point(data = larcSPC.Genesee[[5]], aes(x = curr.year, y = Value), alpha = .01) +
+    geom_point(data = sectionSPClist$Genesee$Larc[[5]], aes(x = curr.year, y = Value), alpha = .01) +
     geom_point(aes(x = curr.year, y = SimsAvg), shape = 16, size = 3, color = 'blue') +
     labs(x = "Year") +
     scale_y_continuous(limits = c(ymin, ymax)) +
@@ -2032,15 +2064,18 @@ ggplotly(p, tooltip = c("Yr", "Counts", "SimsAvg"))
 
 ```{r}
 larccontrol <- filter(controllimits, Crime == "Larceny")
-SimsAvg <- mean(larcSPC.Goodman[[5]]$Value)
-p <- ggplot(filter(histdata, CrimeType == "Larceny", Section == 5), aes(x = Yr, y = Counts)) +
+SimsAvg <- mean(sectionSPClist$Goodman$Larc[[5]]$Value)
+p <- ggplot(filter(histdata, CrimeType == "Larceny", Section == 5), 
+            aes(x = Yr, y = Counts)) +
     geom_line() +
     #geom_point() +
     theme_bw() +
-    geom_line(data = filter(larccontrol, Section == 'Goodman'), aes(x = Year, y = UpperLimit), linetype = "dashed") +
-    geom_line(data = filter(larccontrol, Section == 'Goodman'), aes(x = Year, y = LowerLimit), linetype = "dashed") +
+    geom_line(data = filter(larccontrol, Section == 'Goodman'), 
+              aes(x = Year, y = UpperLimit), linetype = "dashed") +
+    geom_line(data = filter(larccontrol, Section == 'Goodman'), 
+              aes(x = Year, y = LowerLimit), linetype = "dashed") +
     #scale_x_continuous(breaks = 2009:2019) +
-    geom_point(data = larcSPC.Goodman[[5]], aes(x = curr.year, y = Value), alpha = .01) +
+    geom_point(data = sectionSPClist$Goodman$Larc[[5]], aes(x = curr.year, y = Value), alpha = .01) +
     geom_point(aes(x = curr.year, y = SimsAvg), shape = 16, size = 3, color = 'blue') +
     labs(x = "Year") +
     scale_y_continuous(limits = c(ymin, ymax)) +
@@ -2057,15 +2092,18 @@ ggplotly(p, tooltip = c("Yr", "Counts", "SimsAvg"))
 
 ```{r}
 larccontrol <- filter(controllimits, Crime == "Larceny")
-SimsAvg <- mean(larcSPC.Clinton[[5]]$Value)
-p <- ggplot(filter(histdata, CrimeType == "Larceny", Section == 7), aes(x = Yr, y = Counts)) +
+SimsAvg <- mean(sectionSPClist$Clinton$Larc[[5]]$Value)
+p <- ggplot(filter(histdata, CrimeType == "Larceny", Section == 7), 
+            aes(x = Yr, y = Counts)) +
     geom_line() +
     #geom_point() +
     theme_bw() +
-    geom_line(data = filter(larccontrol, Section == 'Clinton'), aes(x = Year, y = UpperLimit), linetype = "dashed") +
-    geom_line(data = filter(larccontrol, Section == 'Clinton'), aes(x = Year, y = LowerLimit), linetype = "dashed") +
+    geom_line(data = filter(larccontrol, Section == 'Clinton'), 
+              aes(x = Year, y = UpperLimit), linetype = "dashed") +
+    geom_line(data = filter(larccontrol, Section == 'Clinton'), 
+              aes(x = Year, y = LowerLimit), linetype = "dashed") +
     #scale_x_continuous(breaks = 2009:2019) +
-    geom_point(data = larcSPC.Clinton[[5]], aes(x = curr.year, y = Value), alpha = .01) +
+    geom_point(data = sectionSPClist$Clinton$Larc[[5]], aes(x = curr.year, y = Value), alpha = .01) +
     geom_point(aes(x = curr.year, y = SimsAvg), shape = 16, size = 3, color = 'blue') +
     labs(x = "Year") +
     scale_y_continuous(limits = c(ymin, ymax)) +
@@ -2082,15 +2120,18 @@ ggplotly(p, tooltip = c("Yr", "Counts", "SimsAvg"))
 
 ```{r}
 larccontrol <- filter(controllimits, Crime == "Larceny")
-SimsAvg <- mean(larcSPC.Central[[5]]$Value)
-p <- ggplot(filter(histdata, CrimeType == "Larceny", Section == 9), aes(x = Yr, y = Counts)) +
+SimsAvg <- mean(sectionSPClist$Central$Larc[[5]]$Value)
+p <- ggplot(filter(histdata, CrimeType == "Larceny", Section == 9), 
+            aes(x = Yr, y = Counts)) +
     geom_line() +
     #geom_point() +
     theme_bw() +
-    geom_line(data = filter(larccontrol, Section == 'Central'), aes(x = Year, y = UpperLimit), linetype = "dashed") +
-    geom_line(data = filter(larccontrol, Section == 'Central'), aes(x = Year, y = LowerLimit), linetype = "dashed") +
+    geom_line(data = filter(larccontrol, Section == 'Central'), 
+              aes(x = Year, y = UpperLimit), linetype = "dashed") +
+    geom_line(data = filter(larccontrol, Section == 'Central'), 
+              aes(x = Year, y = LowerLimit), linetype = "dashed") +
     #scale_x_continuous(breaks = 2009:2019) +
-    geom_point(data = larcSPC.Central[[5]], aes(x = curr.year, y = Value), alpha = .01) +
+    geom_point(data = sectionSPClist$Central$Larc[[5]], aes(x = curr.year, y = Value), alpha = .01) +
     geom_point(aes(x = curr.year, y = SimsAvg), shape = 16, size = 3, color = 'blue') +
     labs(x = "Year") +
     scale_y_continuous(limits = c(ymin, ymax)) +

@@ -63,30 +63,8 @@ curr.week <- sevenDayGroupTable$Group[match(as.numeric(format(Sys.Date(),
                                                              '%j')), 
                                            sevenDayGroupTable$DOY)] - 1
 
-
-#read in section JSON
-sectionJSON <- readLines("https://opendata.arcgis.com/datasets/772f3621fa354ec9abf3ba33f3ace59e_0.geojson") %>%
-    paste(collapse = "\n") %>%
-    fromJSON(simplifyVector = FALSE)
-
-#gather section names and set color palettes for sections and beats
-secNames <- sapply(sectionJSON$features, function(x) x$properties$Section)
-sectionpal <- colorFactor(palette = colorspace::sequential_hcl(5),
-                   domain = secNames)
-
-sectionJSON$features <- lapply(sectionJSON$features, function(x){
-    x$properties$style <- list(
-        fillColor = sectionpal(x$properties$Section)
-    )
-    x
-})
-
-#Create city base map
-
-citymap <- leaflet() %>% 
-    addProviderTiles("CartoDB.Positron") %>% 
-    fitBounds(lng1 = -77.55, lat1 = 43.11, lng2 = -77.668684, lat2 = 43.264020) %>%
-    addGeoJSON(sectionJSON, fillOpacity = .1)
+# Read in city map
+citymap <- readRDS(file = "Z:/Projects/dashboard/RPDCrimeDashboard/Objects/citymap.RDS")
 
 firearm.desc <- trimws(c('Prohibited Use of Weapon City Limits', 
                         'Use of Dangerous Weapon', 
@@ -101,50 +79,7 @@ firearmCrimeTypes <- c("Aggravated Assault", "Robbery", "Homicide", "Rape", "Sim
 
 #load in RPD's crime data
 
-df <- LERMS_incidents_query(years = curr.year) %>%
-    distinct(CaseNumber, FullAddress, ReportDate, Description, .keep_all = TRUE) %>%
-    filter(MostSerious == 1, CaseStatusValue != 'Unfounded') %>%
-    arrange(ReportDate) %>%
-    mutate(CRNum = paste0(substr(CaseNumber, start = 3, stop = 5),
-                          substr(CaseNumber, start = 8, stop = 13)),
-           Lat = as.numeric(Lat),
-           Lon = as.numeric(Lon),
-           OffenseDate = as.Date(OffenseDate, format = "%Y-%m-%d"),
-           ReportDate = as.Date(ReportDate, format = "%Y-%m-%d"),
-           OccurToDate = as.Date(OccurToDate, format = "%Y-%m-%d"),
-           OccurFromDate = as.Date(OccurFromDate, format = "%Y-%m-%d"),
-           OffenseDOW = factor(OffenseDOW, 
-                               levels = c("Sunday", "Monday", "Tuesday", "Wednesday",
-                                   "Thursday", "Friday", "Saturday"), 
-                               ordered = TRUE),
-           OccurToDayOfYear = as.numeric(format(OccurToDate, "%j")),
-           GEOBeat = factor(GEOBeat,
-                            levels = unique(GEOBeat[order(substr(GEOBeat, 3, 3), 
-                                                          substr(GEOBeat, 1, 2))])),
-           sec = case_when(.$Section == 1 ~ "Lake", 
-                           .$Section == 3 ~ "Genesee", 
-                           .$Section == 5 ~ "Goodman", 
-                           .$Section == 7 ~ "Clinton", 
-                           .$Section == 9 ~ "Central"),
-           WeaponGroup = case_when(.$WeaponIBRValue %in% c("01", "02", "03", "04", "05",
-                                                         "06", "07", "08", "09", "10") ~ "Firearm",
-                                   .$WeaponIBRValue == "11" ~ "Knife/Cutting Instrument",
-                                   .$WeaponIBRValue == "12" ~ "Blunt Object",
-                                   .$WeaponIBRValue %in% c("14", "15") ~ "Physical",
-                                   TRUE ~ "Other"),
-           FullAddress = unname(sapply(FullAddress, simpleCap)),
-           WeaponIBRValue = as.numeric(WeaponIBRValue),
-           Description = trimws(Description)) %>%
-    mutate(Firearm = case_when(.$WeaponIBRValue %in% 1:10 &
-                                   .$CrimeType %in% firearmCrimeTypes ~ "Firearm",
-                               .$CrimeType == "Dangerous Weapons" & 
-                                   .$Description %in% firearm.desc ~ "Firearm",
-                               TRUE ~ "Non-Firearm")) %>%
-    left_join(sevenDayGroupTable, by = c("OccurToDayOfYear" = "DOY")) %>%
-    select(-Date) %>%
-    dplyr::rename("SevenDaysGroup" = Group) %>%
-    filter(SevenDaysGroup <= curr.week) %>%
-    mutate(Description = trim(sub(x = Description, pattern = ":.*", replacement = "")))
+df <- readRDS(file = "Z:/Projects/dashboard/RPDCrimeDashboard/Objects/citywidedf.RDS")
 
 #use beatNames to make factor levels for beats
 beatNames <- df %>%

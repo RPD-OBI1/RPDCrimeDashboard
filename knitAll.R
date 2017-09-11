@@ -1,6 +1,10 @@
 
 start <- Sys.time()
 
+## Data prep
+
+source("Z:/Projects/dashboard/RPDCrimeDashboard/dashboardDataPrepWeekly.R")
+
 ## Citywide dashboards
 
 rmarkdown::render("citywidedashboard.RMD")
