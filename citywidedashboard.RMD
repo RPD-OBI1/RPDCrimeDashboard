@@ -83,7 +83,7 @@ df <- readRDS(file = "Z:/Projects/dashboard/RPDCrimeDashboard/Objects/citywidedf
 
 #use beatNames to make factor levels for beats
 beatNames <- df %>%
-    select(GEOBeat) %>%
+    dplyr::select(GEOBeat) %>%
     unique() %>% 
     filter(! grepl(x = GEOBeat, pattern = "\\*")) %>% #remove *** as a beat name
     arrange(substr(GEOBeat, 3, 3), GEOBeat) %>%
@@ -132,7 +132,7 @@ MCUhoms <- MCUhoms %>%
                   Lon = Longitude,
                   FullAddress = Address) %>%
     left_join(sevenDayGroupTable, by = c("DOYofEvent" = "DOY")) %>%
-    select(-Date) %>%
+    dplyr::select(-Date) %>%
     dplyr::rename("SevenDaysGroup" = Group)
 
 personincident <- left_join(MCUhoms, person, by = "CaseNumber")
@@ -140,11 +140,11 @@ personincident <- left_join(MCUhoms, person, by = "CaseNumber")
 sv <- loadshootingvictims()
 drops <- c("Lat", "Lon")
 svjoined <- left_join(x = sv, y = df, by = c("CaseNumber" = "CRNum")) %>%
-    select(-one_of(drops)) %>%
+    dplyr::select(-one_of(drops)) %>%
     rename(Lat = Latitude, Lon = Longitude)
 
 firearmSPC <- SPC(crimetype = "Firearm")
-svSPC <- SPC(dataf = svjoined, crimetype = "Shooting")
+svSPC <- SPC(dataf = svjoined, crimetype = "Shooting", Prop.Vals = ShootingProps)
 homicideSPC <- SPC(dataf = MCUhoms, crimetype = "Homicide")
 rapeSPC <- SPC(crimetype = "Rape")
 robSPC <- SPC(crimetype = "Robbery")
@@ -833,7 +833,7 @@ table(aslts$WeaponGroup) %>%
 ```{r}
 
 aslts %>% 
-    select(LocationSceneDescription) %>%
+    dplyr::select(LocationSceneDescription) %>%
     table() %>%
     as.data.frame() %>%
     arrange(desc(Freq)) %>%
@@ -1075,7 +1075,7 @@ text(x = 500, y = 10, labels = "Homicide", cex = 2, col = 'black')
 if(nrow(personincident) > 0){
     persons <- personincident %>% 
         filter(PersonType %in% c("Victim", "Arrestee")) %>%
-        select(CaseNumber, Beat, DateOfEvent, DateOfDeath, 
+        dplyr::select(CaseNumber, Beat, DateOfEvent, DateOfDeath, 
                CaseStatus, WeaponType, PersonType, Name, DOB) %>%
         mutate(PersonType = factor(PersonType),
                Beat = factor(Beat),
@@ -1193,7 +1193,7 @@ rapes <- df %>%
     filter(CrimeType == "Rape")
 
 rapes %>%
-    select(CaseNumber, FullAddress, OccurToDate, 
+    dplyr::select(CaseNumber, FullAddress, OccurToDate, 
            ReportDate, LocationSceneDescription, CaseStatusValue) %>%
     mutate(LocationSceneDescription = factor(LocationSceneDescription),
            CaseStatusValue = factor(CaseStatusValue)) %>%
@@ -1220,7 +1220,7 @@ cat("Victim/Offender relationship data has not yet been made available by IT.")
 ```{r}
 
 rapes %>% 
-    select(LocationSceneDescription) %>%
+    dplyr::select(LocationSceneDescription) %>%
     table() %>% 
     as.data.frame() %>% 
     arrange(desc(Freq)) %>%

@@ -8,6 +8,7 @@ source("Z:/Projects/dashboard/RPDCrimeDashboard/dashboardDataPrepWeekly.R")
 ## Citywide dashboards
 
 rmarkdown::render("citywidedashboard.RMD")
+
 rmarkdown::render("citywideCFSdashboard.RMD")
 
 ## Section crime dashboards

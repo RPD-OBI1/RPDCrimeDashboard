@@ -15,19 +15,6 @@ params:
 
 ```{r loadpackages, include=FALSE}
 
-sectionsmatch <- data.frame(section = c(1, 3, 5, 7, 9),
-                            sectionname = c("Lake", "Genesee", "Goodman", "Clinton", "Central"),
-                            # lng1 = c(-77.617488, -77.604633, -77.615712, -77.575370, -77.592894),
-                            # lat1 = c(43.158172, 43.114570, 43.124344, 43.159093, 43.138862),
-                            # lng2 = c(-77.668684, -77.686093, -77.522970, -77.626865, -77.635598),
-                            # lat2 = c(43.264020, 43.159699, 43.237813, 43.257633, 43.165201),
-                            stringsAsFactors = FALSE)
-section <- sectionsmatch[match(params$sectionname, sectionsmatch$sectionname),"section"]
-# lng1FB <- sectionsmatch[match(params$sectionname, sectionsmatch$sectionname), "lng1"]
-# lat1FB <- sectionsmatch[match(params$sectionname, sectionsmatch$sectionname), "lat1"]
-# lng2FB <- sectionsmatch[match(params$sectionname, sectionsmatch$sectionname), "lng2"]
-# lat2FB <- sectionsmatch[match(params$sectionname, sectionsmatch$sectionname), "lat2"]
-
 library(knitr)
 library(flexdashboard)
 library(RColorBrewer)
@@ -64,6 +51,20 @@ simpleCap <- function(x) {
   paste(toupper(substring(s, 1,1)), tolower(substring(s, 2)),
       sep = "", collapse = " ")
 }
+
+sectionsmatch <- data.frame(section = c(1, 3, 5, 7, 9),
+                            sectionname = c("Lake", "Genesee", "Goodman", "Clinton", "Central"),
+                            # lng1 = c(-77.617488, -77.604633, -77.615712, -77.575370, -77.592894),
+                            # lat1 = c(43.158172, 43.114570, 43.124344, 43.159093, 43.138862),
+                            # lng2 = c(-77.668684, -77.686093, -77.522970, -77.626865, -77.635598),
+                            # lat2 = c(43.264020, 43.159699, 43.237813, 43.257633, 43.165201),
+                            stringsAsFactors = FALSE)
+section <- sectionsmatch[match(params$sectionname, sectionsmatch$sectionname),"section"]
+# lng1FB <- sectionsmatch[match(params$sectionname, sectionsmatch$sectionname), "lng1"]
+# lat1FB <- sectionsmatch[match(params$sectionname, sectionsmatch$sectionname), "lat1"]
+# lng2FB <- sectionsmatch[match(params$sectionname, sectionsmatch$sectionname), "lng2"]
+# lat2FB <- sectionsmatch[match(params$sectionname, sectionsmatch$sectionname), "lat2"]
+
 
 ```
 
@@ -159,20 +160,16 @@ pal <- brewer.pal(name = "Reds", n = 9)
 PropVals <- read.csv("Y:/Projects/dashboard/RPDCrimeDashboard/Objects/ProportionsAndCounts.csv", 
                      header= T) %>%
     filter(Section == params$sectionname)
-ShootingControlLimits <- read.csv("Y:/Projects/dashboard/RPDCrimeDashboard/Objects/3YrWeightedControlLimitsShootings.csv") %>%
+ShootingControlLimits <- read_csv("Y:/Projects/dashboard/RPDCrimeDashboard/Objects/3YrWeightedControlLimitsShootings.csv") %>%
     filter(Section == params$sectionname)
-ShootingProps <- read.csv("Y:/Projects/dashboard/RPDCrimeDashboard/Objects/ProportionsAndCountsShootings.csv", 
-                          stringsAsFactors = FALSE) %>%
-    filter(Section == params$sectionname)
+ShootingProps <- read_csv("Y:/Projects/dashboard/RPDCrimeDashboard/Objects/ProportionsAndCountsShootings.csv") %>%
+    dplyr::filter(Section == params$sectionname)
 
-histdata <- read.csv(file = "Y:/Projects/dashboard/RPDCrimeDashboard/Objects/historicaldata.csv", 
-                     stringsAsFactors = FALSE, 
-                     header = TRUE) %>%
-    filter(Section == section)
+histdata <- read_csv(file = "Y:/Projects/dashboard/RPDCrimeDashboard/Objects/historicaldata.csv") %>%
+    dplyr::filter(Section == section)
 
-controllimits <- read.csv(file = "Y:/Projects/dashboard/RPDCrimeDashboard/Objects//3YrWeightedControlLimits.csv", 
-                          header = TRUE) %>%
-    filter(Section == params$sectionname)
+controllimits <- read_csv(file = "Y:/Projects/dashboard/RPDCrimeDashboard/Objects//3YrWeightedControlLimits.csv") %>%
+    dplyr::filter(Section == params$sectionname)
 
 controllimits <- rbind(data.frame(controllimits, Year = 2017),
                        data.frame(controllimits, Year = 2018),
@@ -216,14 +213,25 @@ exclude <- c("630 North Clinton Ave, Rochester, NY, 14605",
              "185 Exchange Blvd, Rochester, NY, 14614",
              "1099 Jay St, Rochester, NY, 14611")
 
-firearmSPC <- SPC(crimetype = "Firearm")
-svSPC <- SPC(dataf = svjoined, crimetype = "Shooting")
-homicideSPC <- SPC(dataf = MCUhoms, crimetype = "Homicide")
-rapeSPC <- SPC(crimetype = "Rape")
-robSPC <- SPC(crimetype = "Robbery")
-asltSPC <- SPC(crimetype = "Aggravated Assault")
-burgSPC <- SPC(crimetype = "Burglary")
-larcSPC <- SPC(crimetype = "Larceny")
+# firearmSPC <- SPC(crimetype = "Firearm")
+# svSPC <- SPC(dataf = svjoined, crimetype = "Shooting")
+# homicideSPC <- SPC(dataf = MCUhoms, crimetype = "Homicide")
+# rapeSPC <- SPC(crimetype = "Rape")
+# robSPC <- SPC(crimetype = "Robbery")
+# asltSPC <- SPC(crimetype = "Aggravated Assault")
+# burgSPC <- SPC(crimetype = "Burglary")
+# larcSPC <- SPC(crimetype = "Larceny")
+
+sectionSPC <- readRDS("Y:/Projects/dashboard/RPDCrimeDashboard/Objects/sectionSPClist.RDS")[params$sectionname][[1]]
+firearmSPC <- sectionSPC$Firearm
+svSPC <- sectionSPC$SV
+homicideSPC <- sectionSPC$Homicide
+rapeSPC <- sectionSPC$Rape
+robSPC <- sectionSPC$Rob
+asltSPC <- sectionSPC$Aslt
+burgSPC <- sectionSPC$Burg
+larcSPC <- sectionSPC$Larc
+
 odbcCloseAll()
 
 ```
@@ -515,11 +523,11 @@ Column {data-width=400 .tabset .tabset-fade}
 
 ### YTD Hotspot map
 
-```{r}
+```{r whydoesthisfail}
 
-guns <- filter(df, Firearm == "Firearm")
+guns <- dplyr::filter(df, Firearm == "Firearm")
 map <- hotspotMap(sectionmap, 
-                  filter(guns, Lat != -361))
+                  dplyr::filter(guns, Lat != -361))
 map
 
 ```
@@ -581,7 +589,7 @@ There were `r nrow(CPWs)` CPW crimes (excluding knives/brass knuckle crimes). Th
 
 ```{r}
 #kable(CPWs[c("FullAddress", "Beat", "OccurFromDate", "Description")], col.names = c('Address', 'Beat', 'Date', 'Description'))
-DT::datatable(CPWs[c("FullAddress", "Beat", "OccurFromDate", "Description")],
+DT::datatable(CPWs[, c("FullAddress", "Beat", "OccurFromDate", "Description")],
               filter = 'top',
               rownames = FALSE,
               colnames = c('Address', 'Beat', 'Date', 'Description'),
@@ -643,7 +651,7 @@ if(nrow(svjoined) > 0){
 
 ```{r}
 
-svjoin28 <- filter(svjoined,
+svjoin28 <- dplyr::filter(svjoined,
                    SevenDaysGroup >= curr.week - 3)
 
 if(nrow(svjoin28) > 0){

@@ -11,6 +11,7 @@ source("Y:/Projects/dashboard/RPDCrimeDashboard/Functions/LERMS_incidents.R")
 source("Y:/Projects/dashboard/RPDCrimeDashboard/Functions/pullMCUdata.R")
 source("Y:/Projects/dashboard/RPDCrimeDashboard/Functions/loadshootingvictims.R")
 source("Y:/Projects/dashboard/RPDCrimeDashboard/Functions/LERMS_getCallsForService.R")
+source("Y:/Projects/dashboard/RPDCrimeDashboard/Functions/SPC.R")
 
 simpleCap <- function(x) {
     s <- strsplit(x, " ")[[1]]
@@ -75,7 +76,7 @@ df <- LERMS_incidents_query(years = curr.year) %>%
                            .$Section == 7 ~ "Clinton", 
                            .$Section == 9 ~ "Central"),
            WeaponGroup = case_when(.$WeaponIBRValue %in% c("01", "02", "03", "04", "05",
-                                                           "06", "07", "08", "09", "10") ~ "Firearm",
+                                                         "06", "07", "08", "09", "10") ~ "Firearm",
                                    .$WeaponIBRValue == "11" ~ "Knife/Cutting Instrument",
                                    .$WeaponIBRValue == "12" ~ "Blunt Object",
                                    .$WeaponIBRValue %in% c("14", "15") ~ "Physical",
@@ -83,14 +84,14 @@ df <- LERMS_incidents_query(years = curr.year) %>%
            FullAddress = unname(sapply(FullAddress, simpleCap)),
            WeaponIBRValue = as.numeric(WeaponIBRValue),
            Description = trimws(Description),
-           Description = trimws(sub(x = Description, pattern = ":.*", replacement = "")),
-           Firearm = case_when(.$WeaponIBRValue %in% 1:10 &
+           Description = trimws(sub(x = Description, pattern = ":.*", replacement = ""))) %>%
+    mutate(Firearm = case_when(.$WeaponIBRValue %in% 1:10 &
                                    .$CrimeType %in% firearmCrimeTypes ~ "Firearm",
                                .$CrimeType == "Dangerous Weapons" & 
                                    .$Description %in% firearm.desc ~ "Firearm",
                                TRUE ~ "Non-Firearm")) %>%
     left_join(sevenDayGroupTable, by = c("OccurToDayOfYear" = "DOY")) %>%
-    select(-Date) %>%
+    dplyr::select(-Date) %>%
     dplyr::rename("SevenDaysGroup" = Group) %>%
     filter(SevenDaysGroup <= curr.week)
 
@@ -197,26 +198,30 @@ df.Goodman <- filter(df, sec == "Goodman")
 df.Clinton <- filter(df, sec == "Clinton")
 df.Central <- filter(df, sec == "Central")
 
-ShootingProps <- filter(ShootingPropsFull, Section == "Lake") #To avoid having to change the SPC function...
-ShootingProps <- filter(ShootingPropsFull, Section == "Genesee")
-ShootingProps <- filter(ShootingPropsFull, Section == "Goodman")
-ShootingProps <- filter(ShootingPropsFull, Section == "Clinton")
-ShootingProps <- filter(ShootingPropsFull, Section == "Central")
+ShootingProps.Lake <- filter(ShootingPropsFull, Section == "Lake") #To avoid having to change the SPC function...
+ShootingProps.Genesee <- filter(ShootingPropsFull, Section == "Genesee")
+ShootingProps.Goodman <- filter(ShootingPropsFull, Section == "Goodman")
+ShootingProps.Clinton <- filter(ShootingPropsFull, Section == "Clinton")
+ShootingProps.Central <- filter(ShootingPropsFull, Section == "Central")
 
 sectionSPClist <- list(
     Lake = list(
         Firearm = firearmSPC.Lake <- SPC(crimetype = "Firearm", Prop.Vals = PropValsLake, dataf = df.Lake),
-        SV = svSPC.Lake <- SPC(crimetype = "Shooting", dataf = filter(svjoined, sec == "Lake")),
+        SV = svSPC.Lake <- SPC(crimetype = "Shooting", 
+                               Prop.Vals = ShootingProps.Lake,
+                               dataf = filter(svjoined, sec == "Lake")),
         Homicide = homicideSPC.Lake <- SPC(crimetype = "Homicide", Prop.Vals = PropValsLake, dataf = df.Lake),
         Rape = rapeSPC.Lake <- SPC(crimetype = "Rape", Prop.Vals = PropValsLake, dataf = df.Lake),
         Rob = robSPC.Lake <- SPC(crimetype = "Robbery", Prop.Vals = PropValsLake, dataf = df.Lake),
         Aslt = asltSPC.Lake <- SPC(crimetype = "Aggravated Assault", Prop.Vals = PropValsLake, dataf = df.Lake),
         Burg = burgSPC.Lake <- SPC(crimetype = "Burglary", Prop.Vals = PropValsLake, dataf = df.Lake),
         Larc = larcSPC.Lake <- SPC(crimetype = "Larceny", Prop.Vals = PropValsLake, dataf = df.Lake)
-        ),
+    ),
     Genesee = list(
         Firearm = firearmSPC.Genesee <- SPC(crimetype = "Firearm", Prop.Vals = PropValsGenesee, dataf = df.Genesee),
-        SV = svSPC.Genesee <- SPC(crimetype = "Shooting", dataf = filter(svjoined, sec == "Genesee")),
+        SV = svSPC.Genesee <- SPC(crimetype = "Shooting", 
+                                  Prop.Vals = ShootingProps.Genesee,
+                                  dataf = filter(svjoined, sec == "Genesee")),
         Homicide = homicideSPC.Genesee <- SPC(crimetype = "Homicide", Prop.Vals = PropValsGenesee, dataf = df.Genesee),
         Rape = rapeSPC.Genesee <- SPC(crimetype = "Rape", Prop.Vals = PropValsGenesee, dataf = df.Genesee),
         Rob = robSPC.Genesee <- SPC(crimetype = "Robbery", Prop.Vals = PropValsGenesee, dataf = df.Genesee),
@@ -226,7 +231,9 @@ sectionSPClist <- list(
         ),
     Goodman = list(
         Firearm = firearmSPC.Goodman <- SPC(crimetype = "Firearm", Prop.Vals = PropValsGoodman, dataf = df.Goodman),
-        SV = svSPC.Goodman <- SPC(crimetype = "Shooting", dataf = filter(svjoined, sec == "Goodman")),
+        SV = svSPC.Goodman <- SPC(crimetype = "Shooting", 
+                                  Prop.Vals = ShootingProps.Goodman,
+                                  dataf = filter(svjoined, sec == "Goodman")),
         Homicide = homicideSPC.Goodman <- SPC(crimetype = "Homicide", Prop.Vals = PropValsGoodman, dataf = df.Goodman),
         Rape = rapeSPC.Goodman <- SPC(crimetype = "Rape", Prop.Vals = PropValsGoodman, dataf = df.Goodman),
         Rob = robSPC.Goodman <- SPC(crimetype = "Robbery", Prop.Vals = PropValsGoodman, dataf = df.Goodman),
@@ -236,7 +243,9 @@ sectionSPClist <- list(
         ),
     Clinton = list(
         Firearm = firearmSPC.Clinton <- SPC(crimetype = "Firearm", Prop.Vals = PropValsClinton, dataf = df.Clinton),
-        SV = svSPC.Clinton <- SPC(crimetype = "Shooting", dataf = filter(svjoined, sec == "Clinton")),
+        SV = svSPC.Clinton <- SPC(crimetype = "Shooting", 
+                                  Prop.Vals = ShootingProps.Clinton,
+                                  dataf = filter(svjoined, sec == "Clinton")),
         Homicide = homicideSPC.Clinton <- SPC(crimetype = "Homicide", Prop.Vals = PropValsClinton, dataf = df.Clinton),
         Rape = rapeSPC.Clinton <- SPC(crimetype = "Rape", Prop.Vals = PropValsClinton, dataf = df.Clinton),
         Rob = robSPC.Clinton <- SPC(crimetype = "Robbery", Prop.Vals = PropValsClinton, dataf = df.Clinton),
@@ -246,7 +255,9 @@ sectionSPClist <- list(
         ),
     Central = list(
         Firearm = firearmSPC.Central <- SPC(crimetype = "Firearm", Prop.Vals = PropValsCentral, dataf = df.Central),
-        SV = svSPC.Central <- SPC(crimetype = "Shooting", dataf = filter(svjoined, sec == "Central")),
+        SV = svSPC.Central <- SPC(crimetype = "Shooting", 
+                                  Prop.Vals = ShootingProps.Central,
+                                  dataf = filter(svjoined, sec == "Central")),
         Homicide = homicideSPC.Central <- SPC(crimetype = "Homicide", Prop.Vals = PropValsCentral, dataf = df.Central),
         Rape = rapeSPC.Central <- SPC(crimetype = "Rape", Prop.Vals = PropValsCentral, dataf = df.Central),
         Rob = robSPC.Central <- SPC(crimetype = "Robbery", Prop.Vals = PropValsCentral, dataf = df.Central),

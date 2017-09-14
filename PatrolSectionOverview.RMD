@@ -13,7 +13,6 @@ output:
 curr.year <- as.numeric(format(Sys.Date(), '%Y')) ### This current year to automatically reference the current year
 begindate <- paste0(curr.year, '-01-01') ### For CFS to automatically create the begindate based on current year
 
-library(tidyverse)
 library(stringr)
 library(knitr)
 library(flexdashboard)
@@ -26,6 +25,7 @@ library(DT)
 library(RODBC)
 library(mapview) #for cool popups
 library(leaflet.extras) #for popups in GeoJSON objects
+library(tidyverse)
 
 source("Y:/Projects/dashboard/RPDCrimeDashboard/Functions/LERMS_incidents.R")
 source("Y:/Projects/dashboard/RPDCrimeDashboard/Functions/SPC.R")
@@ -155,7 +155,7 @@ df <- readRDS(file = "Z:/Projects/dashboard/RPDCrimeDashboard/Objects/citywidedf
 
 #use beatNames to make factor levels for beats
 beatNames <- df %>%
-    select(GEOBeat) %>%
+    dplyr::select(GEOBeat) %>%
     unique() %>% 
     filter(! grepl(x = GEOBeat, pattern = "\\*")) %>% #remove *** as a beat name
     arrange(substr(GEOBeat, 3, 3), GEOBeat) %>%
@@ -205,7 +205,7 @@ controllimits <- rbind(data.frame(controllimits, Year = 2017),
 #                   Lon = Longitude,
 #                   FullAddress = Address) %>%
 #     left_join(sevenDayGroupTable, by = c("DOYofEvent" = "DOY")) %>%
-#     select(-Date) %>%
+#     dplyr::select(-Date) %>%
 #     dplyr::rename("SevenDaysGroup" = Group)
 # 
 # personincident <- left_join(MCUhoms, person, by = "CaseNumber")
@@ -213,7 +213,7 @@ controllimits <- rbind(data.frame(controllimits, Year = 2017),
 # sv <- loadshootingvictims()
 # drops <- c("Lat", "Lon")
 # svjoined <- left_join(x = sv, y = df, by = c("CaseNumber" = "CRNum")) %>%
-#     select(-one_of(drops)) %>%
+#     dplyr::select(-one_of(drops)) %>%
 #     rename(Lat = Latitude, Lon = Longitude)
 
 ```
@@ -419,10 +419,10 @@ SimsAvg <- mean(sectionSPClist$Lake$Firearm[[5]]$Value)
 #set y axis limits
 maxhist <- maxes %>% 
     filter(CrimeType == "Firearm") %>% 
-    select(Counts) %>%
+    dplyr::select(Counts) %>%
     as.numeric()
 maxlim <- firearmcontrol %>% 
-    select(UpperLimit) %>% 
+    dplyr::select(UpperLimit) %>% 
     top_n(1, UpperLimit) %>% 
     distinct() %>% 
     as.numeric()
@@ -430,11 +430,11 @@ ymax <- max(maxhist, maxlim) * 1.1
 
 minhist <- mins %>% 
     filter(CrimeType == "Firearm") %>% 
-    select(Counts) %>% 
+    dplyr::select(Counts) %>% 
     as.numeric()
 minlim <- firearmcontrol %>% 
     top_n(1, -LowerLimit) %>% 
-    select(LowerLimit) %>%
+    dplyr::select(LowerLimit) %>%
     distinct() %>% 
     as.numeric()
 #ymin <- min(minhist, minlim)
@@ -639,10 +639,10 @@ SimsAvg <- mean(sectionSPClist$Lake$SV[[5]]$Value)
 #set y axis limits
 maxhist <- maxes %>% 
     filter(CrimeType == "Shooting") %>% 
-    select(Counts) %>%
+    dplyr::select(Counts) %>%
     as.numeric()
 maxlim <- ShootingControlLimits %>% 
-    select(UpperLimit) %>% 
+    dplyr::select(UpperLimit) %>% 
     top_n(1, UpperLimit) %>% 
     distinct() %>% 
     as.numeric()
@@ -650,11 +650,11 @@ ymax <- max(maxhist, maxlim) * 1.1
 
 minhist <- mins %>% 
     filter(CrimeType == "Shooting") %>% 
-    select(Counts) %>% 
+    dplyr::select(Counts) %>% 
     as.numeric()
 minlim <- ShootingControlLimits %>% 
     top_n(1, -LowerLimit) %>% 
-    select(LowerLimit) %>%
+    dplyr::select(LowerLimit) %>%
     distinct() %>% 
     as.numeric()
 #ymin <- min(minhist, minlim)
@@ -857,10 +857,10 @@ SimsAvg <- mean(sectionSPClist$Lake$Rob[[5]]$Value)
 #set y axis limits
 maxhist <- maxes %>% 
     filter(CrimeType == "Robbery") %>% 
-    select(Counts) %>%
+    dplyr::select(Counts) %>%
     as.numeric()
 maxlim <- robcontrol %>% 
-    select(UpperLimit) %>% 
+    dplyr::select(UpperLimit) %>% 
     top_n(1, UpperLimit) %>% 
     distinct() %>% 
     as.numeric()
@@ -868,11 +868,11 @@ ymax <- max(maxhist, maxlim) * 1.1
 
 minhist <- mins %>% 
     filter(CrimeType == "Robbery") %>% 
-    select(Counts) %>% 
+    dplyr::select(Counts) %>% 
     as.numeric()
 minlim <- robcontrol %>% 
     top_n(1, -LowerLimit) %>% 
-    select(LowerLimit) %>%
+    dplyr::select(LowerLimit) %>%
     distinct() %>% 
     as.numeric()
 #ymin <- min(minhist, minlim)
@@ -1071,10 +1071,10 @@ SimsAvg <- mean(sectionSPClist$Lake$Aslt[[5]]$Value)
 #set y axis limits
 maxhist <- maxes %>% 
     filter(CrimeType == "Aggravated Assault") %>% 
-    select(Counts) %>%
+    dplyr::select(Counts) %>%
     as.numeric()
 maxlim <- asltcontrol %>% 
-    select(UpperLimit) %>% 
+    dplyr::select(UpperLimit) %>% 
     top_n(1, UpperLimit) %>% 
     distinct() %>% 
     as.numeric()
@@ -1082,11 +1082,11 @@ ymax <- max(maxhist, maxlim) * 1.1
 
 minhist <- mins %>% 
     filter(CrimeType == "Aggravated Assault") %>% 
-    select(Counts) %>% 
+    dplyr::select(Counts) %>% 
     as.numeric()
 minlim <- asltcontrol %>% 
     top_n(1, -LowerLimit) %>% 
-    select(LowerLimit) %>%
+    dplyr::select(LowerLimit) %>%
     distinct() %>% 
     as.numeric()
 #ymin <- min(minhist, minlim)
@@ -1297,10 +1297,10 @@ SimsAvg <- mean(sectionSPClist$Lake$Homicide[[5]]$Value)
 #set y axis limits
 maxhist <- maxes %>% 
     filter(CrimeType == "Homicide") %>% 
-    select(Counts) %>%
+    dplyr::select(Counts) %>%
     as.numeric()
 maxlim <- homcontrol %>% 
-    select(UpperLimit) %>% 
+    dplyr::select(UpperLimit) %>% 
     top_n(1, UpperLimit) %>% 
     distinct() %>% 
     as.numeric()
@@ -1308,11 +1308,11 @@ ymax <- max(maxhist, maxlim) * 1.1
 
 minhist <- mins %>% 
     filter(CrimeType == "Homicide") %>% 
-    select(Counts) %>% 
+    dplyr::select(Counts) %>% 
     as.numeric()
 minlim <- homcontrol %>% 
     top_n(1, -LowerLimit) %>% 
-    select(LowerLimit) %>%
+    dplyr::select(LowerLimit) %>%
     distinct() %>% 
     as.numeric()
 #ymin <- min(minhist, minlim)
@@ -1530,10 +1530,10 @@ SimsAvg <- mean(sectionSPClist$Lake$Rape[[5]]$Value)
 #set y axis limits
 maxhist <- maxes %>% 
     filter(CrimeType == "Rape") %>% 
-    select(Counts) %>%
+    dplyr::select(Counts) %>%
     as.numeric()
 maxlim <- rapecontrol %>% 
-    select(UpperLimit) %>% 
+    dplyr::select(UpperLimit) %>% 
     top_n(1, UpperLimit) %>% 
     distinct() %>% 
     as.numeric()
@@ -1541,11 +1541,11 @@ ymax <- max(maxhist, maxlim) * 1.1
 
 minhist <- mins %>% 
     filter(CrimeType == "Rape") %>% 
-    select(Counts) %>% 
+    dplyr::select(Counts) %>% 
     as.numeric()
 minlim <- rapecontrol %>% 
     top_n(1, -LowerLimit) %>% 
-    select(LowerLimit) %>%
+    dplyr::select(LowerLimit) %>%
     distinct() %>% 
     as.numeric()
 #ymin <- min(minhist, minlim)
@@ -1760,10 +1760,10 @@ SimsAvg <- mean(sectionSPClist$Lake$Burg[[5]]$Value)
 #set y axis limits
 maxhist <- maxes %>% 
     filter(CrimeType == "Burglary") %>% 
-    select(Counts) %>%
+    dplyr::select(Counts) %>%
     as.numeric()
 maxlim <- burgcontrol %>% 
-    select(UpperLimit) %>% 
+    dplyr::select(UpperLimit) %>% 
     top_n(1, UpperLimit) %>% 
     distinct() %>% 
     as.numeric()
@@ -1771,11 +1771,11 @@ ymax <- max(maxhist, maxlim) * 1.1
 
 minhist <- mins %>% 
     filter(CrimeType == "Burglary") %>% 
-    select(Counts) %>% 
+    dplyr::select(Counts) %>% 
     as.numeric()
 minlim <- burgcontrol %>% 
     top_n(1, -LowerLimit) %>% 
-    select(LowerLimit) %>%
+    dplyr::select(LowerLimit) %>%
     distinct() %>% 
     as.numeric()
 #ymin <- min(minhist, minlim)
@@ -1990,10 +1990,10 @@ SimsAvg <- mean(sectionSPClist$Lake$Larc[[5]]$Value)
 #set y axis limits
 maxhist <- maxes %>% 
     filter(CrimeType == "Larceny") %>% 
-    select(Counts) %>%
+    dplyr::select(Counts) %>%
     as.numeric()
 maxlim <- larccontrol %>% 
-    select(UpperLimit) %>% 
+    dplyr::select(UpperLimit) %>% 
     top_n(1, UpperLimit) %>% 
     distinct() %>% 
     as.numeric()
@@ -2001,11 +2001,11 @@ ymax <- max(maxhist, maxlim) * 1.1
 
 minhist <- mins %>% 
     filter(CrimeType == "Larceny") %>% 
-    select(Counts) %>% 
+    dplyr::select(Counts) %>% 
     as.numeric()
 minlim <- larccontrol %>% 
     top_n(1, -LowerLimit) %>% 
-    select(LowerLimit) %>%
+    dplyr::select(LowerLimit) %>%
     distinct() %>% 
     as.numeric()
 #ymin <- min(minhist, minlim)

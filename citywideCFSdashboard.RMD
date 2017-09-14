@@ -94,14 +94,14 @@ waittime <- cfs.df %>%
     filter(discretionary == FALSE & 
                RPD_Anscombe_Trans == 1) %>%
     group_by(CallTypeCode, RPD_Priority) %>% 
-    summarise(AvgWaitTime = mean(RPD_Response_Time),
+    summarise(MedianWaitTime = median(RPD_Response_Time),
               Count = n()) %>%
     arrange(desc(Count)) %>%
     mutate(Prop = Count / sum(Count)) %>%
     filter(Prop > .01)
     
 wait <- ggplot(waittime, 
-               aes(x = CallTypeCode, y = AvgWaitTime, size = Count, color = RPD_Priority)) +
+               aes(x = CallTypeCode, y = MedianWaitTime, size = Count, color = RPD_Priority)) +
     geom_point() +
     theme_bw() +
     theme(axis.text.x = element_blank(),
@@ -111,10 +111,10 @@ wait <- ggplot(waittime,
     labs(title = paste0("CFS wait time distribution"),
          subtitle = "Non-discretionary calls only, by reponse priority",
          x = "Call type", 
-         y = "Average wait time") +
+         y = "Median wait time") +
     facet_grid(. ~ RPD_Priority)
 
-ggplotly(wait, tooltip = c("CallTypeCode", "Count", "AvgWaitTime"))
+ggplotly(wait, tooltip = c("CallTypeCode", "Count", "MedianWaitTime"))
 ```
 
 ### Aoristic heatmap
