@@ -9,7 +9,7 @@ output:
 params:
     sectionname:
         label: "Section"
-        value: "Goodman"
+        value: "Central"
         
 ---
 
@@ -808,6 +808,7 @@ robs %>%
     group_by(WeaponGroup) %>%
     count() %>%
     arrange(desc(n)) %>%
+    ungroup() %>% 
     mutate(WeaponGroup = factor(WeaponGroup)) %>%
     DT::datatable(filter = 'top',
                   rownames = FALSE,
@@ -815,7 +816,6 @@ robs %>%
                   options = list(pageLength = 100,
                                  dom = 'tf',
                                  columnDefs = list(list(className = 'dt-right', targets = 0:1))))
-
 
 ```
 
@@ -829,6 +829,7 @@ robs %>%
     group_by(LocationSceneDescription) %>%
     count() %>%
     arrange(desc(n)) %>%
+    ungroup() %>%
     mutate(LocationSceneDescription = factor(LocationSceneDescription)) %>%
     DT::datatable(filter = 'top',
                   rownames = FALSE,
@@ -1171,6 +1172,7 @@ There have been `r df %>% dplyr::filter(CrimeType == "Larceny") %>% nrow()` tota
 larcs %>%
     group_by(LarcenyTypeDescription) %>%
     count() %>%
+    ungroup() %>%
     mutate(LarcenyTypeDescription = factor(LarcenyTypeDescription)) %>%
     arrange(desc(n)) %>%
     DT::datatable(
@@ -1372,6 +1374,7 @@ rapes %>%
     group_by(Description) %>%
     count() %>%
     arrange(desc(n)) %>%
+    ungroup() %>%
     mutate(Description = factor(Description)) %>%
     DT::datatable(filter = 'top',
                   rownames = FALSE,
@@ -1389,6 +1392,7 @@ rapes %>%
 rapes %>% 
     group_by(UCRText) %>%
     count() %>%
+    ungroup() %>%
     mutate(UCRText = factor(UCRText)) %>%
     DT::datatable(filter = 'top',
                   rownames = FALSE,

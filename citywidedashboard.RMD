@@ -698,6 +698,7 @@ robs %>%
     group_by(WeaponGroup) %>%
     count() %>%
     arrange(desc(n)) %>%
+    ungroup() %>%
     mutate(WeaponGroup = factor(WeaponGroup)) %>%
     DT::datatable(filter = 'top',
                   rownames = FALSE,
