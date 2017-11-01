@@ -445,7 +445,6 @@ Column{data-width=300 .tabset .tabset-fade}
 dat <- df %>%
     filter(Firearm == "Firearm")
 
-
 DT::datatable(nestedbeattable(dat) %>% mutate(Beat = factor(Beat)), 
               rownames = FALSE,
               colnames = c('Section', 'Beat', 'Count'),

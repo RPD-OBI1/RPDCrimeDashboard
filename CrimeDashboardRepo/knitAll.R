@@ -7,69 +7,69 @@ source("Z:/Projects/dashboard/RPDCrimeDashboard/CrimeDashboardRepo/CrimeDashboar
 
 ## Citywide dashboards
 
-rmarkdown::render("CallsForServiceCitywide.RMD",
+rmarkdown::render("Z:/Projects/dashboard/RPDCrimeDashboard/CrimeDashboardRepo/CallsForServiceCitywide.RMD",
                   output_dir = "Z:/Projects/dashboard/RPDCrimeDashboard/")
 
-rmarkdown::render("CrimesCitywide.RMD",
+rmarkdown::render("Z:/Projects/dashboard/RPDCrimeDashboard/CrimeDashboardRepo/CrimesCitywide.RMD",
                   output_dir = "Z:/Projects/dashboard/RPDCrimeDashboard/")
 
 ## Section crime dashboards
 
-rmarkdown::render("CrimesSection.RMD", 
+rmarkdown::render("Z:/Projects/dashboard/RPDCrimeDashboard/CrimeDashboardRepo/CrimesSection.RMD", 
                   params = list(sectionname = "Lake"),
                   output_dir = "Z:/Projects/dashboard/RPDCrimeDashboard/",
                   output_file = "LakeCrimeDashboard.html")
 
-rmarkdown::render("CrimesSection.RMD", 
+rmarkdown::render("Z:/Projects/dashboard/RPDCrimeDashboard/CrimeDashboardRepo/CrimesSection.RMD", 
                   params = list(sectionname = "Genesee"),
                   output_dir = "Z:/Projects/dashboard/RPDCrimeDashboard/",
                   output_file = "GeneseeCrimeDashboard.html")
 
-rmarkdown::render("CrimesSection.RMD", 
+rmarkdown::render("Z:/Projects/dashboard/RPDCrimeDashboard/CrimeDashboardRepo/CrimesSection.RMD", 
                   params = list(sectionname = "Goodman"),
                   output_dir = "Z:/Projects/dashboard/RPDCrimeDashboard/",
                   output_file = "GoodmanCrimeDashboard.html")
 
-rmarkdown::render("CrimesSection.RMD", 
+rmarkdown::render("Z:/Projects/dashboard/RPDCrimeDashboard/CrimeDashboardRepo/CrimesSection.RMD", 
                   params = list(sectionname = "Clinton"),
                   output_dir = "Z:/Projects/dashboard/RPDCrimeDashboard/",
                   output_file = "ClintonCrimeDashboard.html")
 
-rmarkdown::render("CrimesSection.RMD", 
+rmarkdown::render("Z:/Projects/dashboard/RPDCrimeDashboard/CrimeDashboardRepo/CrimesSection.RMD", 
                   params = list(sectionname = "Central"),
                   output_dir = "Z:/Projects/dashboard/RPDCrimeDashboard/",
                   output_file = "CentralCrimeDashboard.html")
 
 ## Section CFS dashboards
 
-rmarkdown::render("CallsForServiceSection.RMD", 
+rmarkdown::render("Z:/Projects/dashboard/RPDCrimeDashboard/CrimeDashboardRepo/CallsForServiceSection.RMD", 
                   params = list(sectionname = "Lake"),
                   output_dir = "Z:/Projects/dashboard/RPDCrimeDashboard/",
                   output_file = "LakeCFSDashboard.html")
 
-rmarkdown::render("CallsForServiceSection.RMD", 
+rmarkdown::render("Z:/Projects/dashboard/RPDCrimeDashboard/CrimeDashboardRepo/CallsForServiceSection.RMD", 
                   params = list(sectionname = "Genesee"),
                   output_dir = "Z:/Projects/dashboard/RPDCrimeDashboard/",
                   output_file = "GeneseeCFSDashboard.html")
 
-rmarkdown::render("CallsForServiceSection.RMD", 
+rmarkdown::render("Z:/Projects/dashboard/RPDCrimeDashboard/CrimeDashboardRepo/CallsForServiceSection.RMD", 
                   params = list(sectionname = "Goodman"),
                   output_dir = "Z:/Projects/dashboard/RPDCrimeDashboard/",
                   output_file = "GoodmanCFSDashboard.html")
 
-rmarkdown::render("CallsForServiceSection.RMD", 
+rmarkdown::render("Z:/Projects/dashboard/RPDCrimeDashboard/CrimeDashboardRepo/CallsForServiceSection.RMD", 
                   params = list(sectionname = "Clinton"),
                   output_dir = "Z:/Projects/dashboard/RPDCrimeDashboard/",
                   output_file = "ClintonCFSDashboard.html")
 
-rmarkdown::render("CallsForServiceSection.RMD", 
+rmarkdown::render("Z:/Projects/dashboard/RPDCrimeDashboard/CrimeDashboardRepo/CallsForServiceSection.RMD", 
                   params = list(sectionname = "Central"),
                   output_dir = "Z:/Projects/dashboard/RPDCrimeDashboard/",
                   output_file = "CentralCFSDashboard.html")
 
 ## Patrol section overview
 
-rmarkdown::render("SectionOverlook.RMD",
+rmarkdown::render("Z:/Projects/dashboard/RPDCrimeDashboard/CrimeDashboardRepo/SectionOverlook.RMD",
                   output_dir = "Z:/Projects/dashboard/RPDCrimeDashboard/")
 
 end <- Sys.time()
