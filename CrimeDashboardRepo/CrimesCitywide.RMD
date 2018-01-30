@@ -6,6 +6,7 @@ output:
     orientation: column
     vertical_layout: fill
     theme: cerulean
+    self_contained: no
 ---
 
 ```{r setup}
@@ -143,12 +144,13 @@ firearmCrimeTypes <- c("Aggravated Assault", "Robbery", "Homicide", "Rape", "Sim
 df <- readRDS(file = "Z:/Projects/dashboard/RPDCrimeDashboard/Objects/citywidedf.RDS")
 
 #use beatNames to make factor levels for beats
-beatNames <- df %>%
-    dplyr::select(GEOBeat) %>%
-    unique() %>% 
-    filter(! grepl(x = GEOBeat, pattern = "\\*")) %>% #remove *** as a beat name
-    arrange(substr(GEOBeat, 3, 3), GEOBeat) %>%
-    mutate(GEOBeat = as.factor(GEOBeat)) #this keeps *** as a factor level
+# beatNames <- df %>%
+#     dplyr::select(GEOBeat) %>%
+#     unique() %>% 
+#     filter(! grepl(x = GEOBeat, pattern = "\\*")) %>% #remove *** as a beat name
+#     arrange(substr(GEOBeat, 3, 3), GEOBeat) %>%
+#     mutate(GEOBeat = as.factor(GEOBeat)) #this keeps *** as a factor level
+beatNames <- readRDS(file = "Z:/Projects/dashboard/RPDCrimeDashboard/Objects/beatNames.RDS")
 
 CPWs <- df %>% filter(CrimeType == "Dangerous Weapons" & 
                           !trimws(Description) %in% firearm.desc &
@@ -198,7 +200,12 @@ MCUhoms <- MCUhoms %>%
 
 personincident <- left_join(MCUhoms, person, by = "CaseNumber")
 
-sv <- loadshootingvictims()
+maxdate <- sevenDayGroupTable %>% # added to filter shooting victims to the same date range as LERMS data
+    filter(Group == curr.week) %>% 
+    filter(DOY == max(DOY)) %>% 
+    .$Date
+sv <- loadshootingvictims() %>%
+    filter(Date < maxdate)
 drops <- c("Lat", "Lon")
 svjoined <- left_join(x = sv, y = df, by = c("CaseNumber" = "CRNum")) %>%
     dplyr::select(-one_of(drops)) %>%
@@ -531,14 +538,15 @@ map
 
 ```{r}
 
-
 svjoin28 <- filter(svjoined,
                    SevenDaysGroup >= curr.week - 3)
 
-dohotspot <- ifelse(nrow(svjoin28) > 10, yes = TRUE, no = FALSE)
+if(nrow(svjoin28) > 0) {
+    dohotspot <- ifelse(nrow(svjoin28) > 10, yes = TRUE, no = FALSE)
+    map <- hotspotMapSV(basemap = citymap, mapdf = svjoin28, doHotSpot = dohotspot)
+    map
+}
 
-map <- hotspotMapSV(basemap = citymap, mapdf = svjoin28, doHotSpot = dohotspot)
-map
 ```
 
 Column {data-width=300 .tabset .tabset-fade}
