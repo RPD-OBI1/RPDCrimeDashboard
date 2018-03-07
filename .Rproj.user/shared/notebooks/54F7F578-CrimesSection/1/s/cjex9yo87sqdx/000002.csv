@@ -1,0 +1,17 @@
+"0","overviewPlot(control = ShootingControlLimits,"
+"0","             spcObj = svSPC,"
+"0","             dat = histdata %>% filter(CrimeType == ""Shooting""),"
+"0","             currentyear = curr.year,"
+"0","             title = ""Historical Counts for Shootings"")"
+"2","A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+"
+"2","A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+"
+"2","A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+"
+"2","A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+"

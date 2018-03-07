@@ -1,0 +1,4 @@
+"0","x <- nestedbeattable(dat) %>%
+    filter(grepl(substr(Beat, 3, 3), pattern = section))
+"
+"2","argument 'pattern' has length > 1 and only the first element will be used"

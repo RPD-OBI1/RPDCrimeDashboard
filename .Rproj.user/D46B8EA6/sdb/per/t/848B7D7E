@@ -1,0 +1,20 @@
+{
+    "collab_server" : "",
+    "contents" : "plotlyhmap <- function(mat){\n    library(reshape2)\n    library(ggplot2)\n    library(RColorBrewer)\n    library(plotly)\n    pal <- brewer.pal(name = \"Reds\", n = 9)\n    hlevs <- colnames(mat)\n    dlevs <- rev(rownames(mat))\n    mat <- melt(mat)\n    names(mat) <- c(\"Day\", \"Hour\", \"Value\")\n    mat$Hour <- factor(mat$Hour, levels = hlevs, ordered = TRUE)\n    mat$Day <- factor(mat$Day, levels = dlevs, ordered = TRUE)\n    hmap <- ggplot(mat, aes(x = Hour, y = Day)) +\n        geom_tile(aes(fill= Value)) +\n        scale_fill_gradientn(n = 9, colours = pal) +\n        theme_bw() +\n        geom_vline(xintercept = 8.5) +\n        geom_vline(xintercept = 16.5) +\n        theme(axis.text.x = element_text(angle = 45), \n              axis.text.y = element_text(angle = 45),\n              axis.title.x = element_blank(),\n              axis.title.y = element_blank(),\n              legend.position = \"none\",\n              plot.margin = margin(b = 15))\n    \n    return(ggplotly(hmap, tooltip = c(\"Day\", \"Hour\")))\n}",
+    "created" : 1508939509761.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "4134219168",
+    "id" : "848B7D7E",
+    "lastKnownWriteTime" : 1498162191,
+    "last_content_update" : 1498162191,
+    "path" : "Z:/Projects/dashboard/RPDCrimeDashboard/Functions/plotlyhmap.R",
+    "project_path" : null,
+    "properties" : {
+    },
+    "relative_order" : 2,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}

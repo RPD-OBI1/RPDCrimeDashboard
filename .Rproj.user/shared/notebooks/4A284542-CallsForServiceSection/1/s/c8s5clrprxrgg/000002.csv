@@ -1,0 +1,12 @@
+"0","waittime <- cfs.df %>% 
+    filter(discretionary == FALSE & 
+               RPD_Anscombe_Trans == 1) %>%
+    group_by(CallTypeCode, RPD_Priority) %>% 
+    summarise(MedianWaitTime = median(RPD_Response_Time),
+              Count = n()) %>%
+    arrange(desc(Count)) %>%
+    mutate(Prop = Count / sum(Count)) %>%
+    filter(Prop > .01)
+"
+"2","Error in eval(lhs, parent, parent) : object 'cfs.df' not found
+"

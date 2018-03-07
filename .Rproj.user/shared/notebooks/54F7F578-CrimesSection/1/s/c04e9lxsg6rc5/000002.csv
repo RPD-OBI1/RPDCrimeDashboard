@@ -1,0 +1,8 @@
+"0","guns28 <- guns %>%"
+"0","    filter(Lat != -361 & SevenDaysGroup > curr.week - 4)"
+"0","if(nrow(guns28) > 0){"
+"0","    map <- hotspotMap(sectionmap, guns28)"
+"0","    map"
+"0","}"
+"2","no non-missing arguments to min; returning Inf"
+"2","no non-missing arguments to max; returning -Inf"

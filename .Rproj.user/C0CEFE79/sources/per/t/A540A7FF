@@ -1,0 +1,22 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1512152596636.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "2241736002",
+    "id" : "A540A7FF",
+    "lastKnownWriteTime" : 1512566373,
+    "last_content_update" : 1512566373297,
+    "path" : "//cor.local/RPD/Chief/OBI/Projects/dashboard/RPDCrimeDashboard/CrimeDashboardRepo/knitAll.R",
+    "project_path" : "knitAll.R",
+    "properties" : {
+        "cursorPosition" : "8,0",
+        "scrollLine" : "0"
+    },
+    "relative_order" : 2,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}

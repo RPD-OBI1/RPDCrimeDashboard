@@ -1,0 +1,23 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1512145180676.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "3828222731",
+    "id" : "4BDE0ABB",
+    "lastKnownWriteTime" : 1512766170,
+    "last_content_update" : 1512766170,
+    "path" : "//cor.local/RPD/Chief/OBI/Projects/dashboard/RPDCrimeDashboard/CrimeDashboardRepo/CrimesSection.RMD",
+    "project_path" : "CrimesSection.RMD",
+    "properties" : {
+        "cursorPosition" : "692,14",
+        "last_setup_crc32" : "",
+        "scrollLine" : "729"
+    },
+    "relative_order" : 1,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_markdown"
+}

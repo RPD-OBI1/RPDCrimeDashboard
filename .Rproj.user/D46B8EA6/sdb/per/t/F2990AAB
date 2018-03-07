@@ -1,0 +1,21 @@
+{
+    "collab_server" : "",
+    "contents" : "\nstart <- Sys.time()\n\n## Data prep\n\nsource(\"Z:/Projects/dashboard/RPDCrimeDashboard/CrimeDashboardRepo/CrimeDashboardWeeklyDataPrep.R\")\n\n## Citywide dashboards\n\nrmarkdown::render(\"CallsForServiceCitywide.RMD\",\n                  output_dir = \"Z:/Projects/dashboard/RPDCrimeDashboard/\")\n\nrmarkdown::render(\"CrimesCitywide.RMD\",\n                  output_dir = \"Z:/Projects/dashboard/RPDCrimeDashboard/\")\n\n## Section crime dashboards\n\nrmarkdown::render(\"CrimesSection.RMD\", \n                  params = list(sectionname = \"Lake\"),\n                  output_dir = \"Z:/Projects/dashboard/RPDCrimeDashboard/\",\n                  output_file = \"LakeCrimeDashboard.html\")\n\nrmarkdown::render(\"CrimesSection.RMD\", \n                  params = list(sectionname = \"Genesee\"),\n                  output_dir = \"Z:/Projects/dashboard/RPDCrimeDashboard/\",\n                  output_file = \"GeneseeCrimeDashboard.html\")\n\nrmarkdown::render(\"CrimesSection.RMD\", \n                  params = list(sectionname = \"Goodman\"),\n                  output_dir = \"Z:/Projects/dashboard/RPDCrimeDashboard/\",\n                  output_file = \"GoodmanCrimeDashboard.html\")\n\nrmarkdown::render(\"CrimesSection.RMD\", \n                  params = list(sectionname = \"Clinton\"),\n                  output_dir = \"Z:/Projects/dashboard/RPDCrimeDashboard/\",\n                  output_file = \"ClintonCrimeDashboard.html\")\n\nrmarkdown::render(\"CrimesSection.RMD\", \n                  params = list(sectionname = \"Central\"),\n                  output_dir = \"Z:/Projects/dashboard/RPDCrimeDashboard/\",\n                  output_file = \"CentralCrimeDashboard.html\")\n\n## Section CFS dashboards\n\nrmarkdown::render(\"CallsForServiceSection.RMD\", \n                  params = list(sectionname = \"Lake\"),\n                  output_dir = \"Z:/Projects/dashboard/RPDCrimeDashboard/\",\n                  output_file = \"LakeCFSDashboard.html\")\n\nrmarkdown::render(\"CallsForServiceSection.RMD\", \n                  params = list(sectionname = \"Genesee\"),\n                  output_dir = \"Z:/Projects/dashboard/RPDCrimeDashboard/\",\n                  output_file = \"GeneseeCFSDashboard.html\")\n\nrmarkdown::render(\"CallsForServiceSection.RMD\", \n                  params = list(sectionname = \"Goodman\"),\n                  output_dir = \"Z:/Projects/dashboard/RPDCrimeDashboard/\",\n                  output_file = \"GoodmanCFSDashboard.html\")\n\nrmarkdown::render(\"CallsForServiceSection.RMD\", \n                  params = list(sectionname = \"Clinton\"),\n                  output_dir = \"Z:/Projects/dashboard/RPDCrimeDashboard/\",\n                  output_file = \"ClintonCFSDashboard.html\")\n\nrmarkdown::render(\"CallsForServiceSection.RMD\", \n                  params = list(sectionname = \"Central\"),\n                  output_dir = \"Z:/Projects/dashboard/RPDCrimeDashboard/\",\n                  output_file = \"CentralCFSDashboard.html\")\n\n## Patrol section overview\n\nrmarkdown::render(\"SectionOverlook.RMD\",\n                  output_dir = \"Z:/Projects/dashboard/RPDCrimeDashboard/\")\n\nend <- Sys.time()\ntook <- difftime(end, start)\n\ntook",
+    "created" : 1508780222560.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "2513839703",
+    "id" : "F2990AAB",
+    "lastKnownWriteTime" : 1508780534,
+    "last_content_update" : 1508780534180,
+    "path" : "Z:/Projects/dashboard/RPDCrimeDashboard/CrimeDashboardRepo/knitAll.R",
+    "project_path" : "knitAll.R",
+    "properties" : {
+        "tempName" : "Untitled1"
+    },
+    "relative_order" : 3,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}

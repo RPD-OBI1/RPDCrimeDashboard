@@ -1,0 +1,6 @@
+"0","df$WeaponIBRValue <- as.numeric(df$WeaponIBRValue)"
+"0","mat <- aoristicDayWeek(filter(df, WeaponIBRValue < 11))"
+"0","plotlyhmap(mat)"
+"2","We recommend that you use the dev version of ggplot2 with `ggplotly()`
+Install it with: `devtools::install_github('hadley/ggplot2')`
+"

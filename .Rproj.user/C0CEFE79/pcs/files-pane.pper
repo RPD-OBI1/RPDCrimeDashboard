@@ -1,0 +1,9 @@
+{
+    "path" : "//cor.local/RPD/Chief/OBI/Projects/dashboard/RPDCrimeDashboard/CrimeDashboardRepo",
+    "sortOrder" : [
+        {
+            "ascending" : true,
+            "columnIndex" : 2
+        }
+    ]
+}

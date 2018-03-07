@@ -1,0 +1,4 @@
+"0","df$WeaponIBRValue <- as.numeric(df$WeaponIBRValue)
+"
+"2","Error in df$WeaponIBRValue : object of type 'closure' is not subsettable
+"

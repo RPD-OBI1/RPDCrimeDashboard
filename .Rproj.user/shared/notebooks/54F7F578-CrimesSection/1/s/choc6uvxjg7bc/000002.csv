@@ -1,0 +1,17 @@
+"0","overviewPlot(control = controllimits %>% filter(Crime == ""Rape""),"
+"0","             spcObj = rapeSPC,"
+"0","             dat = histdata %>% filter(CrimeType == ""Rape""),"
+"0","             currentyear = curr.year,"
+"0","             title = ""Historical Counts for Rape"")"
+"2","A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+"
+"2","A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+"
+"2","A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+"
+"2","A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+"

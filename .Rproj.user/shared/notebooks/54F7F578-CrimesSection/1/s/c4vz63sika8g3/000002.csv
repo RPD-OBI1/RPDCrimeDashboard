@@ -1,0 +1,19 @@
+"0","firearmcontrol <- filter(controllimits, Crime == ""Firearm"")"
+"0","SimsAvg <- mean(firearmSPC[[5]]$Value)"
+"0","overviewPlot(control = controllimits %>% filter(Crime == ""Firearm""),"
+"0","             spcObj = firearmSPC,"
+"0","             dat = histdata %>% filter(CrimeType == ""Firearm""),"
+"0","             currentyear = curr.year,"
+"0","             title = ""Historical Counts for Firearm Crime"")"
+"2","A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+"
+"2","A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+"
+"2","A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+"
+"2","A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+"

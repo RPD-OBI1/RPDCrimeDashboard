@@ -1,0 +1,7 @@
+"0","if(nrow(svjoined) > 0){"
+"0","    mat <- aoristicDayWeek(svjoined)"
+"0","    plotlyhmap(mat)"
+"0","}"
+"2","We recommend that you use the dev version of ggplot2 with `ggplotly()`
+Install it with: `devtools::install_github('hadley/ggplot2')`
+"

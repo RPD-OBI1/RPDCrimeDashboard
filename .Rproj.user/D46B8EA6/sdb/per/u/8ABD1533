@@ -1,0 +1,22 @@
+{
+    "collab_server" : "",
+    "contents" : "\n\n\ntabs <- with( df %>% \n                  mutate(hour = substr(\n                      str_pad(\n                          OccurToTime, \n                          4, \n                          pad = 0), \n                      1, \n                      2 )\n                  ), \n              table(\n                  wday(OccurToDate), \n                  hour)\n)\n\nbananas <- plot_ly(\n    data = (df %>% mutate(hour = substr(\n        str_pad(OccurToTime, 4, pad = 0),\n        1, 2))),\n    x = ~hour,\n    y = ~wday(OccurToDate),\n    z = tabs\n) %>%\n    add_histogram2d(colorscale = \"Reds\",\n                    showscale = FALSE)\n",
+    "created" : 1508940032921.000,
+    "dirty" : true,
+    "encoding" : "",
+    "folds" : "",
+    "hash" : "916253524",
+    "id" : "8ABD1533",
+    "lastKnownWriteTime" : 2319690749490264417,
+    "last_content_update" : 1508946060389,
+    "path" : null,
+    "project_path" : null,
+    "properties" : {
+        "source_window_id" : "",
+        "tempName" : "Untitled1"
+    },
+    "relative_order" : 4,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}

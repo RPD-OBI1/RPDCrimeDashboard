@@ -1,0 +1,138 @@
+"0","# Read in previously-created list of maps; keep only the relevant section one"
+"0","sectionmap <- readRDS(""Z:/Projects/dashboard/RPDCrimeDashboard/Objects/sectionmaplist.RDS"")[params$sectionname][[1]]"
+"0","curr.year <- as.numeric(format(Sys.Date(), '%Y')) ### This current year to automatically reference the current year"
+"0","begindate <- paste0(curr.year, '-01-01') ### For CFS to automatically create the begindate based on current year"
+"0","#sevenDayGroupTable is a lookup table to get the current week (Group) from the date"
+"0","#Because it uses length(Date) from seq.Date, it should work even in leap years"
+"0","sevenDayGroupTable <- data.frame(Date = seq.Date(from = as.Date(begindate),"
+"0","                                                 to = as.Date(paste0(curr.year, ""-12-31"")),"
+"0","                                                 by = 1)) %>%"
+"0","    mutate(DOY = 1:length(Date),"
+"0","           Group = c(rep(1:51, each = 7), "
+"0","                     rep(52, times = length(Date) - 357)))"
+"0","curr.week <- sevenDayGroupTable$Group[match(as.numeric(format(Sys.Date(), "
+"0","                                                             '%j')), "
+"0","                                           sevenDayGroupTable$DOY)] - 1"
+"0","firearm.desc <- trimws(c('Prohibited Use of Weapon City Limits', "
+"0","                        'Use of Dangerous Weapon', "
+"0","                        'Criminal Use Firearm 1st: Commit Violent Class B Felony', "
+"0","                        'Discharges Loaded Firearm', "
+"0","                        'Use Firearm 1st: Possess a Deadly Weapon-Loaded',"
+"0","                        'Criminal Use Firearm 2nd: Possess Deadly Weapon: Loaded', "
+"0","                        'Use Firearm 1st: Display Firearm', "
+"0","                        'Criminal Use Firearm 2nd: Display Firearm'))"
+"0","firearmCrimeTypes <- c(""Aggravated Assault"", ""Robbery"", ""Homicide"", ""Rape"", ""Simple Assault"")"
+"0","#load in RPD's crime data"
+"0","df <- readRDS(""Z:/Projects/dashboard/RPDCrimeDashboard/Objects/sectiondflist.RDS"")[params$sectionname][[1]]"
+"0","#use beatNames to make factor levels for beats"
+"0","beatNames <- df %>%"
+"0","    dplyr::select(GEOBeat) %>%"
+"0","    unique() %>% "
+"0","    filter(! grepl(x = GEOBeat, pattern = ""\\*"")) %>% #remove *** as a beat name"
+"0","    arrange(substr(GEOBeat, 3, 3), GEOBeat) %>%"
+"0","    mutate(GEOBeat = as.factor(GEOBeat)) #this keeps *** as a factor level"
+"0","CPWs <- df %>% filter(CrimeType == ""Dangerous Weapons"" & "
+"0","                          !trimws(Description) %in% firearm.desc &"
+"0","                          as.numeric(WeaponIBRValue) < 11) %>%"
+"0","    mutate(OccurFromDate = as.character(OccurFromDate)) #for table display purposes"
+"0","crimes <- c('Aggravated Assault', 'Arson', 'Burglary', 'Homicide', 'Larceny', 'MV Theft', 'Rape', 'Robbery', 'Firearm')"
+"0","sec <- c('Lake', 'Genesee', 'Goodman', 'Clinton', 'Central')"
+"0","pal <- brewer.pal(name = ""Reds"", n = 9)"
+"0","PropVals <- read.csv(""Z:/Projects/dashboard/RPDCrimeDashboard/Objects/ProportionsAndCounts.csv"", "
+"0","                     header= T) %>%"
+"0","    filter(Section == params$sectionname)"
+"0","ShootingControlLimits <- readr::read_csv(""Z:/Projects/dashboard/RPDCrimeDashboard/Objects/3YrWeightedControlLimitsShootings.csv"") %>%"
+"0","    filter(Section == params$sectionname)"
+"2","Parsed with column specification:
+cols(
+  Crime = col_character(),
+  Section = col_character(),
+  Target = col_double(),
+  LowerLimit = col_double(),
+  UpperLimit = col_double(),
+  Year = col_integer()
+)
+"
+"0","ShootingProps <- readr::read_csv(""Z:/Projects/dashboard/RPDCrimeDashboard/Objects/ProportionsAndCountsShootings.csv"") %>%"
+"0","    dplyr::filter(Section == params$sectionname)"
+"2","Parsed with column specification:
+cols(
+  Week = col_integer(),
+  Section = col_character(),
+  Crime = col_character(),
+  props = col_double(),
+  cum.props = col_double(),
+  week.expected = col_double(),
+  ribbon.target = col_double(),
+  ribbon.upper = col_double(),
+  ribbon.lower = col_double()
+)
+"
+"0","histdata <- readr::read_csv(file = ""Z:/Projects/dashboard/RPDCrimeDashboard/Objects/historicaldata.csv"") %>%"
+"0","    dplyr::filter(Section == section)"
+"2","Parsed with column specification:
+cols(
+  Yr = col_integer(),
+  Section = col_integer(),
+  CrimeType = col_character(),
+  Counts = col_integer()
+)
+"
+"0","controllimits <- readr::read_csv(file = ""Z:/Projects/dashboard/RPDCrimeDashboard/Objects//3YrWeightedControlLimits.csv"") %>%"
+"0","    dplyr::filter(Section == params$sectionname)"
+"2","Parsed with column specification:
+cols(
+  Crime = col_character(),
+  Section = col_character(),
+  Target = col_double(),
+  LowerLimit = col_double(),
+  UpperLimit = col_double()
+)
+"
+"0","controllimits <- rbind(data.frame(controllimits, Year = 2017),"
+"0","                       data.frame(controllimits, Year = 2018),"
+"0","                       data.frame(controllimits, Year = 2019))"
+"0","mculist <- pullMCUdata()"
+"0","MCUhoms <- mculist[[1]] %>%"
+"0","    filter(Section == params$sectionname) %>%"
+"0","    mutate(CrimeType = ""Homicide"","
+"0","           DateOfEvent = as.Date(DateOfEvent, format = ""%Y-%m-%d""),"
+"0","           DOYofEvent = as.numeric(format(DateOfEvent, ""%j"")),"
+"0","           YearofEvent = as.numeric(format(DateOfEvent, ""%Y"")),"
+"0","           CaseStatus = unname(sapply(CaseStatus, simpleCap))) %>%"
+"0","    filter(YearofEvent == curr.year) %>%"
+"0","    rename(sec = Section, "
+"0","           Lat = Latitude, "
+"0","           Lon = Longitude, "
+"0","           FullAddress = Address) %>%"
+"0","    left_join(sevenDayGroupTable, by = c(""DOYofEvent"" = ""DOY"")) %>%"
+"0","    dplyr::select(-Date) %>%"
+"0","    dplyr::rename(""SevenDaysGroup"" = Group)"
+"0","person <- mculist[[2]]"
+"0","rm(mculist)"
+"0","personincident <- left_join(MCUhoms, person, by = ""CaseNumber"")"
+"0","sv <- loadshootingvictims()"
+"0","drops <- c(""Lat"", ""Lon"")"
+"0","svjoined <- left_join(x = sv, y = df, by = c(""CaseNumber"" = ""CRNum"")) %>%"
+"0","    dplyr::select(-one_of(drops)) %>%"
+"0","    rename(Lat = Latitude, Lon = Longitude) %>%"
+"0","    filter(sec == params$sectionname)"
+"0","rm(sv)"
+"0","loc <- CFSloc()"
+"0","#Exclude is for later use, excluding from hotspots/mapping/etc"
+"0","exclude <- c(""630 North Clinton Ave, Rochester, NY, 14605"", "
+"0","             ""185 Exchange Blvd, Rochester, NY, 14614"","
+"0","             ""1099 Jay St, Rochester, NY, 14611"")"
+"0","sectionSPC <- readRDS(""Z:/Projects/dashboard/RPDCrimeDashboard/Objects/sectionSPClist.RDS"")[params$sectionname][[1]]"
+"0","firearmSPC <- sectionSPC$Firearm"
+"0","svSPC <- sectionSPC$SV"
+"2","Warning:"
+"2"," closing unused RODBC handle 48
+"
+"0","homicideSPC <- sectionSPC$Homicide"
+"0","rapeSPC <- sectionSPC$Rape"
+"0","robSPC <- sectionSPC$Rob"
+"0","asltSPC <- sectionSPC$Aslt"
+"0","burgSPC <- sectionSPC$Burg"
+"0","larcSPC <- sectionSPC$Larc"
+"0","odbcCloseAll()"

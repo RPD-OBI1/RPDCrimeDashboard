@@ -1,0 +1,6 @@
+"0","guns <- dplyr::filter(df, Firearm == ""Firearm"")"
+"0","map <- hotspotMap(sectionmap, "
+"0","                  dplyr::filter(guns, Lat != -361))"
+"2","no non-missing arguments to min; returning Inf"
+"2","no non-missing arguments to max; returning -Inf"
+"0","map"
