@@ -5,15 +5,15 @@
     "dirty" : false,
     "encoding" : "UTF-8",
     "folds" : "",
-    "hash" : "0",
+    "hash" : "988204636",
     "id" : "8CF18DF9",
-    "lastKnownWriteTime" : 1513192959,
-    "last_content_update" : 1513192959502,
+    "lastKnownWriteTime" : 1516914168,
+    "last_content_update" : 1516914168,
     "path" : "//cor.local/RPD/Chief/OBI/Projects/dashboard/RPDCrimeDashboard/CrimeDashboardRepo/knitAll.R",
     "project_path" : "knitAll.R",
     "properties" : {
-        "cursorPosition" : "16,0",
-        "scrollLine" : "0"
+        "cursorPosition" : "38,57",
+        "scrollLine" : "12"
     },
     "relative_order" : 1,
     "source_on_save" : false,
