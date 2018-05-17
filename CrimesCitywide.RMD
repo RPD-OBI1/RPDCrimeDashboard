@@ -2,7 +2,7 @@
 title: "Citywide Crime Dashboard, as of `r format(Sys.Date() - 4, '%d %B, %Y')`"
 output: 
   flexdashboard::flex_dashboard:
-    logo: Z:/Projects/dashboard/RPDCrimeDashboard/Objects/RPDLogoSMALL.png
+    logo: //cor.local/RPD/Chief/OBI/Projects/dashboard/RPDCrimeDashboard/Objects/RPDLogoSMALL.png
     orientation: column
     vertical_layout: fill
     theme: cerulean
@@ -32,17 +32,17 @@ library(RODBC)
 library(treemap)
 library(d3treeR)
 
-source("Z:/Projects/dashboard/RPDCrimeDashboard/Functions/aoristicDayWeek.R")
-source("Z:/Projects/dashboard/RPDCrimeDashboard/Functions/guntablenest.R")
-source("Z:/Projects/dashboard/RPDCrimeDashboard/Functions/kerntorast.R")
-source("Z:/Projects/dashboard/RPDCrimeDashboard/Functions/hotspotMap.R")
-source("Z:/Projects/dashboard/RPDCrimeDashboard/Functions/hotspotMapSV.R")
-source("Z:/Projects/dashboard/RPDCrimeDashboard/Functions/LERMS_incidents.R")
-source("Z:/Projects/dashboard/RPDCrimeDashboard/Functions/nestedbeattable.R")
-source("Z:/Projects/dashboard/RPDCrimeDashboard/Functions/plotlyhmap.R")
-source("Z:/Projects/dashboard/RPDCrimeDashboard/Functions/SPC.R")
-source("Z:/Projects/dashboard/RPDCrimeDashboard/Functions/pullMCUdata.R")
-source("Z:/Projects/dashboard/RPDCrimeDashboard/Functions/loadshootingvictims.R")
+source("//cor.local/RPD/Chief/OBI/Projects/dashboard/RPDCrimeDashboard/Functions/aoristicDayWeek.R")
+source("//cor.local/RPD/Chief/OBI/Projects/dashboard/RPDCrimeDashboard/Functions/guntablenest.R")
+source("//cor.local/RPD/Chief/OBI/Projects/dashboard/RPDCrimeDashboard/Functions/kerntorast.R")
+source("//cor.local/RPD/Chief/OBI/Projects/dashboard/RPDCrimeDashboard/Functions/hotspotMap.R")
+source("//cor.local/RPD/Chief/OBI/Projects/dashboard/RPDCrimeDashboard/Functions/hotspotMapSV.R")
+source("//cor.local/RPD/Chief/OBI/Projects/dashboard/RPDCrimeDashboard/Functions/LERMS_incidents.R")
+source("//cor.local/RPD/Chief/OBI/Projects/dashboard/RPDCrimeDashboard/Functions/nestedbeattable.R")
+source("//cor.local/RPD/Chief/OBI/Projects/dashboard/RPDCrimeDashboard/Functions/plotlyhmap.R")
+source("//cor.local/RPD/Chief/OBI/Projects/dashboard/RPDCrimeDashboard/Functions/SPC.R")
+source("//cor.local/RPD/Chief/OBI/Projects/dashboard/RPDCrimeDashboard/Functions/pullMCUdata.R")
+source("//cor.local/RPD/Chief/OBI/Projects/dashboard/RPDCrimeDashboard/Functions/loadshootingvictims.R")
 
 simpleCap <- function(x) {
   s <- strsplit(x, " ")[[1]]
@@ -126,7 +126,7 @@ curr.week <- sevenDayGroupTable$Group[match(as.numeric(format(Sys.Date(),
                                            sevenDayGroupTable$DOY)] - 1
 
 # Read in city map
-citymap <- readRDS(file = "Z:/Projects/dashboard/RPDCrimeDashboard/Objects/citymap.RDS")
+citymap <- readRDS(file = "//cor.local/RPD/Chief/OBI/Projects/dashboard/RPDCrimeDashboard/Objects/citymap.RDS")
 
 firearm.desc <- trimws(c('Prohibited Use of Weapon City Limits', 
                         'Use of Dangerous Weapon', 
@@ -141,7 +141,7 @@ firearmCrimeTypes <- c("Aggravated Assault", "Robbery", "Homicide", "Rape", "Sim
 
 #load in RPD's crime data
 
-df <- readRDS(file = "Z:/Projects/dashboard/RPDCrimeDashboard/Objects/citywidedf.RDS")
+df <- readRDS(file = "//cor.local/RPD/Chief/OBI/Projects/dashboard/RPDCrimeDashboard/Objects/citywidedf.RDS")
 
 #use beatNames to make factor levels for beats
 # beatNames <- df %>%
@@ -150,7 +150,7 @@ df <- readRDS(file = "Z:/Projects/dashboard/RPDCrimeDashboard/Objects/citywidedf
 #     filter(! grepl(x = GEOBeat, pattern = "\\*")) %>% #remove *** as a beat name
 #     arrange(substr(GEOBeat, 3, 3), GEOBeat) %>%
 #     mutate(GEOBeat = as.factor(GEOBeat)) #this keeps *** as a factor level
-beatNames <- readRDS(file = "Z:/Projects/dashboard/RPDCrimeDashboard/Objects/beatNames.RDS")
+beatNames <- readRDS(file = "//cor.local/RPD/Chief/OBI/Projects/dashboard/RPDCrimeDashboard/Objects/beatNames.RDS")
 
 CPWs <- df %>% filter(CrimeType == "Dangerous Weapons" & 
                           !trimws(Description) %in% firearm.desc &
@@ -162,17 +162,17 @@ sec <- c('Lake', 'Genesee', 'Goodman', 'Clinton', 'Central')
 
 pal <- brewer.pal(name = "Reds", n = 9)
 
-PropVals <- read.csv("Z:/Projects/dashboard/RPDCrimeDashboard/Objects/ProportionsAndCountsCityWide.csv", 
+PropVals <- read.csv("//cor.local/RPD/Chief/OBI/Projects/dashboard/RPDCrimeDashboard/Objects/ProportionsAndCountsCityWide.csv", 
                      header= T)
-ShootingControlLimits <- read.csv("Z:/Projects/dashboard/RPDCrimeDashboard/Objects/3YrWeightedControlLimitsShootingsCityWide.csv")
-ShootingProps <- read.csv("Z:/Projects/dashboard/RPDCrimeDashboard/Objects/ProportionsAndCountsShootingsCityWide.csv", 
+ShootingControlLimits <- read.csv("//cor.local/RPD/Chief/OBI/Projects/dashboard/RPDCrimeDashboard/Objects/3YrWeightedControlLimitsShootingsCityWide.csv")
+ShootingProps <- read.csv("//cor.local/RPD/Chief/OBI/Projects/dashboard/RPDCrimeDashboard/Objects/ProportionsAndCountsShootingsCityWide.csv", 
                           stringsAsFactors = FALSE)
 
-histdata <- read.csv(file = "Z:/Projects/dashboard/RPDCrimeDashboard/Objects/historicaldataCityWide.csv", 
+histdata <- read.csv(file = "//cor.local/RPD/Chief/OBI/Projects/dashboard/RPDCrimeDashboard/Objects/historicaldataCityWide.csv", 
                      stringsAsFactors = FALSE, 
                      header = TRUE)
 
-controllimits <- read.csv(file = "Z:/Projects/dashboard/RPDCrimeDashboard/Objects/3YrWeightedControlLimitsCityWide.csv", 
+controllimits <- read.csv(file = "//cor.local/RPD/Chief/OBI/Projects/dashboard/RPDCrimeDashboard/Objects/3YrWeightedControlLimitsCityWide.csv", 
                           header = TRUE)
 
 controllimits <- rbind(data.frame(controllimits, Year = 2017),
@@ -1313,7 +1313,7 @@ The proportion of the values shown to the total are represented by the size of t
 
 Closure and count information for homicides will be inaccurate due to LERMS data issues. Elsewhere in the dashboard, we use MCU data for homicides instead of LERMS data, but that is not possible for the treemap.
 
-![](Z:/Projects/dashboard/RPDCrimeDashboard/Objects/ReferenceTreeMap.png)
+![](//cor.local/RPD/Chief/OBI/Projects/dashboard/RPDCrimeDashboard/Objects/ReferenceTreeMap.png)
 
 ### Projection
 
@@ -1321,7 +1321,7 @@ The projection chart shows the cumulative weekly values experienced to date for 
 
 The black faded points on the chart at week 53 show the results of 1000 simulations estimating what our total counts will be at year-end. The large blue point shows the average of those simulations. The black "X" shows the weighted average year-end totals for the past three years. The percentage of the simulations above the upper limit helps to gauge chances of year-end expectations regarding that particular crime if the remainder of the year continues as those have historically.
 
-![](Z:/Projects/dashboard/RPDCrimeDashboard/Objects/ReferenceProjectionPlot.png)
+![](//cor.local/RPD/Chief/OBI/Projects/dashboard/RPDCrimeDashboard/Objects/ReferenceProjectionPlot.png)
 
 
 
@@ -1331,7 +1331,7 @@ An aoristic heatmap shows the proportion of activity that occurs in a given hour
 
 The rectangle labeled "Hr23" corresponds with the amount of activity occuring between 2300 and 2359 hrs on that day of the week. For crimes that occur over a longer period of time, or for crimes that occurred at an unknown time within a time range, the weight of that crime is divided evenly between the hours that it could have occurred. For instance, the weight for a burglary that occurred at some point between 0800 and 1200 will be spread out evenly between Hr8, Hr9, Hr10 and Hr11.
 
-![](Z:/Projects/dashboard/RPDCrimeDashboard/Objects/ReferenceAoristicPlot.png)
+![](//cor.local/RPD/Chief/OBI/Projects/dashboard/RPDCrimeDashboard/Objects/ReferenceAoristicPlot.png)
 
 
 
@@ -1344,7 +1344,7 @@ The Larcenies page has two additional maps for car break-ins. These maps are als
 
 If no map appears, likely there is no data to present (i.e. no events to map).
 
-![](Z:/Projects/dashboard/RPDCrimeDashboard/Objects/ReferenceMapCity.png)
+![](//cor.local/RPD/Chief/OBI/Projects/dashboard/RPDCrimeDashboard/Objects/ReferenceMapCity.png)
 
 ### Tables
 

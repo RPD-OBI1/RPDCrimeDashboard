@@ -7,11 +7,11 @@ library(reshape2)
 library(RODBC)
 library(tidyverse)
 
-source("Z:/Projects/dashboard/RPDCrimeDashboard/Functions/LERMS_incidents.R")
-source("Z:/Projects/dashboard/RPDCrimeDashboard/Functions/pullMCUdata.R")
-source("Z:/Projects/dashboard/RPDCrimeDashboard/Functions/loadshootingvictims.R")
-source("Z:/Projects/dashboard/RPDCrimeDashboard/Functions/LERMS_getCallsForService.R")
-source("Z:/Projects/dashboard/RPDCrimeDashboard/Functions/SPC.R")
+source("//cor.local/RPD/Chief/OBI/Projects/dashboard/RPDCrimeDashboard/Functions/LERMS_incidents.R")
+source("//cor.local/RPD/Chief/OBI/Projects/dashboard/RPDCrimeDashboard/Functions/pullMCUdata.R")
+source("//cor.local/RPD/Chief/OBI/Projects/dashboard/RPDCrimeDashboard/Functions/loadshootingvictims.R")
+source("//cor.local/RPD/Chief/OBI/Projects/dashboard/RPDCrimeDashboard/Functions/LERMS_getCallsForService.R")
+source("//cor.local/RPD/Chief/OBI/Projects/dashboard/RPDCrimeDashboard/Functions/SPC.R")
 
 simpleCap <- function(x) {
     s <- strsplit(x, " ")[[1]]
@@ -102,10 +102,10 @@ sectiondflist <- list(
     Central = df %>% filter(Section == 9)
 )
 saveRDS(object = sectiondflist, 
-        file = "Z:/Projects/dashboard/RPDCrimeDashboard/Objects/sectiondflist.RDS", 
+        file = "//cor.local/RPD/Chief/OBI/Projects/dashboard/RPDCrimeDashboard/Objects/sectiondflist.RDS", 
         compress = FALSE)
 saveRDS(object = df, 
-        file = "Z:/Projects/dashboard/RPDCrimeDashboard/Objects/citywidedf.RDS", 
+        file = "//cor.local/RPD/Chief/OBI/Projects/dashboard/RPDCrimeDashboard/Objects/citywidedf.RDS", 
         compress = FALSE)
 
 # Calls for service
@@ -140,18 +140,18 @@ saveRDS(object = cfs.df,
 
 # SPC objects
 
-PropVals <- read.csv("Z:/Projects/dashboard/RPDCrimeDashboard/Objects/ProportionsAndCounts.csv", 
+PropVals <- read.csv("//cor.local/RPD/Chief/OBI/Projects/dashboard/RPDCrimeDashboard/Objects/ProportionsAndCounts.csv", 
                      header= T)
-ShootingControlLimits <- read.csv("Z:/Projects/dashboard/RPDCrimeDashboard/Objects/3YrWeightedControlLimitsShootings.csv")
-ShootingProps <- read.csv("Z:/Projects/dashboard/RPDCrimeDashboard/Objects/ProportionsAndCountsShootings.csv", 
+ShootingControlLimits <- read.csv("//cor.local/RPD/Chief/OBI/Projects/dashboard/RPDCrimeDashboard/Objects/3YrWeightedControlLimitsShootings.csv")
+ShootingProps <- read.csv("//cor.local/RPD/Chief/OBI/Projects/dashboard/RPDCrimeDashboard/Objects/ProportionsAndCountsShootings.csv", 
                           stringsAsFactors = FALSE)
 ShootingPropsFull <- ShootingProps
 
-histdata <- read.csv(file = "Z:/Projects/dashboard/RPDCrimeDashboard/Objects/historicaldata.csv", 
+histdata <- read.csv(file = "//cor.local/RPD/Chief/OBI/Projects/dashboard/RPDCrimeDashboard/Objects/historicaldata.csv", 
                      stringsAsFactors = FALSE, 
                      header = TRUE)
 
-controllimits <- read.csv(file = "Z:/Projects/dashboard/RPDCrimeDashboard/Objects/3YrWeightedControlLimits.csv", 
+controllimits <- read.csv(file = "//cor.local/RPD/Chief/OBI/Projects/dashboard/RPDCrimeDashboard/Objects/3YrWeightedControlLimits.csv", 
                           header = TRUE)
 
 controllimits <- rbind(#data.frame(controllimits, Year = 2017),
@@ -272,6 +272,6 @@ sectionSPClist <- list(
 )
 
 saveRDS(sectionSPClist, 
-        "Z:/Projects/dashboard/RPDCrimeDashboard/Objects/sectionSPClist.RDS", 
+        "//cor.local/RPD/Chief/OBI/Projects/dashboard/RPDCrimeDashboard/Objects/sectionSPClist.RDS", 
         compress = FALSE)
 

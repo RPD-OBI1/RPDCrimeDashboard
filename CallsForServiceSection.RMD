@@ -2,7 +2,7 @@
 title: "`r params$sectionname` Calls For Service Dashboard, as of `r format(Sys.Date() - 1, '%d %B, %Y')`"
 output: 
   flexdashboard::flex_dashboard:
-    logo: Z:/Projects/dashboard/RPDCrimeDashboard/Objects/RPDLogoSMALL.png
+    logo: //cor.local/RPD/Chief/OBI/Projects/dashboard/RPDCrimeDashboard/Objects/RPDLogoSMALL.png
     orientation: column
     vertical_layout: fill
     theme: cerulean
@@ -29,13 +29,13 @@ library(treemap)
 library(leaflet)
 opts_chunk$set(echo = FALSE)
 
-source("Z:/Projects/dashboard/RPDCrimeDashboard/Functions/LERMS_getCallsForService.R")
-source("Z:/Projects/dashboard/RPDCrimeDashboard/Functions/CFSloc.R")
-source("Z:/Projects/dashboard/RPDCrimeDashboard/Functions/aoristicDayWeek.R")
-source("Z:/Projects/dashboard/RPDCrimeDashboard/Functions/cfsHotspotMap2.R") # parallelize
-#source("Z:/Projects/dashboard/RPDCrimeDashboard/Functions/cfsHotspotMap.R")
-source("Z:/Projects/dashboard/RPDCrimeDashboard/Functions/plotlyhmap.R")
-source("Z:/Projects/dashboard/RPDCrimeDashboard/Functions/nestedbeattable.R")
+source("//cor.local/RPD/Chief/OBI/Projects/dashboard/RPDCrimeDashboard/Functions/LERMS_getCallsForService.R")
+source("//cor.local/RPD/Chief/OBI/Projects/dashboard/RPDCrimeDashboard/Functions/CFSloc.R")
+source("//cor.local/RPD/Chief/OBI/Projects/dashboard/RPDCrimeDashboard/Functions/aoristicDayWeek.R")
+source("//cor.local/RPD/Chief/OBI/Projects/dashboard/RPDCrimeDashboard/Functions/cfsHotspotMap2.R") # parallelize
+#source("//cor.local/RPD/Chief/OBI/Projects/dashboard/RPDCrimeDashboard/Functions/cfsHotspotMap.R")
+source("//cor.local/RPD/Chief/OBI/Projects/dashboard/RPDCrimeDashboard/Functions/plotlyhmap.R")
+source("//cor.local/RPD/Chief/OBI/Projects/dashboard/RPDCrimeDashboard/Functions/nestedbeattable.R")
 
 #sevenDayGroupTable is a lookup table to get the current week (Group) from the date
 #Because it uses length(Date) from seq.Date, it should work even in leap years
@@ -53,14 +53,14 @@ curr.week <- sevenDayGroupTable$Group[match(as.numeric(format(Sys.Date(),
 
 
 
-sectionmap <- readRDS("Z:/Projects/dashboard/RPDCrimeDashboard/Objects/sectionmaplist.RDS")[params$sectionname][[1]]
+sectionmap <- readRDS("//cor.local/RPD/Chief/OBI/Projects/dashboard/RPDCrimeDashboard/Objects/sectionmaplist.RDS")[params$sectionname][[1]]
 
 loc <- CFSloc()
 exclude <- c("630 North Clinton Ave, Rochester, NY, 14605", 
              "185 Exchange Blvd, Rochester, NY, 14614",
              "1099 Jay St, Rochester, NY, 14611")
 
-cfs.df <- readRDS(file = "Z:/Projects/dashboard/RPDCrimeDashboard/Objects/sectioncfslist.RDS")[params$sectionname][[1]]
+cfs.df <- readRDS(file = "//cor.local/RPD/Chief/OBI/Projects/dashboard/RPDCrimeDashboard/Objects/sectioncfslist.RDS")[params$sectionname][[1]]
 
 ```
 
@@ -442,13 +442,13 @@ An aoristic heatmap shows the proportion of activity that occurs in a given hour
 
 The rectangle labeled "Hr23" corresponds with the amount of activity occuring between 2300 and 2359 hrs on that day of the week. For calls that span hours, the weight of that call is divided evenly between the hour of dispatch and the hour it was cleared. For instance, the weight for a FGHTA call that was dispatched at 0800 and cleared at 1200 will be spread out evenly between Hr8, Hr9, Hr10 and Hr11.
 
-![](Z:/Projects/dashboard/RPDCrimeDashboard/Objects/ReferenceAoristicPlot.png)
+![](//cor.local/RPD/Chief/OBI/Projects/dashboard/RPDCrimeDashboard/Objects/ReferenceAoristicPlot.png)
 
 ### Maps
 
 Both the discretionary and non-discretionary pages show two different maps, each in their own tab. The first tab will show a Year-To-Date map, and the second tab will show a map of the last 28 days. The maps display hotspots only for the year to date map, as including markers for each call for service YTD would be overwhelming. The past 28 days map shows both individual addresses and hotspots. Clicking on an address will show a table of the types of calls there in the past 28 days. You may need to zoom in to see the hotspots, due to the amount of calls.
 
-![](Z:/Projects/dashboard/RPDCrimeDashboard/Objects/ReferenceMapCity.png)
+![](//cor.local/RPD/Chief/OBI/Projects/dashboard/RPDCrimeDashboard/Objects/ReferenceMapCity.png)
 
 
 ### CFS - wait time
@@ -457,7 +457,7 @@ The non-discretionary graph shows the average RPD response time for various call
 
 The circle size represents the call volume for that type of call. Large circles are for frequent call types, smaller circles are for infrequent call types (but that still represent more than 1% of total non-discretionary calls).
 
-![](Z:/Projects/dashboard/RPDCrimeDashboard/Objects/ReferenceNonDiscretionaryCFSPlot.png)
+![](//cor.local/RPD/Chief/OBI/Projects/dashboard/RPDCrimeDashboard/Objects/ReferenceNonDiscretionaryCFSPlot.png)
 
 
 
@@ -470,4 +470,4 @@ The size of the circle corresponds with how frequently officers answer that call
 Calls are arranged alphabetically along the x axis, and the location of the corresponding circle on the y axis indicates the amount of time spent on the call on average. Only calls that we believe were coded correctly (for on scene time, clear time, etc.) are used to calculate the amount of time spent.
 
 
-![](Z:/Projects/dashboard/RPDCrimeDashboard/Objects/ReferenceDiscretionaryCFSPlot.png)
+![](//cor.local/RPD/Chief/OBI/Projects/dashboard/RPDCrimeDashboard/Objects/ReferenceDiscretionaryCFSPlot.png)

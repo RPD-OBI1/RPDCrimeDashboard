@@ -1,0 +1,1357 @@
+---
+title: "Patrol Divison Overview, as of `r format(Sys.Date() - 4, '%d %B, %Y')`"
+output: 
+  flexdashboard::flex_dashboard:
+    logo: Z:/Projects/dashboard/RPDCrimeDashboard/Objects/RPDLogoSMALL.png
+    orientation: row
+    vertical_layout: fill
+    theme: cerulean
+---
+
+```{r loaddata}
+
+curr.year <- as.numeric(format(Sys.Date(), '%Y')) ### This current year to automatically reference the current year
+begindate <- paste0(curr.year, '-01-01') ### For CFS to automatically create the begindate based on current year
+crimes <- c('Aggravated Assault', 'Arson', 'Burglary', 'Homicide', 'Larceny', 'MV Theft', 'Rape', 'Robbery', 'Firearm', 'SV')
+sec <- c('Lake', 'Genesee', 'Goodman', 'Clinton', 'Central')
+
+library(stringr)
+library(knitr)
+library(flexdashboard)
+library(RColorBrewer)
+library(plotly)
+library(leaflet)
+library(reshape2)
+library(jsonlite)
+library(DT)
+library(RODBC)
+library(mapview) #for cool popups
+library(leaflet.extras) #for popups in GeoJSON objects
+library(tidyverse)
+
+source("Z:/Projects/dashboard/RPDCrimeDashboard/Functions/LERMS_incidents.R")
+source("Z:/Projects/dashboard/RPDCrimeDashboard/Functions/SPC.R")
+source("Z:/Projects/dashboard/RPDCrimeDashboard/Functions/pullMCUdata.R")
+source("Z:/Projects/dashboard/RPDCrimeDashboard/Functions/loadshootingvictims.R")
+
+
+
+daddyJSON <- readLines("https://opendata.arcgis.com/datasets/772f3621fa354ec9abf3ba33f3ace59e_0.geojson") %>%
+    paste(collapse = "\n") %>%
+    fromJSON(simplifyVector = FALSE)
+#gather section names and set color palettes for sections and beats
+secNames <- sapply(daddyJSON$features, function(x) x$properties$Section)
+sectionpal <- colorFactor(palette = colorspace::sequential_hcl(5),
+                          domain = secNames)
+
+citymap <- readRDS(file = "Z:/Projects/dashboard/RPDCrimeDashboard/Objects/citymap.RDS")
+#old fitbounds: fitBounds(lng1 = -77.55, lat1 = 43.11, lng2 = -77.668684, lat2 = 43.264020)
+
+#sevenDayGroupTable is a lookup table to get the current week (Group) from the date
+#Because it uses length(Date) from seq.Date, it should work even in leap years
+
+sevenDayGroupTable <- data.frame(Date = seq.Date(from = as.Date(begindate),
+                                                 to = as.Date(paste0(curr.year, "-12-31")),
+                                                 by = 1)) %>%
+    mutate(DOY = 1:length(Date),
+           Group = c(rep(1:51, each = 7), 
+                     rep(52, times = length(Date) - 357)))
+
+curr.week <- sevenDayGroupTable$Group[match(as.numeric(format(Sys.Date(), 
+                                                             '%j')), 
+                                           sevenDayGroupTable$DOY)] - 1
+
+firearm.desc <- trimws(c('Prohibited Use of Weapon City Limits', 
+                        'Use of Dangerous Weapon', 
+                        'Criminal Use Firearm 1st: Commit Violent Class B Felony', 
+                        'Discharges Loaded Firearm', 
+                        'Use Firearm 1st: Possess a Deadly Weapon-Loaded',
+                        'Criminal Use Firearm 2nd: Possess Deadly Weapon: Loaded', 
+                        'Use Firearm 1st: Display Firearm', 
+                        'Criminal Use Firearm 2nd: Display Firearm'))
+
+firearmCrimeTypes <- c("Aggravated Assault", "Robbery", "Homicide", "Rape", "Simple Assault")
+
+#load in RPD's crime data
+
+df <- readRDS(file = "Z:/Projects/dashboard/RPDCrimeDashboard/Objects/citywidedf.RDS")
+
+#use beatNames to make factor levels for beats
+beatNames <- df %>%
+    dplyr::select(GEOBeat) %>%
+    unique() %>% 
+    filter(! grepl(x = GEOBeat, pattern = "\\*")) %>% #remove *** as a beat name
+    arrange(substr(GEOBeat, 3, 3), GEOBeat) %>%
+    mutate(GEOBeat = as.factor(GEOBeat)) #this keeps *** as a factor level
+
+CPWs <- df %>% filter(CrimeType == "Dangerous Weapons" & 
+                          !trimws(Description) %in% firearm.desc &
+                          as.numeric(WeaponIBRValue) < 11) %>%
+    mutate(OccurFromDate = as.character(OccurFromDate)) #for table display purposes
+
+PropVals <- read.csv("Z:/Projects/dashboard/RPDCrimeDashboard/Objects/ProportionsAndCounts.csv",
+                     header= T)
+ShootingControlLimits <- read.csv("Z:/Projects/dashboard/RPDCrimeDashboard/Objects/3YrWeightedControlLimitsShootings.csv")
+ShootingProps <- read.csv("Z:/Projects/dashboard/RPDCrimeDashboard/Objects/ProportionsAndCountsShootings.csv",
+                          stringsAsFactors = FALSE)
+ShootingPropsFull <- ShootingProps
+
+histdata <- read.csv(file = "Z:/Projects/dashboard/RPDCrimeDashboard/Objects/historicaldata.csv",
+                     stringsAsFactors = FALSE,
+                     header = TRUE)
+
+controllimits <- read.csv(file = "Z:/Projects/dashboard/RPDCrimeDashboard/Objects/3YrWeightedControlLimits.csv", 
+                       header = TRUE)
+
+controllimits <- rbind(data.frame(controllimits, Year = 2017),
+                    data.frame(controllimits, Year = 2018),
+                    data.frame(controllimits, Year = 2019))
+
+sectionSPClist <- readRDS("Z:/Projects/dashboard/RPDCrimeDashboard/Objects/sectionSPClist.RDS")
+
+
+
+```
+
+```{r functions}
+
+assignColor <- function(crimetype = "Homicide", 
+                        section = "Lake", 
+                        controllimits2 = controllimits, 
+                        shootingcontrollimits = ShootingControlLimits,
+                        sectionSPClist2 = sectionSPClist) {
+    
+    # Colors will reflect whether the average simulation is closer to the upper limit (red) or lower limit (green)
+    # Meaning whether the average simulation is above or below the target (the exact middle of the control limits)
+    # we'll build a function that reads in a crimetype and a section, and outputs a numeric value
+    # the numeric values will be mapped to a color palette in the construction of the map
+    
+    if(crimetype == "SV") {
+        ctrllim <- shootingcontrollimits %>%
+            filter(Section == as.character(section))
+    } else {
+        ctrllim <- controllimits2 %>%
+            filter(Section == as.character(section) & Crime == as.character(crimetype))
+    }
+    
+    upper <- ctrllim$UpperLimit[1]
+    lower <- ctrllim$LowerLimit[1]
+    
+    hash <- data.frame(CrimeType = c("Firearm", "SV", "Homicide", "Rape", 
+                                     "Robbery", "Aggravated Assault", "Burglary", "Larceny"),
+                       spcCrimeType = c("Firearm", "SV", "Homicide", "Rape", 
+                                        "Rob", "Aslt", "Burg", "Larc"))
+    spcLookup <- hash[match(x = crimetype, table = hash$CrimeType), "spcCrimeType"]
+    
+    avgsim <- sectionSPClist2[[section]][[as.character(spcLookup)]]$SimsFinal %>%
+        .$Value %>%
+        mean()
+    
+    # subtract lower limit from both the average simulation and the upper limit
+    # divide the remainder of the average simulation by the remainder of the upper limit
+    # > .5, projected over limit
+    # > 0, closer to upper limit than lower
+    # < 0, closer to lower limit than upper
+    # < -.5, projected under limit
+    
+    # alpha will be the distance (abs()) from .5
+    
+    colVal <- ((avgsim - lower) / (upper - lower)) - .5
+    return(colVal)
+}
+
+
+overviewmapfuncPublic <- function(daddyJSON, 
+                                  crimetype,
+                                  citymap,
+                                  sec,
+                                  cDF = colorsDF) {
+    babyJSON <- daddyJSON
+    
+    cDF <- cDF %>%
+        dplyr::filter(CrimeType == crimetype)
+    
+    cDF <- cDF[match(lapply(daddyJSON$features, function(x) x$properties$Section) %>%
+                               unlist(), 
+                           cDF$Section), ]
+    
+    babyJSON$features <- lapply(
+        babyJSON$features, function(x) {
+            x$properties$style <- list(
+                fillColor = cDF$fillColor[which(
+                    cDF$Section == x$properties$Section)],
+                fillOpacity = cDF$fillOpacity[which(
+                    cDF$Section == x$properties$Section)]
+                )
+            x
+        }
+    )
+
+    babyJSON$features <- lapply(babyJSON$features, function(x) {
+        x$properties$popup = cDF$popup[which(cDF$Section == x$properties$Section)]
+        x
+        })
+
+    return(citymap %>%
+               addGeoJSON(
+                   babyJSON
+               ) %>%
+               addGeoJSONv2(
+                   babyJSON,
+                   fillOpacity = "fillOpacity",
+                   popupProperty = "popup",
+                   labelProperty = "Section",
+                   highlightOptions = highlightOptions(color = 'white', weight = 10, bringToFront = TRUE)
+               )
+           )
+    
+}
+
+projectionplot <- function(
+    sectionname = "",
+    sectionnumber = "",
+    whichcrimetype = "",
+    SPCcrimetype = "",
+    controllimits = controllimits,
+    histdata = histdata,
+    ymax = 1000,
+    ymin = 0) {
+    
+    control = filter(controllimits, Crime == whichcrimetype & Section == sectionname)
+    
+    p <- plot_ly(
+        data = filter(histdata, CrimeType == whichcrimetype, Section == sectionnumber),
+        type = "scatter",
+        mode = "lines",
+        x = ~Yr,
+        y = ~Counts,
+        name = "Historical",
+        hoverinfo = "name",
+        showlegend = FALSE) %>%
+        add_trace(
+            data = filter(control, Crime == whichcrimetype & Section == sectionname),
+            x = ~Year,
+            y = ~UpperLimit,
+            showlegend = FALSE,
+            name = "Upper Action Limit",
+            hoverinfo = "name",
+            line = list(dash = "dash", color = "Black")) %>%
+        add_trace(
+            data = filter(control, Crime == whichcrimetype & Section == sectionname),
+            x = ~Year,
+            y = ~LowerLimit,
+            showlegend = FALSE,
+            name = "Lower Action Limit",
+            hoverinfo = "name",
+            line = list(dash = "dash", color = "Black")) %>%
+        add_trace(
+            type = "scatter",
+            mode = "markers",
+            data = sectionSPClist[[sectionname]][[SPCcrimetype]][[5]],
+            x = ~curr.year,
+            y = ~Value,
+            opacity = .1,
+            color = I("Black"),
+            name = "Simulations",
+            hoverinfo = "name") %>%
+        add_trace(
+            type = "scatter",
+            mode = "markers",
+            x = curr.year,
+            y = mean(sectionSPClist[[sectionname]][[SPCcrimetype]][[5]]$Value),
+            name = "Average Sim",
+            hoverinfo = "name+y",
+            marker = list(size = 10, color = "blue")) %>%
+        layout(xaxis = list(title = "", autotick = FALSE),
+               yaxis = list(title = "", range = c(ymin, ymax)))
+    
+    return(p)
+}
+
+
+
+simpleCap <- function(x) {
+  s <- strsplit(x, " ")[[1]]
+  paste(toupper(substring(s, 1,1)), tolower(substring(s, 2)),
+      sep="", collapse=" ")
+}
+
+```
+
+```{r buildColorDF}
+
+colorsDF <- expand.grid(sec, crimes) %>%
+    as_data_frame() %>%
+    rename(Section = Var1, CrimeType = Var2) %>%
+    rowwise() %>%
+    mutate(colVal = assignColor(crimetype = CrimeType, section = Section)) %>%
+    ungroup() %>%
+    dplyr::filter(!is.na(colVal)) %>%
+    mutate(fillOpacity = abs(colVal),
+           fillOpacity = case_when(fillOpacity > 1 ~ 1, # can't have an alpha above 1
+                                   TRUE ~ fillOpacity),
+           fillColor = case_when(.$colVal > 0 ~ "#F25B4F",
+                                 .$colVal < 0 ~ "#6EBE7C", 
+                                 TRUE ~ "#9DD0F7"),
+           popup = case_when(colVal > .5 ~ paste0(Section, " is at risk of finishing above its upper action limit."),
+                                 colVal < -.5 ~ paste0(Section, " is likely to finish below its lower action limit."),
+                                 TRUE ~ paste0(Section, " is likely to finish within its action limits.")))
+
+```
+
+```{r ylims}
+
+mins <- histdata %>% 
+    group_by(CrimeType) %>% 
+    filter(Counts == min(Counts)) %>%
+    ungroup() %>%
+    dplyr::select(-Yr) %>%
+    distinct()
+
+maxes <- histdata %>% 
+    group_by(CrimeType) %>% 
+    filter(Counts == max(Counts)) %>%
+    ungroup() %>%
+    dplyr::select(-Yr) %>%
+    distinct()
+
+```
+
+
+Firearm Crime {data-navmenu="Violent Crime"} 
+======================================================================
+
+> Firearm Crime
+
+Row
+------------------------------------------------------------------------------
+
+### Section comparison
+
+```{r firearmtable}
+
+tab <- data.frame(Sections = sec,
+                  Counts = c(sectionSPClist$Lake$Firearm[[4]],
+                             sectionSPClist$Genesee$Firearm[[4]],
+                             sectionSPClist$Goodman$Firearm[[4]],
+                             sectionSPClist$Clinton$Firearm[[4]],
+                             sectionSPClist$Central$Firearm[[4]]),
+                  RiskOfRed = c(sectionSPClist$Lake$Firearm[[2]],
+                                sectionSPClist$Genesee$Firearm[[2]],
+                                sectionSPClist$Goodman$Firearm[[2]],
+                                sectionSPClist$Clinton$Firearm[[2]],
+                                sectionSPClist$Central$Firearm[[2]]),
+                  ChanceOfGreen = c(sectionSPClist$Lake$Firearm[[3]],
+                                    sectionSPClist$Genesee$Firearm[[3]],
+                                    sectionSPClist$Goodman$Firearm[[3]],
+                                    sectionSPClist$Clinton$Firearm[[3]],
+                                    sectionSPClist$Central$Firearm[[3]]))
+
+# round the percentages and add %
+tab <- tab %>% 
+    mutate_at(funs(round(., 0)), .vars = c("RiskOfRed", "ChanceOfGreen")) %>%
+    mutate_at(funs(paste0(as.character(.), "%")), .vars = c("RiskOfRed", "ChanceOfGreen"))
+
+datatable(tab,
+          rownames = FALSE,
+          colnames = c("Sections", 
+                       "YTD Totals", 
+                       "% chance of exceeding upper action limit", 
+                       "% chance of beating lower action limit"),
+          options = list(dom = 'tf',
+                         columnDefs = list(list(className = 'dt-right', targets = 0:3))))
+```
+
+### Map
+
+```{r Firearmcrimemap}
+
+overviewmapfuncPublic(daddyJSON = daddyJSON,
+                      crimetype = "Firearm",
+                      citymap = citymap,
+                      sec = sec)
+
+```
+
+Row {data-height=30}
+------------------------------------------------------------------------------
+
+`r paste0("Historical Year-End Totals (2009 - ", curr.year - 1, ") with Current Year Projections")`
+
+Row {data-height=250}
+------------------------------------------------------------------------------
+
+### Lake
+
+```{r}
+
+#set y axis limits
+maxhist <- maxes %>% 
+    filter(CrimeType == "Firearm") %>% 
+    dplyr::select(Counts) %>%
+    as.numeric()
+maxlim <- controllimits %>% 
+    filter(Crime == "Firearm") %>%
+    dplyr::select(UpperLimit) %>% 
+    top_n(1, UpperLimit) %>% 
+    distinct() %>% 
+    as.numeric()
+firearmymax <- max(maxhist, maxlim) * 1.1
+
+projectionplot(sectionname = "Lake", sectionnumber = 1, 
+               whichcrimetype = "Firearm", SPCcrimetype = "Firearm",
+               histdata = histdata,
+               controllimits = controllimits, ymax = firearmymax, ymin = 0)
+
+```
+
+### Genesee
+
+```{r}
+projectionplot(sectionname = "Genesee", sectionnumber = 3, 
+               whichcrimetype = "Firearm", SPCcrimetype = "Firearm",
+               histdata = histdata,
+               controllimits = controllimits, ymax = firearmymax, ymin = 0)
+```
+
+### Goodman
+
+```{r}
+projectionplot(sectionname = "Goodman", sectionnumber = 5, 
+               whichcrimetype = "Firearm", SPCcrimetype = "Firearm",
+               histdata = histdata,
+               controllimits = controllimits, ymax = firearmymax, ymin = 0)
+```
+
+### Clinton
+
+```{r}
+projectionplot(sectionname = "Clinton", sectionnumber = 7, 
+               whichcrimetype = "Firearm", SPCcrimetype = "Firearm",
+               histdata = histdata,
+               controllimits = controllimits, ymax = firearmymax, ymin = 0)
+
+```
+
+### Central
+
+```{r}
+projectionplot(sectionname = "Central", sectionnumber = 9, 
+               whichcrimetype = "Firearm", SPCcrimetype = "Firearm",
+               histdata = histdata,
+               controllimits = controllimits, ymax = firearmymax, ymin = 0)
+
+```
+
+Shooting Victims{data-navmenu="Violent Crime"} 
+======================================================================
+
+> Shooting Victims
+
+Row
+------------------------------------------------------------------------------
+
+### Section comparison
+
+```{r shootingvictimstables}
+
+tab <- data.frame(Sections = sec,
+                  Counts = c(sectionSPClist$Lake$SV[[4]],
+                             sectionSPClist$Genesee$SV[[4]],
+                             sectionSPClist$Goodman$SV[[4]],
+                             sectionSPClist$Clinton$SV[[4]],
+                             sectionSPClist$Central$SV[[4]]),
+                  RiskOfRed = c(sectionSPClist$Lake$SV[[2]],
+                                sectionSPClist$Genesee$SV[[2]],
+                                sectionSPClist$Goodman$SV[[2]],
+                                sectionSPClist$Clinton$SV[[2]],
+                                sectionSPClist$Central$SV[[2]]),
+                  ChanceOfGreen = c(sectionSPClist$Lake$SV[[3]],
+                                    sectionSPClist$Genesee$SV[[3]],
+                                    sectionSPClist$Goodman$SV[[3]],
+                                    sectionSPClist$Clinton$SV[[3]],
+                                    sectionSPClist$Central$SV[[3]]))
+
+tab <- tab %>% 
+    mutate_at(funs(round(., 0)), .vars = c("RiskOfRed", "ChanceOfGreen")) %>%
+    mutate_at(funs(paste0(as.character(.), "%")), .vars = c("RiskOfRed", "ChanceOfGreen"))
+
+datatable(tab,
+          rownames = FALSE,
+          colnames = c("Sections",
+                       "YTD Totals",
+                       "% chance of exceeding upper action limit",
+                       "% chance of beating lower action limit"),
+          options = list(dom = 'tf',
+                         columnDefs = list(list(className = 'dt-right', targets = 0:3))))
+
+```
+
+### Map
+
+```{r svmap}
+
+overviewmapfuncPublic(daddyJSON = daddyJSON,
+                      crimetype = "SV",
+                      citymap = citymap,
+                      sec = sec)
+
+```
+
+Row {data-height=30}
+------------------------------------------------------------------------------
+
+`r paste0("Historical Year-End Totals (2009 - ", curr.year - 1, ") with Current Year Projections")`
+
+Row {data-height=250}
+------------------------------------------------------------------------------
+
+### Lake
+
+```{r}
+
+#set y axis limits
+maxhist <- maxes %>% 
+    filter(CrimeType == "Shooting") %>% 
+    dplyr::select(Counts) %>%
+    as.numeric()
+maxlim <- ShootingControlLimits %>% 
+    dplyr::select(UpperLimit) %>% 
+    top_n(1, UpperLimit) %>% 
+    distinct() %>% 
+    as.numeric()
+shootingymax <- max(maxhist, maxlim) * 1.1
+
+projectionplot(sectionname = "Lake", sectionnumber = 1, 
+               whichcrimetype = "Shooting", SPCcrimetype = "SV",
+               histdata = histdata,
+               controllimits = ShootingControlLimits %>%
+                   mutate(Crime = "Shooting"), 
+               ymax = shootingymax, ymin = 0)
+
+```
+
+### Genesee
+
+```{r}
+projectionplot(sectionname = "Genesee", sectionnumber = 3, 
+               whichcrimetype = "Shooting", SPCcrimetype = "SV",
+               histdata = histdata,
+               controllimits = ShootingControlLimits %>%
+                   mutate(Crime = "Shooting"), 
+               ymax = shootingymax, ymin = 0)
+```
+
+### Goodman
+
+```{r}
+projectionplot(sectionname = "Goodman", sectionnumber = 5, 
+               whichcrimetype = "Shooting", SPCcrimetype = "SV",
+               histdata = histdata,
+               controllimits = ShootingControlLimits %>%
+                   mutate(Crime = "Shooting"), 
+               ymax = shootingymax, ymin = 0)
+```
+
+### Clinton
+
+```{r}
+projectionplot(sectionname = "Clinton", sectionnumber = 7, 
+               whichcrimetype = "Shooting", 
+               SPCcrimetype = "SV",
+               histdata = histdata,
+               controllimits = ShootingControlLimits %>%
+                   mutate(Crime = "Shooting"), 
+               ymax = shootingymax, ymin = 0)
+```
+
+### Central
+
+```{r}
+projectionplot(sectionname = "Central", sectionnumber = 9, 
+               whichcrimetype = "Shooting", 
+               SPCcrimetype = "SV",
+               histdata = histdata,
+               controllimits = ShootingControlLimits %>%
+                   mutate(Crime = "Shooting"), 
+               ymax = shootingymax, ymin = 0)
+```
+
+Robbery {data-navmenu="Violent Crime"} 
+======================================================================
+
+> Robbery
+
+Row
+------------------------------------------------------------------------------
+
+### Section comparison
+
+```{r robberytable}
+
+tab <- data.frame(Sections = sec,
+                  Counts = c(sectionSPClist$Lake$Rob[[4]],
+                             sectionSPClist$Genesee$Rob[[4]],
+                             sectionSPClist$Goodman$Rob[[4]],
+                             sectionSPClist$Clinton$Rob[[4]],
+                             sectionSPClist$Central$Rob[[4]]),
+                  RiskOfRed = c(sectionSPClist$Lake$Rob[[2]],
+                                sectionSPClist$Genesee$Rob[[2]], 
+                                sectionSPClist$Goodman$Rob[[2]], 
+                                sectionSPClist$Clinton$Rob[[2]], 
+                                sectionSPClist$Central$Rob[[2]]),
+                  ChanceOfGreen = c(sectionSPClist$Lake$Rob[[3]],
+                                    sectionSPClist$Genesee$Rob[[3]],
+                                    sectionSPClist$Goodman$Rob[[3]],
+                                    sectionSPClist$Clinton$Rob[[3]],
+                                    sectionSPClist$Central$Rob[[3]]))
+
+tab <- tab %>% 
+    mutate_at(funs(round(., 0)), .vars = c("RiskOfRed", "ChanceOfGreen")) %>%
+    mutate_at(funs(paste0(as.character(.), "%")), .vars = c("RiskOfRed", "ChanceOfGreen"))
+
+datatable(tab,
+          rownames = FALSE,
+          colnames = c("Sections", 
+                       "YTD Totals", 
+                       "% chance of exceeding upper action limit", 
+                       "% chance of beating lower action limit"),
+          options = list(dom = 'tf',
+                         columnDefs = list(list(className = 'dt-right', targets = 0:3))))
+
+```                         
+
+### Map
+
+```{r robmap}
+
+overviewmapfuncPublic(daddyJSON = daddyJSON,
+                      crimetype = "Robbery",
+                      citymap = citymap,
+                      sec = sec)
+
+```
+
+Row {data-height=30}
+------------------------------------------------------------------------------
+
+`r paste0("Historical Year-End Totals (2009 - ", curr.year - 1, ") with Current Year Projections")`
+
+Row {data-height=250}
+------------------------------------------------------------------------------
+
+### Lake
+
+```{r}
+#set y axis limits
+maxhist <- maxes %>% 
+    filter(CrimeType == "Robbery") %>% 
+    dplyr::select(Counts) %>%
+    as.numeric()
+maxlim <- controllimits %>%
+    filter(Crime == "Robbery") %>% 
+    dplyr::select(UpperLimit) %>% 
+    top_n(1, UpperLimit) %>% 
+    distinct() %>% 
+    as.numeric()
+Robymax <- max(maxhist, maxlim) * 1.1
+
+projectionplot(sectionname = "Lake", sectionnumber = 1, 
+               whichcrimetype = "Robbery", SPCcrimetype = "Rob",
+               histdata = histdata,
+               controllimits = controllimits, 
+               ymax = Robymax, ymin = 0)
+
+```
+
+### Genesee
+
+```{r}
+
+projectionplot(sectionname = "Genesee", sectionnumber = 3, 
+               whichcrimetype = "Robbery", SPCcrimetype = "Rob",
+               histdata = histdata,
+               controllimits = controllimits, 
+               ymax = Robymax, ymin = 0)
+
+```
+
+### Goodman
+
+```{r}
+projectionplot(sectionname = "Goodman", sectionnumber = 5, 
+               whichcrimetype = "Robbery", SPCcrimetype = "Rob",
+               histdata = histdata,
+               controllimits = controllimits, 
+               ymax = Robymax, ymin = 0)
+```
+
+### Clinton
+
+```{r}
+projectionplot(sectionname = "Clinton", sectionnumber = 7, 
+               whichcrimetype = "Robbery", SPCcrimetype = "Rob",
+               histdata = histdata,
+               controllimits = controllimits, 
+               ymax = Robymax, ymin = 0)
+```
+
+### Central
+
+```{r}
+projectionplot(sectionname = "Central", sectionnumber = 9, 
+               whichcrimetype = "Robbery", SPCcrimetype = "Rob",
+               histdata = histdata,
+               controllimits = controllimits, 
+               ymax = Robymax, ymin = 0)
+```
+
+Aggravated Assaults {data-navmenu="Violent Crime"} 
+======================================================================
+
+> Aggravated Assaults
+
+Row
+------------------------------------------------------------------------------
+
+### Section comparison
+
+```{r aggassaulttable}
+
+tab <- data.frame(Sections = sec,
+                  Counts = c(sectionSPClist$Lake$Aslt[[4]],
+                             sectionSPClist$Genesee$Aslt[[4]],
+                             sectionSPClist$Goodman$Aslt[[4]],
+                             sectionSPClist$Clinton$Aslt[[4]],
+                             sectionSPClist$Central$Aslt[[4]]),
+                  RiskOfRed = c(sectionSPClist$Lake$Aslt[[2]],
+                                sectionSPClist$Genesee$Aslt[[2]],
+                                sectionSPClist$Goodman$Aslt[[2]],
+                                sectionSPClist$Clinton$Aslt[[2]],
+                                sectionSPClist$Central$Aslt[[2]]),
+                  ChanceOfGreen = c(sectionSPClist$Lake$Aslt[[3]],
+                                    sectionSPClist$Genesee$Aslt[[3]],
+                                    sectionSPClist$Goodman$Aslt[[3]],
+                                    sectionSPClist$Clinton$Aslt[[3]],
+                                    sectionSPClist$Central$Aslt[[3]]))
+tab <- tab %>% 
+    mutate_at(funs(round(., 0)), .vars = c("RiskOfRed", "ChanceOfGreen")) %>%
+    mutate_at(funs(paste0(as.character(.), "%")), .vars = c("RiskOfRed", "ChanceOfGreen"))
+
+datatable(tab,
+          rownames = FALSE,
+          colnames = c("Sections", 
+                       "YTD Totals", 
+                       "% chance of exceeding upper action limit", 
+                       "% chance of beating lower action limit"),
+          options = list(dom = 'tf',
+                         columnDefs = list(list(className = 'dt-right', targets = 0:3))))
+
+```
+
+### Map
+
+```{r asltmap}
+
+overviewmapfuncPublic(daddyJSON = daddyJSON,
+                      crimetype = "Aggravated Assault",
+                      citymap = citymap,
+                      sec = sec)
+
+```
+
+Row {data-height=30}
+------------------------------------------------------------------------------
+
+`r paste0("Historical Year-End Totals (2009 - ", curr.year - 1, ") with Current Year Projections")`
+
+Row {data-height=250}
+------------------------------------------------------------------------------
+
+### Lake
+
+```{r}
+
+#set y axis limits
+maxhist <- maxes %>% 
+    filter(CrimeType == "Aggravated Assault") %>% 
+    dplyr::select(Counts) %>%
+    as.numeric()
+maxlim <- controllimits %>% 
+    filter(Crime == "Aggravated Assault") %>%
+    dplyr::select(UpperLimit) %>% 
+    top_n(1, UpperLimit) %>% 
+    distinct() %>% 
+    as.numeric()
+asltymax <- max(maxhist, maxlim) * 1.1
+
+projectionplot(sectionname = "Lake", sectionnumber = 1, 
+               whichcrimetype = "Aggravated Assault", SPCcrimetype = "Aslt",
+               histdata = histdata,
+               controllimits = controllimits, 
+               ymax = asltymax, ymin = 0)
+
+
+```
+
+### Genesee
+
+```{r}
+projectionplot(sectionname = "Genesee", sectionnumber = 3, 
+               whichcrimetype = "Aggravated Assault", SPCcrimetype = "Aslt",
+               histdata = histdata,
+               controllimits = controllimits, 
+               ymax = asltymax, ymin = 0)
+```
+
+### Goodman
+
+```{r}
+projectionplot(sectionname = "Goodman", sectionnumber = 5, 
+               whichcrimetype = "Aggravated Assault", SPCcrimetype = "Aslt",
+               histdata = histdata,
+               controllimits = controllimits, 
+               ymax = asltymax, ymin = 0)
+```
+
+### Clinton
+
+```{r}
+projectionplot(sectionname = "Clinton", sectionnumber = 7, 
+               whichcrimetype = "Aggravated Assault", SPCcrimetype = "Aslt",
+               histdata = histdata,
+               controllimits = controllimits, 
+               ymax = asltymax, ymin = 0)
+```
+
+### Central
+
+```{r}
+projectionplot(sectionname = "Central", sectionnumber = 9, 
+               whichcrimetype = "Aggravated Assault", SPCcrimetype = "Aslt",
+               histdata = histdata,
+               controllimits = controllimits, 
+               ymax = asltymax, ymin = 0)
+```
+
+
+Homicide {data-navmenu="Violent Crime"} 
+======================================================================
+
+> Homicide
+
+Row
+------------------------------------------------------------------------------
+
+### Section comparison
+
+```{r homicidetable}
+
+tab <- data.frame(Sections = sec,
+                  Counts = c(sectionSPClist$Lake$Homicide[[4]],
+                             sectionSPClist$Genesee$Homicide[[4]],
+                             sectionSPClist$Goodman$Homicide[[4]],
+                             sectionSPClist$Clinton$Homicide[[4]],
+                             sectionSPClist$Central$Homicide[[4]]),
+                  RiskOfRed = c(sectionSPClist$Lake$Homicide[[2]],
+                                sectionSPClist$Genesee$Homicide[[2]],
+                                sectionSPClist$Goodman$Homicide[[2]],
+                                sectionSPClist$Clinton$Homicide[[2]],
+                                sectionSPClist$Central$Homicide[[2]]),
+                  ChanceOfGreen = c(sectionSPClist$Lake$Homicide[[3]],
+                                    sectionSPClist$Genesee$Homicide[[3]],
+                                    sectionSPClist$Goodman$Homicide[[3]],
+                                    sectionSPClist$Clinton$Homicide[[3]],
+                                    sectionSPClist$Central$Homicide[[3]]))
+tab <- tab %>% 
+    mutate_at(funs(round(., 0)), .vars = c("RiskOfRed", "ChanceOfGreen")) %>%
+    mutate_at(funs(paste0(as.character(.), "%")), .vars = c("RiskOfRed", "ChanceOfGreen"))
+
+datatable(tab,
+          rownames = FALSE,
+          colnames = c("Sections", 
+                       "YTD Totals", 
+                       "% chance of exceeding upper action limit", 
+                       "% chance of beating lower action limit"),
+          options = list(dom = 'tf',
+                         columnDefs = list(list(className = 'dt-right', targets = 0:3))))
+
+```
+
+### Map
+
+```{r hommap}
+
+overviewmapfuncPublic(daddyJSON = daddyJSON,
+                      crimetype = "Homicide",
+                      citymap = citymap,
+                      sec = sec)
+
+```
+
+Row {data-height=30}
+------------------------------------------------------------------------------
+
+`r paste0("Historical Year-End Totals (2009 - ", curr.year - 1, ") with Current Year Projections")`
+
+Row {data-height=250}
+------------------------------------------------------------------------------
+
+### Lake
+
+```{r}
+
+#set y axis limits
+maxhist <- maxes %>% 
+    filter(CrimeType == "Homicide") %>% 
+    dplyr::select(Counts) %>%
+    as.numeric()
+maxlim <- controllimits %>%
+    filter(Crime == "Homicide") %>% 
+    dplyr::select(UpperLimit) %>% 
+    top_n(1, UpperLimit) %>% 
+    distinct() %>% 
+    as.numeric()
+homymax <- max(maxhist, maxlim) * 1.1
+
+projectionplot(sectionname = "Lake", sectionnumber = 1, 
+               whichcrimetype = "Homicide", SPCcrimetype = "Homicide",
+               histdata = histdata,
+               controllimits = controllimits, 
+               ymax = homymax, ymin = 0)
+
+```
+
+### Genesee
+
+```{r}
+projectionplot(sectionname = "Genesee", sectionnumber = 3, 
+               whichcrimetype = "Homicide", SPCcrimetype = "Homicide",
+               histdata = histdata,
+               controllimits = controllimits, 
+               ymax = homymax, ymin = 0)
+```
+
+### Goodman
+
+```{r}
+
+projectionplot(sectionname = "Goodman", sectionnumber = 5, 
+               whichcrimetype = "Homicide", SPCcrimetype = "Homicide",
+               histdata = histdata,
+               controllimits = controllimits, 
+               ymax = homymax, ymin = 0)
+
+```
+
+### Clinton
+
+```{r}
+projectionplot(sectionname = "Clinton", sectionnumber = 7, 
+               whichcrimetype = "Homicide", SPCcrimetype = "Homicide",
+               histdata = histdata,
+               controllimits = controllimits, 
+               ymax = homymax, ymin = 0)
+```
+
+### Central
+
+```{r}
+projectionplot(sectionname = "Central", sectionnumber = 9, 
+               whichcrimetype = "Homicide", SPCcrimetype = "Homicide",
+               histdata = histdata,
+               controllimits = controllimits, 
+               ymax = homymax, ymin = 0)
+
+```
+
+Rape {data-navmenu="Violent Crime"} 
+======================================================================
+
+> Rape
+
+Row
+------------------------------------------------------------------------------
+
+### Section comparison
+
+```{r rapetable}
+
+tab <- data.frame(Sections = sec,
+                  Counts = c(sectionSPClist$Lake$Rape[[4]],
+                             sectionSPClist$Genesee$Rape[[4]],
+                             sectionSPClist$Goodman$Rape[[4]],
+                             sectionSPClist$Clinton$Rape[[4]],
+                             sectionSPClist$Central$Rape[[4]]),
+                  RiskOfRed = c(sectionSPClist$Lake$Rape[[2]],
+                                sectionSPClist$Genesee$Rape[[2]],
+                                sectionSPClist$Goodman$Rape[[2]],
+                                sectionSPClist$Clinton$Rape[[2]],
+                                sectionSPClist$Central$Rape[[2]]),
+                  ChanceOfGreen = c(sectionSPClist$Lake$Rape[[3]],
+                                    sectionSPClist$Genesee$Rape[[3]],
+                                    sectionSPClist$Goodman$Rape[[3]],
+                                    sectionSPClist$Clinton$Rape[[3]],
+                                    sectionSPClist$Central$Rape[[3]]))
+tab <- tab %>% 
+    mutate_at(funs(round(., 0)), .vars = c("RiskOfRed", "ChanceOfGreen")) %>%
+    mutate_at(funs(paste0(as.character(.), "%")), .vars = c("RiskOfRed", "ChanceOfGreen"))
+
+datatable(tab,
+          rownames = FALSE,
+          colnames = c("Sections", 
+                       "YTD Totals", 
+                       "% chance of exceeding upper action limit", 
+                       "% chance of beating lower action limit"),
+          options = list(dom = 'tf',
+                         columnDefs = list(list(className = 'dt-right', targets = 0:3))))
+
+```
+
+### Map
+
+```{r rapemap}
+
+
+overviewmapfuncPublic(daddyJSON = daddyJSON,
+                      crimetype = "Rape",
+                      citymap = citymap,
+                      sec = sec)
+
+```
+
+Row {data-height=30}
+------------------------------------------------------------------------------
+
+`r paste0("Historical Year-End Totals (2009 - ", curr.year - 1, ") with Current Year Projections")`
+
+Row {data-height=250}
+------------------------------------------------------------------------------
+
+### Lake
+
+```{r}
+
+#set y axis limits
+maxhist <- maxes %>% 
+    filter(CrimeType == "Rape") %>% 
+    dplyr::select(Counts) %>%
+    as.numeric()
+maxlim <- controllimits %>% 
+    filter(Crime == "Rape") %>%
+    dplyr::select(UpperLimit) %>% 
+    top_n(1, UpperLimit) %>% 
+    distinct() %>% 
+    as.numeric()
+rapeymax <- max(maxhist, maxlim) * 1.1
+
+projectionplot(sectionname = "Lake", sectionnumber = 1, 
+               whichcrimetype = "Rape", SPCcrimetype = "Rape",
+               histdata = histdata,
+               controllimits = controllimits, 
+               ymax = rapeymax, ymin = 0)
+
+```
+
+### Genesee
+
+```{r}
+
+projectionplot(sectionname = "Genesee", sectionnumber = 3, 
+               whichcrimetype = "Rape", SPCcrimetype = "Rape",
+               histdata = histdata,
+               controllimits = controllimits, 
+               ymax = rapeymax, ymin = 0)
+```
+
+### Goodman
+
+```{r}
+projectionplot(sectionname = "Goodman", sectionnumber = 5, 
+               whichcrimetype = "Rape", SPCcrimetype = "Rape",
+               histdata = histdata,
+               controllimits = controllimits, 
+               ymax = rapeymax, ymin = 0)
+```
+
+### Clinton
+
+```{r}
+projectionplot(sectionname = "Clinton", sectionnumber = 7, 
+               whichcrimetype = "Rape", SPCcrimetype = "Rape",
+               histdata = histdata,
+               controllimits = controllimits, 
+               ymax = rapeymax, ymin = 0)
+```
+
+### Central
+
+```{r}
+projectionplot(sectionname = "Central", sectionnumber = 9, 
+               whichcrimetype = "Rape", SPCcrimetype = "Rape",
+               histdata = histdata,
+               controllimits = controllimits, 
+               ymax = rapeymax, ymin = 0)
+```
+
+
+Burglary {data-navmenu="Property Crime"} 
+======================================================================
+
+> Burglary
+
+Row
+------------------------------------------------------------------------------
+
+### Section comparison
+
+```{r burgtable}
+
+tab <- data.frame(Sections = sec,
+                  Counts = c(sectionSPClist$Lake$Burg[[4]],
+                             sectionSPClist$Genesee$Burg[[4]],
+                             sectionSPClist$Goodman$Burg[[4]],
+                             sectionSPClist$Clinton$Burg[[4]],
+                             sectionSPClist$Central$Burg[[4]]),
+                  RiskOfRed = c(sectionSPClist$Lake$Burg[[2]],
+                                sectionSPClist$Genesee$Burg[[2]],
+                                sectionSPClist$Goodman$Burg[[2]],
+                                sectionSPClist$Clinton$Burg[[2]],
+                                sectionSPClist$Central$Burg[[2]]),
+                  ChanceOfGreen = c(sectionSPClist$Lake$Burg[[3]],
+                                    sectionSPClist$Genesee$Burg[[3]],
+                                    sectionSPClist$Goodman$Burg[[3]],
+                                    sectionSPClist$Clinton$Burg[[3]],
+                                    sectionSPClist$Central$Burg[[3]]))
+tab <- tab %>% 
+    mutate_at(funs(round(., 0)), .vars = c("RiskOfRed", "ChanceOfGreen")) %>%
+    mutate_at(funs(paste0(as.character(.), "%")), .vars = c("RiskOfRed", "ChanceOfGreen"))
+
+datatable(tab,
+          rownames = FALSE,
+          colnames = c("Sections", 
+                       "YTD Totals", 
+                       "% chance of exceeding upper action limit", 
+                       "% chance of beating lower action limit"),
+          options = list(dom = 'tf',
+                         columnDefs = list(list(className = 'dt-right', targets = 0:3))))
+
+```
+
+### Map
+
+```{r burgmap}
+
+overviewmapfuncPublic(daddyJSON = daddyJSON,
+                      crimetype = "Burglary",
+                      citymap = citymap,
+                      sec = sec)
+
+```
+
+Row {data-height=30}
+------------------------------------------------------------------------------
+
+`r paste0("Historical Year-End Totals (2009 - ", curr.year - 1, ") with Current Year Projections")`
+
+Row {data-height=250}
+------------------------------------------------------------------------------
+
+### Lake
+
+```{r}
+
+#set y axis limits
+maxhist <- maxes %>% 
+    filter(CrimeType == "Burglary") %>% 
+    dplyr::select(Counts) %>%
+    as.numeric()
+maxlim <- controllimits %>% 
+    filter(Crime == "Burglary") %>%
+    dplyr::select(UpperLimit) %>% 
+    top_n(1, UpperLimit) %>% 
+    distinct() %>% 
+    as.numeric()
+burgymax <- max(maxhist, maxlim) * 1.1
+
+projectionplot(sectionname = "Lake", sectionnumber = 1, 
+               whichcrimetype = "Burglary", SPCcrimetype = "Burg",
+               histdata = histdata,
+               controllimits = controllimits, 
+               ymax = burgymax, ymin = 0)
+
+```
+
+### Genesee
+
+```{r}
+projectionplot(sectionname = "Genesee", sectionnumber = 3, 
+               whichcrimetype = "Burglary", SPCcrimetype = "Burg",
+               histdata = histdata,
+               controllimits = controllimits, 
+               ymax = burgymax, ymin = 0)
+```
+
+### Goodman
+
+```{r}
+projectionplot(sectionname = "Goodman", sectionnumber = 5, 
+               whichcrimetype = "Burglary", SPCcrimetype = "Burg",
+               histdata = histdata,
+               controllimits = controllimits, 
+               ymax = burgymax, ymin = 0)
+```
+
+### Clinton
+
+```{r}
+projectionplot(sectionname = "Clinton", sectionnumber = 7, 
+               whichcrimetype = "Burglary", SPCcrimetype = "Burg",
+               histdata = histdata,
+               controllimits = controllimits, 
+               ymax = burgymax, ymin = 0)
+```
+
+### Central
+
+```{r}
+projectionplot(sectionname = "Central", sectionnumber = 9, 
+               whichcrimetype = "Burglary", SPCcrimetype = "Burg",
+               histdata = histdata,
+               controllimits = controllimits, 
+               ymax = burgymax, ymin = 0)
+```
+
+
+Larceny {data-navmenu="Property Crime"} 
+======================================================================
+
+> Larceny
+
+Row
+------------------------------------------------------------------------------
+
+### Section comparison
+
+```{r larcenytable}
+
+tab <- data.frame(Sections = sec,
+                  Counts = c(sectionSPClist$Lake$Larc[[4]],
+                             sectionSPClist$Genesee$Larc[[4]],
+                             sectionSPClist$Goodman$Larc[[4]],
+                             sectionSPClist$Clinton$Larc[[4]],
+                             sectionSPClist$Central$Larc[[4]]),
+                  RiskOfRed = c(sectionSPClist$Lake$Larc[[2]],
+                                sectionSPClist$Genesee$Larc[[2]],
+                                sectionSPClist$Goodman$Larc[[2]],
+                                sectionSPClist$Clinton$Larc[[2]],
+                                sectionSPClist$Central$Larc[[2]]),
+                  ChanceOfGreen = c(sectionSPClist$Lake$Larc[[3]],
+                                    sectionSPClist$Genesee$Larc[[3]],
+                                    sectionSPClist$Goodman$Larc[[3]],
+                                    sectionSPClist$Clinton$Larc[[3]],
+                                    sectionSPClist$Central$Larc[[3]]))
+tab <- tab %>% 
+    mutate_at(funs(round(., 0)), .vars = c("RiskOfRed", "ChanceOfGreen")) %>%
+    mutate_at(funs(paste0(as.character(.), "%")), .vars = c("RiskOfRed", "ChanceOfGreen"))
+
+datatable(tab,
+          rownames = FALSE,
+          colnames = c("Sections", 
+                       "YTD Totals", 
+                       "% chance of exceeding upper action limit", 
+                       "% chance of beating lower action limit"),
+          options = list(dom = 'tf',
+                         columnDefs = list(list(className = 'dt-right', targets = 0:3))))
+
+```
+
+### Map
+
+```{r larcmap}
+
+overviewmapfuncPublic(daddyJSON = daddyJSON,
+                      crimetype = "Larceny",
+                      citymap = citymap,
+                      sec = sec)
+
+
+```
+
+Row {data-height=30}
+------------------------------------------------------------------------------
+
+`r paste0("Historical Year-End Totals (2009 - ", curr.year - 1, ") with Current Year Projections")`
+
+Row {data-height=250}
+------------------------------------------------------------------------------
+
+### Lake
+
+```{r}
+
+#set y axis limits
+maxhist <- maxes %>% 
+    filter(CrimeType == "Larceny") %>% 
+    dplyr::select(Counts) %>%
+    as.numeric()
+maxlim <- controllimits %>% 
+    filter(Crime == "Larceny") %>%
+    dplyr::select(UpperLimit) %>% 
+    top_n(1, UpperLimit) %>% 
+    distinct() %>% 
+    as.numeric()
+larcymax <- max(maxhist, maxlim) * 1.1
+
+projectionplot(sectionname = "Lake", sectionnumber = 1, 
+               whichcrimetype = "Larceny", SPCcrimetype = "Larc",
+               histdata = histdata,
+               controllimits = controllimits, 
+               ymax = larcymax, ymin = 0)
+
+```
+
+
+### Genesee
+
+```{r}
+projectionplot(sectionname = "Genesee", sectionnumber = 3, 
+               whichcrimetype = "Larceny", SPCcrimetype = "Larc",
+               histdata = histdata,
+               controllimits = controllimits, 
+               ymax = larcymax, ymin = 0)
+
+```
+
+### Goodman
+
+```{r}
+projectionplot(sectionname = "Goodman", sectionnumber = 5, 
+               whichcrimetype = "Larceny", SPCcrimetype = "Larc",
+               histdata = histdata,
+               controllimits = controllimits, 
+               ymax = larcymax, ymin = 0)
+
+```
+
+### Clinton
+
+```{r}
+projectionplot(sectionname = "Clinton", sectionnumber = 7, 
+               whichcrimetype = "Larceny", SPCcrimetype = "Larc",
+               histdata = histdata,
+               controllimits = controllimits, 
+               ymax = larcymax, ymin = 0)
+
+```
+
+### Central
+
+```{r}
+projectionplot(sectionname = "Central", sectionnumber = 9, 
+               whichcrimetype = "Larceny", SPCcrimetype = "Larc",
+               histdata = histdata,
+               controllimits = controllimits, 
+               ymax = larcymax, ymin = 0)
+
+```
