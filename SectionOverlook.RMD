@@ -2,7 +2,7 @@
 title: "Patrol Divison Overview, as of `r format(Sys.Date() - 4, '%d %B, %Y')`"
 output: 
   flexdashboard::flex_dashboard:
-    logo: Z:/Projects/dashboard/RPDCrimeDashboard/Objects/RPDLogoSMALL.png
+    logo: //cor.local/RPD/Chief/OBI/Projects/dashboard/RPDCrimeDashboard/Objects/RPDLogoSMALL.png
     orientation: row
     vertical_layout: fill
     theme: cerulean
@@ -27,10 +27,10 @@ library(mapview) #for cool popups
 library(leaflet.extras) #for popups in GeoJSON objects
 library(tidyverse)
 
-source("Z:/Projects/dashboard/RPDCrimeDashboard/Functions/LERMS_incidents.R")
-source("Z:/Projects/dashboard/RPDCrimeDashboard/Functions/SPC.R")
-source("Z:/Projects/dashboard/RPDCrimeDashboard/Functions/pullMCUdata.R")
-source("Z:/Projects/dashboard/RPDCrimeDashboard/Functions/loadshootingvictims.R")
+source("//cor.local/RPD/Chief/OBI/Projects/dashboard/RPDCrimeDashboard/Functions/LERMS_incidents.R")
+source("//cor.local/RPD/Chief/OBI/Projects/dashboard/RPDCrimeDashboard/Functions/SPC.R")
+source("//cor.local/RPD/Chief/OBI/Projects/dashboard/RPDCrimeDashboard/Functions/pullMCUdata.R")
+source("//cor.local/RPD/Chief/OBI/Projects/dashboard/RPDCrimeDashboard/Functions/loadshootingvictims.R")
 
 overviewmapfunc <- function(daddyJSON, 
                             lakeSPC, 
@@ -184,7 +184,7 @@ secNames <- sapply(daddyJSON$features, function(x) x$properties$Section)
 sectionpal <- colorFactor(palette = colorspace::sequential_hcl(5),
                           domain = secNames)
 
-citymap <- readRDS(file = "Z:/Projects/dashboard/RPDCrimeDashboard/Objects/citymap.RDS")
+citymap <- readRDS(file = "//cor.local/RPD/Chief/OBI/Projects/dashboard/RPDCrimeDashboard/Objects/citymap.RDS")
 #old fitbounds: fitBounds(lng1 = -77.55, lat1 = 43.11, lng2 = -77.668684, lat2 = 43.264020)
 
 #sevenDayGroupTable is a lookup table to get the current week (Group) from the date
@@ -214,7 +214,7 @@ firearmCrimeTypes <- c("Aggravated Assault", "Robbery", "Homicide", "Rape", "Sim
 
 #load in RPD's crime data
 
-df <- readRDS(file = "Z:/Projects/dashboard/RPDCrimeDashboard/Objects/citywidedf.RDS")
+df <- readRDS(file = "//cor.local/RPD/Chief/OBI/Projects/dashboard/RPDCrimeDashboard/Objects/citywidedf.RDS")
 
 #use beatNames to make factor levels for beats
 beatNames <- df %>%
@@ -234,18 +234,18 @@ sec <- c('Lake', 'Genesee', 'Goodman', 'Clinton', 'Central')
 
 pal <- brewer.pal(name = "Reds", n = 9)
 
-PropVals <- read.csv("Z:/Projects/dashboard/RPDCrimeDashboard/Objects/ProportionsAndCounts.csv",
+PropVals <- read.csv("//cor.local/RPD/Chief/OBI/Projects/dashboard/RPDCrimeDashboard/Objects/ProportionsAndCounts.csv",
                      header= T)
-ShootingControlLimits <- read.csv("Z:/Projects/dashboard/RPDCrimeDashboard/Objects/3YrWeightedControlLimitsShootings.csv")
-ShootingProps <- read.csv("Z:/Projects/dashboard/RPDCrimeDashboard/Objects/ProportionsAndCountsShootings.csv",
+ShootingControlLimits <- read.csv("//cor.local/RPD/Chief/OBI/Projects/dashboard/RPDCrimeDashboard/Objects/3YrWeightedControlLimitsShootings.csv")
+ShootingProps <- read.csv("//cor.local/RPD/Chief/OBI/Projects/dashboard/RPDCrimeDashboard/Objects/ProportionsAndCountsShootings.csv",
                           stringsAsFactors = FALSE)
 ShootingPropsFull <- ShootingProps
 
-histdata <- read.csv(file = "Z:/Projects/dashboard/RPDCrimeDashboard/Objects/historicaldata.csv",
+histdata <- read.csv(file = "//cor.local/RPD/Chief/OBI/Projects/dashboard/RPDCrimeDashboard/Objects/historicaldata.csv",
                      stringsAsFactors = FALSE,
                      header = TRUE)
 
-controllimits <- read.csv(file = "Z:/Projects/dashboard/RPDCrimeDashboard/Objects/3YrWeightedControlLimits.csv", 
+controllimits <- read.csv(file = "//cor.local/RPD/Chief/OBI/Projects/dashboard/RPDCrimeDashboard/Objects/3YrWeightedControlLimits.csv", 
                        header = TRUE)
 
 controllimits <- rbind(data.frame(controllimits, Year = 2017),
@@ -257,7 +257,7 @@ controllimits <- rbind(data.frame(controllimits, Year = 2017),
 
 ```{r loadSPC}
 
-sectionSPClist <- readRDS("Z:/Projects/dashboard/RPDCrimeDashboard/Objects/sectionSPClist.RDS")
+sectionSPClist <- readRDS("//cor.local/RPD/Chief/OBI/Projects/dashboard/RPDCrimeDashboard/Objects/sectionSPClist.RDS")
 
 ```
 
@@ -265,14 +265,18 @@ sectionSPClist <- readRDS("Z:/Projects/dashboard/RPDCrimeDashboard/Objects/secti
 
 mins <- histdata %>% 
     group_by(CrimeType) %>% 
-    arrange(Counts) %>% 
-    filter(rank(Counts, ties.method = "first") == 1) %>%
-    ungroup()
+    filter(Counts == min(Counts)) %>%
+    ungroup() %>%
+    dplyr::select(-Yr) %>%
+    distinct()
+
 maxes <- histdata %>% 
     group_by(CrimeType) %>% 
-    arrange(Counts) %>% 
-    filter(rank(Counts, ties.method = "first") == 40) %>% #5 sections, 8 years, 40 possible values
-    ungroup()
+    filter(Counts == max(Counts)) %>%
+    ungroup() %>%
+    dplyr::select(-Yr) %>%
+    distinct()
+
 ```
 
 Firearm Crime {data-navmenu="Violent Crime"} 
