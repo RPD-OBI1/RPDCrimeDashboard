@@ -1,0 +1,1218 @@
+Loading tidyverse: ggplot2
+Loading tidyverse: tibble
+Loading tidyverse: tidyr
+Loading tidyverse: readr
+Loading tidyverse: purrr
+Loading tidyverse: dplyr
+Conflicts with tidy packages ---------------------------------------------------
+filter(): dplyr, stats
+lag():    dplyr, stats
+^C^CLoading tidyverse: ggplot2
+Loading tidyverse: tibble
+Loading tidyverse: tidyr
+Loading tidyverse: readr
+Loading tidyverse: purrr
+Loading tidyverse: dplyr
+Conflicts with tidy packages ---------------------------------------------------
+filter(): dplyr, stats
+lag():    dplyr, stats
+Loading required package: methods
+
+Attaching package: 'lubridate'
+
+The following object is masked from 'package:base':
+
+    date
+
+
+Attaching package: 'plotly'
+
+The following object is masked from 'package:ggplot2':
+
+    last_plot
+
+The following object is masked from 'package:stats':
+
+    filter
+
+The following object is masked from 'package:graphics':
+
+    layout
+
+Warning messages:
+1: In evalq(as.numeric(Lat), <environment>) : NAs introduced by coercion
+2: In evalq(as.numeric(Lon), <environment>) : NAs introduced by coercion
+3: In evalq(as.numeric(WeaponIBRValue), <environment>) :
+  NAs introduced by coercion
+4: In doTryCatch(return(expr), name, parentenv, handler) :
+  closing unused RODBC handle 3
+
+Attaching package: 'jsonlite'
+
+The following object is masked from 'package:purrr':
+
+    flatten
+
+We recommend that you use the dev version of ggplot2 with `ggplotly()`
+Install it with: `devtools::install_github('hadley/ggplot2')`
+KernSmooth 2.23 loaded
+Copyright M. P. Wand 1997-2009
+Loading required package: sp
+
+Attaching package: 'raster'
+
+The following object is masked from 'package:plotly':
+
+    select
+
+The following object is masked from 'package:dplyr':
+
+    select
+
+The following object is masked from 'package:tidyr':
+
+    extract
+
+We recommend that you use the dev version of ggplot2 with `ggplotly()`
+Install it with: `devtools::install_github('hadley/ggplot2')`
+Warning message:
+replacing previous import 'scales::viridis_pal' by 'viridis::viridis_pal' when loading 'DiagrammeR' 
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+We recommend that you use the dev version of ggplot2 with `ggplotly()`
+Install it with: `devtools::install_github('hadley/ggplot2')`
+We recommend that you use the dev version of ggplot2 with `ggplotly()`
+Install it with: `devtools::install_github('hadley/ggplot2')`
+We recommend that you use the dev version of ggplot2 with `ggplotly()`
+Install it with: `devtools::install_github('hadley/ggplot2')`
+We recommend that you use the dev version of ggplot2 with `ggplotly()`
+Install it with: `devtools::install_github('hadley/ggplot2')`
+We recommend that you use the dev version of ggplot2 with `ggplotly()`
+Install it with: `devtools::install_github('hadley/ggplot2')`
+We recommend that you use the dev version of ggplot2 with `ggplotly()`
+Install it with: `devtools::install_github('hadley/ggplot2')`
+Warning messages:
+1: In x[[name]] : closing unused RODBC handle 6
+2: Ignoring 6 observations 
+3: Ignoring 6 observations 
+4: Ignoring 6 observations 
+5: In colors(.) :
+  Some values were outside the color scale and will be treated as NA
+6: Ignoring 6 observations 
+7: Ignoring 6 observations 
+8: Ignoring 6 observations 
+9: In colors(.) :
+  Some values were outside the color scale and will be treated as NA
+Parsed with column specification:
+cols(
+  Crime = col_character(),
+  Section = col_character(),
+  Target = col_double(),
+  LowerLimit = col_double(),
+  UpperLimit = col_double(),
+  Year = col_integer()
+)
+Parsed with column specification:
+cols(
+  Week = col_integer(),
+  Section = col_character(),
+  Crime = col_character(),
+  props = col_double(),
+  cum.props = col_double(),
+  week.expected = col_double(),
+  ribbon.target = col_double(),
+  ribbon.upper = col_double(),
+  ribbon.lower = col_double()
+)
+Parsed with column specification:
+cols(
+  Yr = col_integer(),
+  Section = col_integer(),
+  CrimeType = col_character(),
+  Counts = col_integer()
+)
+Parsed with column specification:
+cols(
+  Crime = col_character(),
+  Section = col_character(),
+  Target = col_double(),
+  LowerLimit = col_double(),
+  UpperLimit = col_double()
+)
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+We recommend that you use the dev version of ggplot2 with `ggplotly()`
+Install it with: `devtools::install_github('hadley/ggplot2')`
+We recommend that you use the dev version of ggplot2 with `ggplotly()`
+Install it with: `devtools::install_github('hadley/ggplot2')`
+We recommend that you use the dev version of ggplot2 with `ggplotly()`
+Install it with: `devtools::install_github('hadley/ggplot2')`
+We recommend that you use the dev version of ggplot2 with `ggplotly()`
+Install it with: `devtools::install_github('hadley/ggplot2')`
+We recommend that you use the dev version of ggplot2 with `ggplotly()`
+Install it with: `devtools::install_github('hadley/ggplot2')`
+We recommend that you use the dev version of ggplot2 with `ggplotly()`
+Install it with: `devtools::install_github('hadley/ggplot2')`
+Warning messages:
+1: In .Internal(sys.call(which)) : closing unused RODBC handle 8
+2: Ignoring 6 observations 
+3: In colors(.) :
+  Some values were outside the color scale and will be treated as NA
+4: Ignoring 6 observations 
+5: Ignoring 6 observations 
+6: Ignoring 6 observations 
+7: Ignoring 6 observations 
+8: Ignoring 6 observations 
+9: In colors(.) :
+  Some values were outside the color scale and will be treated as NA
+Parsed with column specification:
+cols(
+  Crime = col_character(),
+  Section = col_character(),
+  Target = col_double(),
+  LowerLimit = col_double(),
+  UpperLimit = col_double(),
+  Year = col_integer()
+)
+Parsed with column specification:
+cols(
+  Week = col_integer(),
+  Section = col_character(),
+  Crime = col_character(),
+  props = col_double(),
+  cum.props = col_double(),
+  week.expected = col_double(),
+  ribbon.target = col_double(),
+  ribbon.upper = col_double(),
+  ribbon.lower = col_double()
+)
+Parsed with column specification:
+cols(
+  Yr = col_integer(),
+  Section = col_integer(),
+  CrimeType = col_character(),
+  Counts = col_integer()
+)
+Parsed with column specification:
+cols(
+  Crime = col_character(),
+  Section = col_character(),
+  Target = col_double(),
+  LowerLimit = col_double(),
+  UpperLimit = col_double()
+)
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+We recommend that you use the dev version of ggplot2 with `ggplotly()`
+Install it with: `devtools::install_github('hadley/ggplot2')`
+We recommend that you use the dev version of ggplot2 with `ggplotly()`
+Install it with: `devtools::install_github('hadley/ggplot2')`
+We recommend that you use the dev version of ggplot2 with `ggplotly()`
+Install it with: `devtools::install_github('hadley/ggplot2')`
+We recommend that you use the dev version of ggplot2 with `ggplotly()`
+Install it with: `devtools::install_github('hadley/ggplot2')`
+We recommend that you use the dev version of ggplot2 with `ggplotly()`
+Install it with: `devtools::install_github('hadley/ggplot2')`
+We recommend that you use the dev version of ggplot2 with `ggplotly()`
+Install it with: `devtools::install_github('hadley/ggplot2')`
+Warning messages:
+1: closing unused RODBC handle 11 
+2: Ignoring 6 observations 
+3: Ignoring 6 observations 
+4: Ignoring 6 observations 
+5: Ignoring 6 observations 
+6: Ignoring 6 observations 
+7: Ignoring 6 observations 
+Parsed with column specification:
+cols(
+  Crime = col_character(),
+  Section = col_character(),
+  Target = col_double(),
+  LowerLimit = col_double(),
+  UpperLimit = col_double(),
+  Year = col_integer()
+)
+Parsed with column specification:
+cols(
+  Week = col_integer(),
+  Section = col_character(),
+  Crime = col_character(),
+  props = col_double(),
+  cum.props = col_double(),
+  week.expected = col_double(),
+  ribbon.target = col_double(),
+  ribbon.upper = col_double(),
+  ribbon.lower = col_double()
+)
+Parsed with column specification:
+cols(
+  Yr = col_integer(),
+  Section = col_integer(),
+  CrimeType = col_character(),
+  Counts = col_integer()
+)
+Parsed with column specification:
+cols(
+  Crime = col_character(),
+  Section = col_character(),
+  Target = col_double(),
+  LowerLimit = col_double(),
+  UpperLimit = col_double()
+)
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+We recommend that you use the dev version of ggplot2 with `ggplotly()`
+Install it with: `devtools::install_github('hadley/ggplot2')`
+We recommend that you use the dev version of ggplot2 with `ggplotly()`
+Install it with: `devtools::install_github('hadley/ggplot2')`
+We recommend that you use the dev version of ggplot2 with `ggplotly()`
+Install it with: `devtools::install_github('hadley/ggplot2')`
+We recommend that you use the dev version of ggplot2 with `ggplotly()`
+Install it with: `devtools::install_github('hadley/ggplot2')`
+We recommend that you use the dev version of ggplot2 with `ggplotly()`
+Install it with: `devtools::install_github('hadley/ggplot2')`
+We recommend that you use the dev version of ggplot2 with `ggplotly()`
+Install it with: `devtools::install_github('hadley/ggplot2')`
+Warning messages:
+1: In data[data[, i] %in% na.strings, i] <- NA :
+  closing unused RODBC handle 14
+2: Ignoring 6 observations 
+3: Ignoring 6 observations 
+4: Ignoring 6 observations 
+5: In colors(.) :
+  Some values were outside the color scale and will be treated as NA
+6: Ignoring 6 observations 
+7: Ignoring 6 observations 
+8: Ignoring 6 observations 
+Parsed with column specification:
+cols(
+  Crime = col_character(),
+  Section = col_character(),
+  Target = col_double(),
+  LowerLimit = col_double(),
+  UpperLimit = col_double(),
+  Year = col_integer()
+)
+Parsed with column specification:
+cols(
+  Week = col_integer(),
+  Section = col_character(),
+  Crime = col_character(),
+  props = col_double(),
+  cum.props = col_double(),
+  week.expected = col_double(),
+  ribbon.target = col_double(),
+  ribbon.upper = col_double(),
+  ribbon.lower = col_double()
+)
+Parsed with column specification:
+cols(
+  Yr = col_integer(),
+  Section = col_integer(),
+  CrimeType = col_character(),
+  Counts = col_integer()
+)
+Parsed with column specification:
+cols(
+  Crime = col_character(),
+  Section = col_character(),
+  Target = col_double(),
+  LowerLimit = col_double(),
+  UpperLimit = col_double()
+)
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+We recommend that you use the dev version of ggplot2 with `ggplotly()`
+Install it with: `devtools::install_github('hadley/ggplot2')`
+We recommend that you use the dev version of ggplot2 with `ggplotly()`
+Install it with: `devtools::install_github('hadley/ggplot2')`
+We recommend that you use the dev version of ggplot2 with `ggplotly()`
+Install it with: `devtools::install_github('hadley/ggplot2')`
+We recommend that you use the dev version of ggplot2 with `ggplotly()`
+Install it with: `devtools::install_github('hadley/ggplot2')`
+We recommend that you use the dev version of ggplot2 with `ggplotly()`
+Install it with: `devtools::install_github('hadley/ggplot2')`
+We recommend that you use the dev version of ggplot2 with `ggplotly()`
+Install it with: `devtools::install_github('hadley/ggplot2')`
+Warning messages:
+1: In lapply(strsplit(x[ok], "[.-]"), as.integer) :
+  closing unused RODBC handle 17
+2: Ignoring 6 observations 
+3: Ignoring 6 observations 
+4: Ignoring 6 observations 
+5: Ignoring 6 observations 
+6: Ignoring 6 observations 
+7: Ignoring 6 observations 
+Parsed with column specification:
+cols(
+  Crime = col_character(),
+  Section = col_character(),
+  Target = col_double(),
+  LowerLimit = col_double(),
+  UpperLimit = col_double(),
+  Year = col_integer()
+)
+Parsed with column specification:
+cols(
+  Week = col_integer(),
+  Section = col_character(),
+  Crime = col_character(),
+  props = col_double(),
+  cum.props = col_double(),
+  week.expected = col_double(),
+  ribbon.target = col_double(),
+  ribbon.upper = col_double(),
+  ribbon.lower = col_double()
+)
+Parsed with column specification:
+cols(
+  Yr = col_integer(),
+  Section = col_integer(),
+  CrimeType = col_character(),
+  Counts = col_integer()
+)
+Parsed with column specification:
+cols(
+  Crime = col_character(),
+  Section = col_character(),
+  Target = col_double(),
+  LowerLimit = col_double(),
+  UpperLimit = col_double()
+)
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+We recommend that you use the dev version of ggplot2 with `ggplotly()`
+Install it with: `devtools::install_github('hadley/ggplot2')`
+We recommend that you use the dev version of ggplot2 with `ggplotly()`
+Install it with: `devtools::install_github('hadley/ggplot2')`
+We recommend that you use the dev version of ggplot2 with `ggplotly()`
+Install it with: `devtools::install_github('hadley/ggplot2')`
+We recommend that you use the dev version of ggplot2 with `ggplotly()`
+Install it with: `devtools::install_github('hadley/ggplot2')`
+We recommend that you use the dev version of ggplot2 with `ggplotly()`
+Install it with: `devtools::install_github('hadley/ggplot2')`
+We recommend that you use the dev version of ggplot2 with `ggplotly()`
+Install it with: `devtools::install_github('hadley/ggplot2')`
+Warning messages:
+1: In UseMethod("as.list") : closing unused RODBC handle 20
+2: Ignoring 6 observations 
+3: Ignoring 6 observations 
+4: Ignoring 6 observations 
+5: Ignoring 6 observations 
+6: Ignoring 6 observations 
+7: Ignoring 6 observations 
+We recommend that you use the dev version of ggplot2 with `ggplotly()`
+Install it with: `devtools::install_github('hadley/ggplot2')`
+We recommend that you use the dev version of ggplot2 with `ggplotly()`
+Install it with: `devtools::install_github('hadley/ggplot2')`
+Warning messages:
+1: In bkde2D(coords, bandwidth = c(bw.SJ(coords[, 1]), bw.SJ(coords[,  :
+  Binning grid too coarse for current (small) bandwidth: consider increasing 'gridsize'
+2: In bkde2D(coords, bandwidth = c(bw.SJ(coords[, 1]), bw.SJ(coords[,  :
+  Binning grid too coarse for current (small) bandwidth: consider increasing 'gridsize'
+We recommend that you use the dev version of ggplot2 with `ggplotly()`
+Install it with: `devtools::install_github('hadley/ggplot2')`
+We recommend that you use the dev version of ggplot2 with `ggplotly()`
+Install it with: `devtools::install_github('hadley/ggplot2')`
+We recommend that you use the dev version of ggplot2 with `ggplotly()`
+Install it with: `devtools::install_github('hadley/ggplot2')`
+We recommend that you use the dev version of ggplot2 with `ggplotly()`
+Install it with: `devtools::install_github('hadley/ggplot2')`
+We recommend that you use the dev version of ggplot2 with `ggplotly()`
+Install it with: `devtools::install_github('hadley/ggplot2')`
+We recommend that you use the dev version of ggplot2 with `ggplotly()`
+Install it with: `devtools::install_github('hadley/ggplot2')`
+Warning message:
+In colors(.) :
+  Some values were outside the color scale and will be treated as NA
+We recommend that you use the dev version of ggplot2 with `ggplotly()`
+Install it with: `devtools::install_github('hadley/ggplot2')`
+We recommend that you use the dev version of ggplot2 with `ggplotly()`
+Install it with: `devtools::install_github('hadley/ggplot2')`
+Warning messages:
+1: package 'mapview' was built under R version 3.4.2 
+2: In readLines("https://opendata.arcgis.com/datasets/772f3621fa354ec9abf3ba33f3ace59e_0.geojson") :
+  incomplete final line found on 'https://opendata.arcgis.com/datasets/772f3621fa354ec9abf3ba33f3ace59e_0.geojson'
+Time difference of 29.24143 mins
+Loading tidyverse: ggplot2
+Loading tidyverse: tibble
+Loading tidyverse: tidyr
+Loading tidyverse: readr
+Loading tidyverse: purrr
+Loading tidyverse: dplyr
+Conflicts with tidy packages ---------------------------------------------------
+filter(): dplyr, stats
+lag():    dplyr, stats
+Loading required package: methods
+
+Attaching package: 'lubridate'
+
+The following object is masked from 'package:base':
+
+    date
+
+
+Attaching package: 'plotly'
+
+The following object is masked from 'package:ggplot2':
+
+    last_plot
+
+The following object is masked from 'package:stats':
+
+    filter
+
+The following object is masked from 'package:graphics':
+
+    layout
+
+Warning messages:
+1: In evalq(as.numeric(Lat), <environment>) : NAs introduced by coercion
+2: In evalq(as.numeric(Lon), <environment>) : NAs introduced by coercion
+3: In evalq(as.numeric(WeaponIBRValue), <environment>) :
+  NAs introduced by coercion
+4: closing unused RODBC handle 3 
+
+Attaching package: 'jsonlite'
+
+The following object is masked from 'package:purrr':
+
+    flatten
+
+We recommend that you use the dev version of ggplot2 with `ggplotly()`
+Install it with: `devtools::install_github('hadley/ggplot2')`
+KernSmooth 2.23 loaded
+Copyright M. P. Wand 1997-2009
+Loading required package: sp
+
+Attaching package: 'raster'
+
+The following object is masked from 'package:plotly':
+
+    select
+
+The following object is masked from 'package:dplyr':
+
+    select
+
+The following object is masked from 'package:tidyr':
+
+    extract
+
+We recommend that you use the dev version of ggplot2 with `ggplotly()`
+Install it with: `devtools::install_github('hadley/ggplot2')`
+Warning message:
+replacing previous import 'scales::viridis_pal' by 'viridis::viridis_pal' when loading 'DiagrammeR' 
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+We recommend that you use the dev version of ggplot2 with `ggplotly()`
+Install it with: `devtools::install_github('hadley/ggplot2')`
+We recommend that you use the dev version of ggplot2 with `ggplotly()`
+Install it with: `devtools::install_github('hadley/ggplot2')`
+We recommend that you use the dev version of ggplot2 with `ggplotly()`
+Install it with: `devtools::install_github('hadley/ggplot2')`
+We recommend that you use the dev version of ggplot2 with `ggplotly()`
+Install it with: `devtools::install_github('hadley/ggplot2')`
+We recommend that you use the dev version of ggplot2 with `ggplotly()`
+Install it with: `devtools::install_github('hadley/ggplot2')`
+We recommend that you use the dev version of ggplot2 with `ggplotly()`
+Install it with: `devtools::install_github('hadley/ggplot2')`
+Warning messages:
+1: closing unused RODBC handle 6 
+2: Ignoring 5 observations 
+3: In colors(.) :
+  Some values were outside the color scale and will be treated as NA
+4: Ignoring 5 observations 
+5: Ignoring 5 observations 
+6: Ignoring 5 observations 
+7: Ignoring 5 observations 
+8: Ignoring 5 observations 
+Parsed with column specification:
+cols(
+  Crime = col_character(),
+  Section = col_character(),
+  Target = col_double(),
+  LowerLimit = col_double(),
+  UpperLimit = col_double(),
+  Year = col_integer()
+)
+Parsed with column specification:
+cols(
+  Week = col_integer(),
+  Section = col_character(),
+  Crime = col_character(),
+  props = col_double(),
+  cum.props = col_double(),
+  week.expected = col_double(),
+  ribbon.target = col_double(),
+  ribbon.upper = col_double(),
+  ribbon.lower = col_double()
+)
+Parsed with column specification:
+cols(
+  Yr = col_integer(),
+  Section = col_integer(),
+  CrimeType = col_character(),
+  Counts = col_integer()
+)
+Parsed with column specification:
+cols(
+  Crime = col_character(),
+  Section = col_character(),
+  Target = col_double(),
+  LowerLimit = col_double(),
+  UpperLimit = col_double()
+)
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+We recommend that you use the dev version of ggplot2 with `ggplotly()`
+Install it with: `devtools::install_github('hadley/ggplot2')`
+We recommend that you use the dev version of ggplot2 with `ggplotly()`
+Install it with: `devtools::install_github('hadley/ggplot2')`
+We recommend that you use the dev version of ggplot2 with `ggplotly()`
+Install it with: `devtools::install_github('hadley/ggplot2')`
+We recommend that you use the dev version of ggplot2 with `ggplotly()`
+Install it with: `devtools::install_github('hadley/ggplot2')`
+We recommend that you use the dev version of ggplot2 with `ggplotly()`
+Install it with: `devtools::install_github('hadley/ggplot2')`
+We recommend that you use the dev version of ggplot2 with `ggplotly()`
+Install it with: `devtools::install_github('hadley/ggplot2')`
+Warning messages:
+1: In if (is.logical(j) || min(j) < 0L) jseq <- seq_along(x)[j] else { :
+  closing unused RODBC handle 8
+2: Ignoring 5 observations 
+3: Ignoring 5 observations 
+4: Ignoring 5 observations 
+5: Ignoring 5 observations 
+6: Ignoring 5 observations 
+7: Ignoring 5 observations 
+Parsed with column specification:
+cols(
+  Crime = col_character(),
+  Section = col_character(),
+  Target = col_double(),
+  LowerLimit = col_double(),
+  UpperLimit = col_double(),
+  Year = col_integer()
+)
+Parsed with column specification:
+cols(
+  Week = col_integer(),
+  Section = col_character(),
+  Crime = col_character(),
+  props = col_double(),
+  cum.props = col_double(),
+  week.expected = col_double(),
+  ribbon.target = col_double(),
+  ribbon.upper = col_double(),
+  ribbon.lower = col_double()
+)
+Parsed with column specification:
+cols(
+  Yr = col_integer(),
+  Section = col_integer(),
+  CrimeType = col_character(),
+  Counts = col_integer()
+)
+Parsed with column specification:
+cols(
+  Crime = col_character(),
+  Section = col_character(),
+  Target = col_double(),
+  LowerLimit = col_double(),
+  UpperLimit = col_double()
+)
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+We recommend that you use the dev version of ggplot2 with `ggplotly()`
+Install it with: `devtools::install_github('hadley/ggplot2')`
+We recommend that you use the dev version of ggplot2 with `ggplotly()`
+Install it with: `devtools::install_github('hadley/ggplot2')`
+We recommend that you use the dev version of ggplot2 with `ggplotly()`
+Install it with: `devtools::install_github('hadley/ggplot2')`
+We recommend that you use the dev version of ggplot2 with `ggplotly()`
+Install it with: `devtools::install_github('hadley/ggplot2')`
+We recommend that you use the dev version of ggplot2 with `ggplotly()`
+Install it with: `devtools::install_github('hadley/ggplot2')`
+We recommend that you use the dev version of ggplot2 with `ggplotly()`
+Install it with: `devtools::install_github('hadley/ggplot2')`
+Warning messages:
+1: closing unused RODBC handle 11 
+2: Ignoring 5 observations 
+3: In colors(.) :
+  Some values were outside the color scale and will be treated as NA
+4: Ignoring 5 observations 
+5: Ignoring 5 observations 
+6: Ignoring 5 observations 
+7: Ignoring 5 observations 
+8: Ignoring 5 observations 
+Parsed with column specification:
+cols(
+  Crime = col_character(),
+  Section = col_character(),
+  Target = col_double(),
+  LowerLimit = col_double(),
+  UpperLimit = col_double(),
+  Year = col_integer()
+)
+Parsed with column specification:
+cols(
+  Week = col_integer(),
+  Section = col_character(),
+  Crime = col_character(),
+  props = col_double(),
+  cum.props = col_double(),
+  week.expected = col_double(),
+  ribbon.target = col_double(),
+  ribbon.upper = col_double(),
+  ribbon.lower = col_double()
+)
+Parsed with column specification:
+cols(
+  Yr = col_integer(),
+  Section = col_integer(),
+  CrimeType = col_character(),
+  Counts = col_integer()
+)
+Parsed with column specification:
+cols(
+  Crime = col_character(),
+  Section = col_character(),
+  Target = col_double(),
+  LowerLimit = col_double(),
+  UpperLimit = col_double()
+)
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+We recommend that you use the dev version of ggplot2 with `ggplotly()`
+Install it with: `devtools::install_github('hadley/ggplot2')`
+We recommend that you use the dev version of ggplot2 with `ggplotly()`
+Install it with: `devtools::install_github('hadley/ggplot2')`
+We recommend that you use the dev version of ggplot2 with `ggplotly()`
+Install it with: `devtools::install_github('hadley/ggplot2')`
+We recommend that you use the dev version of ggplot2 with `ggplotly()`
+Install it with: `devtools::install_github('hadley/ggplot2')`
+We recommend that you use the dev version of ggplot2 with `ggplotly()`
+Install it with: `devtools::install_github('hadley/ggplot2')`
+We recommend that you use the dev version of ggplot2 with `ggplotly()`
+Install it with: `devtools::install_github('hadley/ggplot2')`
+Warning messages:
+1: Ignoring 5 observations 
+2: In colors(.) :
+  Some values were outside the color scale and will be treated as NA
+3: Ignoring 5 observations 
+4: Ignoring 5 observations 
+5: In colors(.) :
+  Some values were outside the color scale and will be treated as NA
+6: Ignoring 5 observations 
+7: Ignoring 5 observations 
+8: Ignoring 5 observations 
+Parsed with column specification:
+cols(
+  Crime = col_character(),
+  Section = col_character(),
+  Target = col_double(),
+  LowerLimit = col_double(),
+  UpperLimit = col_double(),
+  Year = col_integer()
+)
+Parsed with column specification:
+cols(
+  Week = col_integer(),
+  Section = col_character(),
+  Crime = col_character(),
+  props = col_double(),
+  cum.props = col_double(),
+  week.expected = col_double(),
+  ribbon.target = col_double(),
+  ribbon.upper = col_double(),
+  ribbon.lower = col_double()
+)
+Parsed with column specification:
+cols(
+  Yr = col_integer(),
+  Section = col_integer(),
+  CrimeType = col_character(),
+  Counts = col_integer()
+)
+Parsed with column specification:
+cols(
+  Crime = col_character(),
+  Section = col_character(),
+  Target = col_double(),
+  LowerLimit = col_double(),
+  UpperLimit = col_double()
+)
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+We recommend that you use the dev version of ggplot2 with `ggplotly()`
+Install it with: `devtools::install_github('hadley/ggplot2')`
+We recommend that you use the dev version of ggplot2 with `ggplotly()`
+Install it with: `devtools::install_github('hadley/ggplot2')`
+We recommend that you use the dev version of ggplot2 with `ggplotly()`
+Install it with: `devtools::install_github('hadley/ggplot2')`
+We recommend that you use the dev version of ggplot2 with `ggplotly()`
+Install it with: `devtools::install_github('hadley/ggplot2')`
+We recommend that you use the dev version of ggplot2 with `ggplotly()`
+Install it with: `devtools::install_github('hadley/ggplot2')`
+We recommend that you use the dev version of ggplot2 with `ggplotly()`
+Install it with: `devtools::install_github('hadley/ggplot2')`
+Warning messages:
+1: closing unused RODBC handle 17 
+2: Ignoring 5 observations 
+3: Ignoring 5 observations 
+4: Ignoring 5 observations 
+5: Ignoring 5 observations 
+6: In colors(.) :
+  Some values were outside the color scale and will be treated as NA
+7: Ignoring 5 observations 
+8: Ignoring 5 observations 
+Parsed with column specification:
+cols(
+  Crime = col_character(),
+  Section = col_character(),
+  Target = col_double(),
+  LowerLimit = col_double(),
+  UpperLimit = col_double(),
+  Year = col_integer()
+)
+Parsed with column specification:
+cols(
+  Week = col_integer(),
+  Section = col_character(),
+  Crime = col_character(),
+  props = col_double(),
+  cum.props = col_double(),
+  week.expected = col_double(),
+  ribbon.target = col_double(),
+  ribbon.upper = col_double(),
+  ribbon.lower = col_double()
+)
+Parsed with column specification:
+cols(
+  Yr = col_integer(),
+  Section = col_integer(),
+  CrimeType = col_character(),
+  Counts = col_integer()
+)
+Parsed with column specification:
+cols(
+  Crime = col_character(),
+  Section = col_character(),
+  Target = col_double(),
+  LowerLimit = col_double(),
+  UpperLimit = col_double()
+)
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+A line object has been specified, but lines is not in the mode
+Adding lines to the mode...
+We recommend that you use the dev version of ggplot2 with `ggplotly()`
+Install it with: `devtools::install_github('hadley/ggplot2')`
+We recommend that you use the dev version of ggplot2 with `ggplotly()`
+Install it with: `devtools::install_github('hadley/ggplot2')`
+We recommend that you use the dev version of ggplot2 with `ggplotly()`
+Install it with: `devtools::install_github('hadley/ggplot2')`
+We recommend that you use the dev version of ggplot2 with `ggplotly()`
+Install it with: `devtools::install_github('hadley/ggplot2')`
+We recommend that you use the dev version of ggplot2 with `ggplotly()`
+Install it with: `devtools::install_github('hadley/ggplot2')`
+We recommend that you use the dev version of ggplot2 with `ggplotly()`
+Install it with: `devtools::install_github('hadley/ggplot2')`
+Warning messages:
+1: In .Internal(strsplit(x, as.character(split), fixed, perl, useBytes)) :
+  closing unused RODBC handle 20
+2: Ignoring 5 observations 
+3: Ignoring 5 observations 
+4: Ignoring 5 observations 
+5: Ignoring 5 observations 
+6: Ignoring 5 observations 
+7: Ignoring 5 observations 
+We recommend that you use the dev version of ggplot2 with `ggplotly()`
+Install it with: `devtools::install_github('hadley/ggplot2')`
+We recommend that you use the dev version of ggplot2 with `ggplotly()`
+Install it with: `devtools::install_github('hadley/ggplot2')`
+Warning messages:
+1: In bkde2D(coords, bandwidth = c(bw.SJ(coords[, 1]), bw.SJ(coords[,  :
+  Binning grid too coarse for current (small) bandwidth: consider increasing 'gridsize'
+2: In bkde2D(coords, bandwidth = c(bw.SJ(coords[, 1]), bw.SJ(coords[,  :
+  Binning grid too coarse for current (small) bandwidth: consider increasing 'gridsize'
+We recommend that you use the dev version of ggplot2 with `ggplotly()`
+Install it with: `devtools::install_github('hadley/ggplot2')`
+We recommend that you use the dev version of ggplot2 with `ggplotly()`
+Install it with: `devtools::install_github('hadley/ggplot2')`
+We recommend that you use the dev version of ggplot2 with `ggplotly()`
+Install it with: `devtools::install_github('hadley/ggplot2')`
+We recommend that you use the dev version of ggplot2 with `ggplotly()`
+Install it with: `devtools::install_github('hadley/ggplot2')`
+We recommend that you use the dev version of ggplot2 with `ggplotly()`
+Install it with: `devtools::install_github('hadley/ggplot2')`
+We recommend that you use the dev version of ggplot2 with `ggplotly()`
+Install it with: `devtools::install_github('hadley/ggplot2')`
+We recommend that you use the dev version of ggplot2 with `ggplotly()`
+Install it with: `devtools::install_github('hadley/ggplot2')`
+We recommend that you use the dev version of ggplot2 with `ggplotly()`
+Install it with: `devtools::install_github('hadley/ggplot2')`
+Warning messages:
+1: package 'mapview' was built under R version 3.4.2 
+2: In readLines("https://opendata.arcgis.com/datasets/772f3621fa354ec9abf3ba33f3ace59e_0.geojson") :
+  incomplete final line found on 'https://opendata.arcgis.com/datasets/772f3621fa354ec9abf3ba33f3ace59e_0.geojson'
+Time difference of 28.7632 mins

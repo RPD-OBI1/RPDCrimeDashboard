@@ -7,11 +7,11 @@ library(reshape2)
 library(RODBC)
 library(tidyverse)
 
-source("Z:/Projects/dashboard/RPDCrimeDashboard/Functions/LERMS_incidents.R")
-source("Z:/Projects/dashboard/RPDCrimeDashboard/Functions/pullMCUdata.R")
-source("Z:/Projects/dashboard/RPDCrimeDashboard/Functions/loadshootingvictims.R")
-source("Z:/Projects/dashboard/RPDCrimeDashboard/Functions/LERMS_getCallsForService.R")
-source("Z:/Projects/dashboard/RPDCrimeDashboard/Functions/SPC.R")
+source("//cor.local/RPD/Chief/OBI/Projects/dashboard/RPDCrimeDashboard/Functions/LERMS_incidents.R")
+source("//cor.local/RPD/Chief/OBI/Projects/dashboard/RPDCrimeDashboard/Functions/pullMCUdata.R")
+source("//cor.local/RPD/Chief/OBI/Projects/dashboard/RPDCrimeDashboard/Functions/loadshootingvictims.R")
+source("//cor.local/RPD/Chief/OBI/Projects/dashboard/RPDCrimeDashboard/Functions/LERMS_getCallsForService.R")
+source("//cor.local/RPD/Chief/OBI/Projects/dashboard/RPDCrimeDashboard/Functions/SPC.R")
 
 simpleCap <- function(x) {
     s <- strsplit(x, " ")[[1]]
@@ -46,7 +46,6 @@ firearm.desc <- c('Prohibited Use of Weapon City Limits',
                   'Criminal Use Firearm 2nd: Display Firearm')
 
 firearmCrimeTypes <- c("Aggravated Assault", "Robbery", "Homicide", "Rape", "Simple Assault")
-
 
 #load in RPD's crime data
 
@@ -103,10 +102,10 @@ sectiondflist <- list(
     Central = df %>% filter(Section == 9)
 )
 saveRDS(object = sectiondflist, 
-        file = "Z:/Projects/dashboard/RPDCrimeDashboard/Objects/sectiondflist.RDS", 
+        file = "//cor.local/RPD/Chief/OBI/Projects/dashboard/RPDCrimeDashboard/Objects/sectiondflist.RDS", 
         compress = FALSE)
 saveRDS(object = df, 
-        file = "Z:/Projects/dashboard/RPDCrimeDashboard/Objects/citywidedf.RDS", 
+        file = "//cor.local/RPD/Chief/OBI/Projects/dashboard/RPDCrimeDashboard/Objects/citywidedf.RDS", 
         compress = FALSE)
 
 # Calls for service
@@ -141,21 +140,21 @@ saveRDS(object = cfs.df,
 
 # SPC objects
 
-PropVals <- read.csv("Z:/Projects/dashboard/RPDCrimeDashboard/Objects/ProportionsAndCounts.csv", 
+PropVals <- read.csv("//cor.local/RPD/Chief/OBI/Projects/dashboard/RPDCrimeDashboard/Objects/ProportionsAndCounts.csv", 
                      header= T)
-ShootingControlLimits <- read.csv("Z:/Projects/dashboard/RPDCrimeDashboard/Objects/3YrWeightedControlLimitsShootings.csv")
-ShootingProps <- read.csv("Z:/Projects/dashboard/RPDCrimeDashboard/Objects/ProportionsAndCountsShootings.csv", 
+ShootingControlLimits <- read.csv("//cor.local/RPD/Chief/OBI/Projects/dashboard/RPDCrimeDashboard/Objects/3YrWeightedControlLimitsShootings.csv")
+ShootingProps <- read.csv("//cor.local/RPD/Chief/OBI/Projects/dashboard/RPDCrimeDashboard/Objects/ProportionsAndCountsShootings.csv", 
                           stringsAsFactors = FALSE)
 ShootingPropsFull <- ShootingProps
 
-histdata <- read.csv(file = "Z:/Projects/dashboard/RPDCrimeDashboard/Objects/historicaldata.csv", 
+histdata <- read.csv(file = "//cor.local/RPD/Chief/OBI/Projects/dashboard/RPDCrimeDashboard/Objects/historicaldata.csv", 
                      stringsAsFactors = FALSE, 
                      header = TRUE)
 
-controllimits <- read.csv(file = "Z:/Projects/dashboard/RPDCrimeDashboard/Objects/3YrWeightedControlLimits.csv", 
+controllimits <- read.csv(file = "//cor.local/RPD/Chief/OBI/Projects/dashboard/RPDCrimeDashboard/Objects/3YrWeightedControlLimits.csv", 
                           header = TRUE)
 
-controllimits <- rbind(data.frame(controllimits, Year = 2017),
+controllimits <- rbind(#data.frame(controllimits, Year = 2017),
                        data.frame(controllimits, Year = 2018),
                        data.frame(controllimits, Year = 2019))
 
@@ -180,10 +179,15 @@ MCUhoms <- MCUhoms %>%
 
 personincident <- left_join(MCUhoms, person, by = "CaseNumber")
 
-sv <- loadshootingvictims()
+maxdate <- sevenDayGroupTable %>% # added to filter shooting victims to the same date range as LERMS data
+    filter(Group == curr.week) %>% 
+    filter(DOY == max(DOY)) %>% 
+    .$Date
+sv <- loadshootingvictims() %>%
+    filter(Date < maxdate)
 drops <- c("Lat", "Lon")
 svjoined <- left_join(x = sv, y = df, by = c("CaseNumber" = "CRNum")) %>%
-    select(-one_of(drops)) %>%
+    dplyr::select(-one_of(drops)) %>%
     rename(Lat = Latitude, Lon = Longitude)
 
 PropValsLake <- filter(PropVals, Section == "Lake")
@@ -268,5 +272,6 @@ sectionSPClist <- list(
 )
 
 saveRDS(sectionSPClist, 
-        "Z:/Projects/dashboard/RPDCrimeDashboard/Objects/sectionSPClist.RDS", 
+        "//cor.local/RPD/Chief/OBI/Projects/dashboard/RPDCrimeDashboard/Objects/sectionSPClist.RDS", 
         compress = FALSE)
+
